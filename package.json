@@ -1,6 +1,6 @@
 {
   "name": "wall-mapper",
-  "version": "0.90.0",
+  "version": "0.91.0",
   "private": true,
   "description": "LED video wall planner: layout, power and data mapping, processors, crew paperwork",
   "type": "module",

@@ -14,20 +14,6 @@ function setStatus(t){
   clearTimeout(setStatus._t); setStatus._t=setTimeout(()=>x.classList.remove('on'),bad?4200:2600);
 }
 
-let storeOK=true;
-async function sGet(k){
-  try{ const r=await window.storage.get(k,false); return r&&r.value?JSON.parse(r.value):null; }
-  catch(e){ return null; }
-}
-async function sSet(k,v){
-  try{ await window.storage.set(k,JSON.stringify(v),false); return true; }
-  catch(e){
-    if(storeOK){ storeOK=false; setStatus('Saving to this browser is unavailable — use Export current'); }
-    return false;
-  }
-}
-async function sDel(k){ try{ await window.storage.delete(k,false); }catch(e){} }
-
 function rawTiles(d){
   try{
     return d.screens.reduce((n,sn)=>{

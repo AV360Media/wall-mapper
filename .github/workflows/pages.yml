@@ -1,10 +1,9 @@
-# Builds dist/wall-mapper.html on every push to main and publishes it to GitHub Pages
-# as index.html. One-time setup: Settings → Pages → Source: GitHub Actions.
+# Builds dist/wall-mapper.html from main and publishes it to GitHub Pages as index.html.
+# Runs only when started by hand (Actions → Publish to GitHub Pages → Run workflow),
+# so merged changes stay unpublished until then.
 name: Publish to GitHub Pages
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:

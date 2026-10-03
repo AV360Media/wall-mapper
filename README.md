@@ -18,6 +18,12 @@ npm run dev     # rebuilds on every change under src/
 The output is one self-contained HTML file: open it in a browser, or paste it into a
 claude.ai artifact.
 
+## Publishing
+
+Every push to `main` builds the app and publishes it to GitHub Pages at
+https://bryanchorton.github.io/wall-mapper/ (workflow: `.github/workflows/pages.yml`).
+One-time setup: Settings → Pages → Source: **GitHub Actions**.
+
 ## Layout
 
 ```

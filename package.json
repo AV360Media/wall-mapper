@@ -1,0 +1,11 @@
+{
+  "name": "wall-mapper",
+  "version": "0.90.0",
+  "private": true,
+  "description": "LED video wall planner: layout, power and data mapping, processors, crew paperwork",
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "dev": "node build.mjs --watch"
+  }
+}

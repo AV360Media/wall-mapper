@@ -20,8 +20,9 @@ claude.ai artifact.
 
 ## Publishing
 
-Every push to `main` builds the app and publishes it to GitHub Pages at
-https://bryanchorton.github.io/wall-mapper/ (workflow: `.github/workflows/pages.yml`).
+The app is published to GitHub Pages at https://bryanchorton.github.io/wall-mapper/ only on
+demand: Actions → **Publish to GitHub Pages** → **Run workflow** builds `main` and deploys it
+(workflow: `.github/workflows/pages.yml`). Merging to `main` alone publishes nothing.
 One-time setup: Settings → Pages → Source: **GitHub Actions**.
 
 ## Layout

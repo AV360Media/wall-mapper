@@ -2,6 +2,8 @@
 (async function(){
   try{ applyUITheme(await sGet('wm:theme')||'dark',false); }catch(e){ applyUITheme('dark',false); }
   document.body.dataset.mode=mode;
+  if(TESTBUILD){ document.title='TEST · '+document.title;
+    document.querySelector('.eyebrow b').insertAdjacentHTML('afterend','<span class="testtag">TEST BUILD</span>'); }
   if(document.fonts) document.fonts.ready.then(()=>{ try{ redraw(); segSync(); }catch(e){} });
   setTimeout(segSync,60); setTimeout(segSync,700);
   /* nothing in here may stop the interface from rendering */

@@ -185,6 +185,7 @@ function autoChain(){
   const s=sc();
   const dir=document.getElementById('aoDir').value;
   const len=Math.max(1,+document.getElementById('aoLen').value||8);
+  if(mode==='data') return autoData(s,len);
   const rows=[...Array(s.rows).keys()], cols=[...Array(s.cols).keys()], rb=[...rows].reverse();
   const seq=[];
   if(dir==='col') cols.forEach((c,i)=>{ (i%2?rows:rb).forEach(r=>{ if(!isOff(s,r,c)) seq.push(key(r,c)); }); });
@@ -198,6 +199,48 @@ function autoChain(){
   for(let i=0;i<seq.length&&n<avail.length;i+=len,n++) avail[n].ch.tiles=seq.slice(i,i+len);
   if(seq.length>len*avail.length) setStatus(`Only ${avail.length} free port${avail.length===1?'':'s'} — raise tiles per chain or add a processor`);
   active[mode]=avail.length?avail[0].i:0;
+  syncForm(); renderSlots(); redraw(); renderSide(); save();
+}
+/* Data runs laid out the way a crew patches them: every run starts on the edge the home runs
+   come from, takes whole columns (or rows) and snakes away from that edge and back, so all the
+   home runs land side by side in port order. A wall too deep for one run per column is cut into
+   bands; each band's runs start on its own edge nearest the feed. Runs are balanced so they
+   carry similar tile counts, and never exceed tiles-per-chain or the port's pixel capacity. */
+function dataLayout(s,feed,cap){
+  const vert=feed!=='left'&&feed!=='right', D=vert?s.rows:s.cols, A=vert?s.cols:s.rows;
+  const flip=feed==='bottom'||feed==='right';
+  const at=(d,a)=>{ const dd=flip?D-1-d:d; return vert?[dd,a]:[a,dd]; };
+  const live=(d,a)=>{ const[r,c]=at(d,a); return !isOff(s,r,c); };
+  const nb=Math.ceil(D/cap), out=[];
+  for(let b=0,d0=0;b<nb;b++){
+    const h=Math.floor(D/nb)+(b<D%nb?1:0), ds=[...Array(h).keys()].map(i=>d0+i); d0+=h;
+    const lines=[...Array(A).keys()].map(a=>({a,n:ds.filter(d=>live(d,a)).length})).filter(l=>l.n);
+    if(!lines.length) continue;
+    const pack=lim=>{ const g=[[]]; let t=0;
+      lines.forEach(l=>{ if(t+l.n>lim&&g[g.length-1].length){ g.push([]); t=0; } g[g.length-1].push(l); t+=l.n; });
+      return g; };
+    const n=pack(cap).length, tot=lines.reduce((t,l)=>t+l.n,0);
+    /* spread the lines evenly over those n runs; keep the greedy packing if that would overfill one */
+    let g=[...Array(n)].map(()=>[]), t=0;
+    lines.forEach(l=>{ g[Math.min(n-1,Math.floor((t+l.n/2)*n/tot))].push(l); t+=l.n; });
+    if(g.some(x=>!x.length||x.reduce((u,l)=>u+l.n,0)>cap)) g=pack(cap);
+    g.forEach(x=>out.push(x.flatMap((l,i)=>(i%2?[...ds].reverse():ds)
+      .filter(d=>live(d,l.a)).map(d=>key(...at(d,l.a))))));
+  }
+  return out;
+}
+function autoData(s,len){
+  const p=panelById(s.panelId), pc=portCap(procOf(s));
+  const fit=pc?Math.floor(pc/(p.pw*p.ph)):0;
+  if(pc&&!fit){ setStatus('One '+p.model+' is more than a port can carry at '+bitDepth()+'-bit'); return; }
+  const cap=fit?Math.min(len,fit):len, feed=s.feed||'top';
+  const runs=dataLayout(s,feed,cap), list=s.runs, u=unitOf(s);
+  list.forEach(ch=>ch.tiles=[]);
+  const avail=list.map((ch,i)=>({ch,i})).filter(x=>!(isBackupRun(s,x.ch)||portOwner(u,x.i,s)));
+  runs.forEach((t,n)=>{ if(avail[n]) avail[n].ch.tiles=t; });
+  if(runs.length>avail.length) setStatus(`Needs ${runs.length} ports, only ${avail.length} free — raise tiles per chain or add a processor`);
+  else setStatus(`${runs.length} data run${runs.length===1?'':'s'}, up to ${cap} tiles each${fit&&fit<len?' (port capacity)':''}, home runs from the ${feed}`);
+  active.data=avail.length?avail[0].i:0;
   syncForm(); renderSlots(); redraw(); renderSide(); save();
 }
 function tidyChains(){ S.screens.forEach(hardPrune); }

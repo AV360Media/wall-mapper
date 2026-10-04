@@ -86,7 +86,10 @@
         <div class="autobox">
           <div class="g2">
             <div class="f"><label>Tiles per chain</label><input type="number" min="1" id="aoLen" value="8" /></div>
-            <div class="f"><label>Run along</label><select id="aoDir"><option value="col">Columns</option><option value="row">Rows</option></select></div>
+            <div class="f" id="aoDirWrap"><label>Run along</label><select id="aoDir"><option value="col">Columns</option><option value="row">Rows</option></select></div>
+            <div class="f" id="aoFeedWrap" style="display:none"><label>Home runs from</label><select id="aoFeed" onchange="sc().feed=this.value;save()">
+              <option value="top">Top</option><option value="bottom">Bottom</option>
+              <option value="left">Left</option><option value="right">Right</option></select></div>
           </div>
           <div class="g2">
             <button class="btn sm" onclick="autoChain()">Auto-build</button>

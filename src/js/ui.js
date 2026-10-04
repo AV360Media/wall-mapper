@@ -114,6 +114,9 @@ function syncForm(){
   document.getElementById('scName').value=s.name;
   document.getElementById('scRows').value=s.rows;
   document.getElementById('scCols').value=s.cols;
+  document.getElementById('aoFeed').value=s.feed||'top';
+  document.getElementById('aoFeedWrap').style.display=mode==='data'?'':'none';
+  document.getElementById('aoDirWrap').style.display=mode==='data'?'none':'';
   const pk=document.getElementById('panelPick');
   pk.innerHTML=p
     ? `<span class="t">${escp(p.brand+' '+p.model)}</span><span class="s">${p.pitch} mm · ${p.pw}×${p.ph} px · ${p.lb||'?'} lb</span>`

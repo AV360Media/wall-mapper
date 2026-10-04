@@ -63,16 +63,23 @@ async function openProject(id){
   setStatus('Opened '+(S.name||'project'));
   await sSet(CURKEY,id);
 }
-async function newProject(name){
+async function newProject(name,cfg){
   S=blankProject();
   if(name) S.name=name;
+  if(cfg){                                      /* from the setup dialog */
+    const s=S.screens[0];
+    S.venue=cfg.venue;
+    Object.assign(S.opt,{volts:cfg.volts,breaker:cfg.breaker,useAvg:cfg.useAvg,derate:cfg.derate,bits:cfg.bits});
+    if(cfg.custom) S.customPanels.push(cfg.custom);
+    Object.assign(s,{panelId:cfg.panelId,procId:cfg.procId,feed:cfg.feed,cols:cfg.cols,rows:cfg.rows});
+  }
   projId=uid('p'); normalize(); cur=0; focusIdx=null; active={power:0,data:0};
   undoStack.length=0; redoStack.length=0; updateUndoUI();
   document.getElementById('focusBar').classList.add('hide');
   touchIndex();
   closeMask('pjModal');
   renderTabs(); setMode('layout'); renderSide(); fitView(); renderProjects();
-  setStatus('New project — choose an LED panel in the sidebar');
+  setStatus(cfg?'Project ready — '+S.screens[0].cols+'×'+S.screens[0].rows+' wall':'New project — choose an LED panel in the sidebar');
   await sSet(PKEY(projId),S); await sSet(IDX,projIndex); await sSet(CURKEY,projId);
 }
 async function dupProject(id){
@@ -102,7 +109,7 @@ async function deleteProject(id){
   projIndex=projIndex.filter(x=>x.id!==id);
   await sSet(IDX,projIndex);
   if(id===projId){
-    if(projIndex.length) await openProject(projIndex[0].id); else await newProject();
+    if(projIndex.length) await openProject(projIndex[0].id); else { await newProject(); openSetup(true); }
   }
   renderProjects(); setStatus('Deleted');
 }

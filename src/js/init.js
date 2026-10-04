@@ -25,12 +25,14 @@
     }
   }catch(e){ console.error('project load failed',e); }
 
+  const fresh=!S;                               /* nothing saved yet: ask for the setup first */
   if(!S) S=blankProject();
   if(!projId) projId=uid('p');
   normalize();
 
   renderTabs(); setMode('layout'); renderSide(); fitView(); updateUndoUI();
   setStatus(sc().panelId?'Ready':'Choose an LED panel in the sidebar to start');
+  if(fresh&&!(cloudOn()&&signedIn())) openSetup(true);   /* a signed-in browser pulls its projects instead */
 
   /* persist afterwards, and never let it break anything */
   try{

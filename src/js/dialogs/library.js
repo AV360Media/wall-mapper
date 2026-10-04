@@ -1,6 +1,6 @@
 /* ========================= LIBRARY DIALOG ========================= */
-function openLib(kind){
-  libKind=kind;
+function openLib(kind,setup){
+  libKind=kind; if(!setup) libDraft=null;
   document.getElementById('libTitle').textContent=kind==='panel'?'Choose LED panel':'Choose processor';
   document.getElementById('libCustom').style.display=kind==='panel'?'':'none';
   document.getElementById('libSearch').value='';
@@ -9,9 +9,9 @@ function openLib(kind){
 }
 function closeMask(id){ document.getElementById(id).classList.add('hide'); }
 function libRows(){
-  const sc0=sc();
+  const sc0=libDraft||sc(), cust=libDraft?(libDraft.custom?[libDraft.custom]:[]):(S.customPanels||[]);
   return libKind==='panel'
-    ? PANELS.concat(S.customPanels||[]).map(p=>({id:p.id,sel:p.id===sc0.panelId,v:p.v,d:p.d,pop:p.pop,
+    ? PANELS.concat(cust).map(p=>({id:p.id,sel:p.id===sc0.panelId,v:p.v,d:p.d,pop:p.pop,
         n:`${p.brand} ${p.model}`,
         sub:`${p.pitch}mm · ${p.pw}×${p.ph} px · ${IN(p.wmm).toFixed(1)}×${IN(p.hmm).toFixed(1)} in · ${p.lb||'?'} lb · ${p.wmax}W max`,
         hay:`${p.brand} ${p.series||''} ${p.model} ${p.pitch} ${p.pw}x${p.ph} ${p.pw} ${p.ph}`.toLowerCase()}))
@@ -45,6 +45,7 @@ function renderLib(){
     : '<div class="empty" style="padding:16px">Nothing matches that. Try a brand, a model, or a pitch like “2.6”.</div>';
 }
 function chooseLib(id){
+  if(libDraft){ libDraft[libKind==='panel'?'panelId':'procId']=id; closeMask('libModal'); nwCheck(); return; }
   pushUndo(libKind==='panel'?'panel change':'processor change');
   const wasPanel=libKind==='panel';
   if(wasPanel) sc().panelId=id;
@@ -73,6 +74,7 @@ function saveCustomPanel(){
     model:(g('cpModel')||'Panel')+(g('cpLabel')?' ('+g('cpLabel')+')':''),
     pitch:+g('cpPitch')||+(wmm/pw).toFixed(2),wmm,hmm,pw,ph,
     wmax:+g('cpWmax')||0,wavg:+g('cpWavg')||0,v:1};
+  if(libDraft){ libDraft.custom=p; libDraft.panelId=p.id; closeMask('cpModal'); nwCheck(); return; }
   S.customPanels=S.customPanels||[]; S.customPanels.push(p);
   sc().panelId=p.id; closeMask('cpModal'); syncForm(); renderSide(); redraw(); save();
 }

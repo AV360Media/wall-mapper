@@ -185,7 +185,7 @@ function autoChain(){
   const s=sc();
   const dir=document.getElementById('aoDir').value;
   const len=Math.max(1,+document.getElementById('aoLen').value||8);
-  if(mode==='data') return autoData(s,len);
+  if(mode==='data') return autoData(s);
   const rows=[...Array(s.rows).keys()], cols=[...Array(s.cols).keys()], rb=[...rows].reverse();
   const seq=[];
   if(dir==='col') cols.forEach((c,i)=>{ (i%2?rows:rb).forEach(r=>{ if(!isOff(s,r,c)) seq.push(key(r,c)); }); });
@@ -235,11 +235,14 @@ function dataLayout(s,feed,cap){
 /* Auto tries each edge and keeps the first that reaches the minimum with whole lines, else the
    snake with the most runs starting on its edge */
 const FEEDS=['left','top','right','bottom'];
-function autoData(s,len){
-  const p=panelById(s.panelId), pc=portCap(procOf(s));
-  const fit=pc?Math.floor(pc/(p.pw*p.ph)):0;
-  if(pc&&!fit){ setStatus('One '+p.model+' is more than a port can carry at '+bitDepth()+'-bit'); return; }
-  const cap=fit||len, want=s.feed||'auto';
+/* every run fills its port: tiles per port come from the processor, or from a standard
+   1 Gb port (650k px at 8-bit) until a processor model is picked */
+const STD_PORT=650000;
+const portPx=s=>portCap(procOf(s))||Math.round(STD_PORT*bitFactor());
+const tilesPerPort=s=>{ const p=panelById(s.panelId); return p?Math.floor(portPx(s)/(p.pw*p.ph)):0; };
+function autoData(s){
+  const p=panelById(s.panelId), cap=tilesPerPort(s), want=s.feed||'auto';
+  if(!cap){ setStatus('One '+p.model+' is more than a port can carry at '+bitDepth()+'-bit'); return; }
   const L=want==='auto'
     ? FEEDS.map(f=>dataLayout(s,f,cap)).reduce((b,x)=>(b.clean||(!x.clean&&x.edge<=b.edge))?b:x)
     : dataLayout(s,want,cap);
@@ -249,7 +252,7 @@ function autoData(s,len){
   runs.forEach((t,n)=>{ if(avail[n]) avail[n].ch.tiles=t; });
   const side={left:'down the left side',right:'down the right side',top:'along the top',bottom:'along the bottom'}[L.feed];
   if(runs.length>avail.length) setStatus(`Needs ${runs.length} ports, only ${avail.length} free — raise tiles per chain or add a processor`);
-  else setStatus(`${runs.length} data run${runs.length===1?'':'s'}, up to ${cap} tiles each, home runs ${side}${L.clean?'':' (some start mid-wall to save ports)'}`);
+  else setStatus(`${runs.length} data run${runs.length===1?'':'s'}, up to ${cap} tiles each, home runs ${side}${L.clean?'':' (some start mid-wall to save ports)'}${portCap(procOf(s))?'':' — standard 650k port assumed, pick a processor for its exact capacity'}`);
   active.data=avail.length?avail[0].i:0;
   syncForm(); renderSlots(); redraw(); renderSide(); save();
 }

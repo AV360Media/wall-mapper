@@ -117,8 +117,11 @@ function syncForm(){
   document.getElementById('aoFeed').value=s.feed||'auto';
   document.getElementById('aoFeedWrap').style.display=mode==='data'?'':'none';
   document.getElementById('aoDirWrap').style.display=mode==='data'?'none':'';
-  /* data runs fill each port to its capacity, so the length box only matters without a processor */
-  document.getElementById('aoLenWrap').style.display=mode==='data'&&pr&&portCap(pr)?'none':'';
+  /* data runs always fill their port, so the length box is for power only */
+  document.getElementById('aoLenWrap').style.display=mode==='data'?'none':'';
+  const an=document.getElementById('aoNote'), tp=p?tilesPerPort(s):0;
+  an.style.display=mode==='data'&&tp?'':'none';
+  an.textContent=tp?`Fills each port: up to ${tp} tiles (${Math.round(portPx(s)/1000)}k px at ${bitDepth()}-bit${pr&&portCap(pr)?'':', standard port until a processor is picked'})`:'';
   const pk=document.getElementById('panelPick');
   pk.innerHTML=p
     ? `<span class="t">${escp(p.brand+' '+p.model)}</span><span class="s">${p.pitch} mm · ${p.pw}×${p.ph} px · ${p.lb||'?'} lb</span>`

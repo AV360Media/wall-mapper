@@ -100,13 +100,14 @@ function pmSide(){
     g('pmMoLen').textContent=L!==want?`Clips will run ${L} s so every line finishes whole passes and loops cleanly.`:`Clips run ${L} s and loop cleanly.`; }
   g('pmShare').checked=!!pm.share; g('pmCount').value=pm.outCount||4;
   const iss=pmAudit();
-  g('pmIssues').innerHTML=iss.length?`<div class="pmiss">
+  const fx=pmFixLive()?`<div class="pmfix"><span>Fixed: ${escp(pmLastFix.text)}.</span><button class="btn sm" onclick="pmUndoFix()">Undo fix</button></div>`:'';
+  g('pmIssues').innerHTML=fx+(iss.length?`<div class="pmiss">
       <div class="pmiss-h"><b>${iss.length} thing${iss.length===1?'':'s'} to sort out</b>
         ${iss.some(i=>i.kind!=='note')?`<button class="btn sm pri" onclick="pmFix('all')">Fix all</button>`:''}</div>
       ${iss.map(i=>`<div class="pmiss-i"><div class="pmiss-t">${escp(i.title)}</div><div class="pmiss-d">${escp(i.detail)}</div>
         ${i.kind==='split'?`<button class="btn sm" onclick="pmFix('split','${i.id}')">Split screen</button>`:''}
         ${i.kind==='rebalance'?`<button class="btn sm" onclick="pmFix('rebalance','${i.id}')">Add processors and rebalance</button>`:''}</div>`).join('')}
-    </div>`:`<div class="pmok">Every processor is within its limits and fits ${M.outs.length} of your ${pm.outCount||4} outputs.</div>`;
+    </div>`:`<div class="pmok">Every processor is within its limits and fits ${M.outs.length} of your ${pm.outCount||4} outputs.</div>`);
   g('pmOuts').innerHTML=M.outs.map(o=>{
     const px=o.W*o.H, over=o.W>pm.outW||o.H>pm.outH||px>pm.outPx;
     return `<div class="pmout ${over?'bad':''}">

@@ -30,8 +30,7 @@ function redo(){
   restore(e); setStatus('Redone');
 }
 function updateUndoUI(){
-  const u=document.getElementById('undoBtn'), r=document.getElementById('redoBtn');
-  if(u) u.disabled=!undoStack.length;
-  if(r) r.disabled=!redoStack.length;
+  ['undoBtn','pmUndo'].forEach(id=>{ const u=document.getElementById(id); if(u) u.disabled=!undoStack.length; });
+  ['redoBtn','pmRedo'].forEach(id=>{ const r=document.getElementById(id); if(r) r.disabled=!redoStack.length; });
 }
 

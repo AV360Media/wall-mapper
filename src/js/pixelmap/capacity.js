@@ -131,15 +131,21 @@ function pmFix(kind,id){
   const list=kind==='all'?pmAudit().filter(i=>i.kind!=='note'):pmAudit().filter(i=>i.kind===kind&&i.id===id);
   if(!list.length) return;
   pushUndo('pixel map fix');
-  const r=pmApplyFixes(list);
+  const r=pmApplyFixes(list), at=undoStack.length;
   normalize(); cur=Math.min(cur,S.screens.length-1);
   renderTabs(); syncForm(); renderSlots(); renderSide(); redraw(); pmSync(); save();
   const bits=[];
   if(r.split) bits.push(`split ${r.split} screen${r.split===1?'':'s'}`);
   if(r.added) bits.push(`added ${r.added} processor${r.added===1?'':'s'}`);
   if(r.moved) bits.push(`moved ${r.moved} run${r.moved===1?'':'s'} to free ports`);
+  pmLastFix=bits.length?{at,text:bits.join(', ')}:null;
+  pmSync();
   setStatus(bits.length?'Fixed: '+bits.join(', ')+' · ⌘Z to undo':'Nothing needed changing');
 }
+/* the fix just applied, offered back until anything else changes */
+let pmLastFix=null;
+function pmUndoFix(){ if(pmFixLive()) undo(); }
+const pmFixLive=()=>pmLastFix&&undoStack.length===pmLastFix.at&&undoStack[undoStack.length-1].label==='pixel map fix';
 
 /* skyline bin packing: place each block at the lowest, then leftmost, spot that fits */
 function pmSkyline(blocks,W){

@@ -185,6 +185,7 @@ function autoChain(){
   const s=sc();
   const dir=document.getElementById('aoDir').value;
   const len=Math.max(1,+document.getElementById('aoLen').value||8);
+  if(mode==='data') return autoData(s,len);
   const rows=[...Array(s.rows).keys()], cols=[...Array(s.cols).keys()], rb=[...rows].reverse();
   const seq=[];
   if(dir==='col') cols.forEach((c,i)=>{ (i%2?rows:rb).forEach(r=>{ if(!isOff(s,r,c)) seq.push(key(r,c)); }); });
@@ -198,6 +199,58 @@ function autoChain(){
   for(let i=0;i<seq.length&&n<avail.length;i+=len,n++) avail[n].ch.tiles=seq.slice(i,i+len);
   if(seq.length>len*avail.length) setStatus(`Only ${avail.length} free port${avail.length===1?'':'s'} — raise tiles per chain or add a processor`);
   active[mode]=avail.length?avail[0].i:0;
+  syncForm(); renderSlots(); redraw(); renderSide(); save();
+}
+/* Data runs use as few ports as the wall allows: each port is filled to capacity, so the run
+   count is always ceil(tiles / tiles-per-port). Within that minimum the cleanest layout wins:
+   whole rows (or columns) starting on the feed edge, so every home run comes in along that one
+   edge. Side feeds number from the bottom row up; top and bottom feeds from left to right.
+   Only when whole lines would cost an extra port does it fall back to one continuous snake
+   cut at capacity, where some runs start where the last one ended. */
+function dataLayout(s,feed,cap){
+  const vert=feed==='top'||feed==='bottom', D=vert?s.rows:s.cols, A=vert?s.cols:s.rows;
+  const flip=feed==='bottom'||feed==='right';
+  const at=(d,a)=>{ const dd=flip?D-1-d:d; return vert?[dd,a]:[A-1-a,dd]; };
+  const live=(d,a)=>{ const[r,c]=at(d,a); return !isOff(s,r,c); };
+  const line=(a,ds,back)=>(back?[...ds].reverse():ds).filter(d=>live(d,a)).map(d=>({d,t:key(...at(d,a))}));
+  const all=[...Array(D).keys()], min=Math.ceil(tileCount(s)/cap);
+  /* whole lines, greedily packed to capacity, in bands when one line is longer than a port */
+  const nb=Math.ceil(D/cap), whole=[];
+  for(let b=0,d0=0;b<nb;b++){
+    const h=Math.floor(D/nb)+(b<D%nb?1:0), ds=all.slice(d0,d0+h); d0+=h;
+    let g=null;
+    for(let a=0;a<A;a++){
+      const n=ds.filter(d=>live(d,a)).length; if(!n) continue;
+      if(!g||g.n+n>cap){ g={n:0,ls:[],ds}; whole.push(g); }
+      g.ls.push(a); g.n+=n;
+    }
+  }
+  if(whole.length<=min) return {feed,clean:true,runs:whole.map(g=>g.ls.flatMap((a,i)=>line(a,g.ds,i%2)).map(x=>x.t))};
+  /* one snake through the wall, cut every cap tiles */
+  const seq=[...Array(A).keys()].flatMap((a,i)=>line(a,all,i%2)), runs=[];
+  let edge=0;
+  for(let i=0;i<seq.length;i+=cap){ runs.push(seq.slice(i,i+cap).map(x=>x.t)); if(!seq[i].d) edge++; }
+  return {feed,clean:false,edge,runs};
+}
+/* Auto tries each edge and keeps the first that reaches the minimum with whole lines, else the
+   snake with the most runs starting on its edge */
+const FEEDS=['left','top','right','bottom'];
+function autoData(s,len){
+  const p=panelById(s.panelId), pc=portCap(procOf(s));
+  const fit=pc?Math.floor(pc/(p.pw*p.ph)):0;
+  if(pc&&!fit){ setStatus('One '+p.model+' is more than a port can carry at '+bitDepth()+'-bit'); return; }
+  const cap=fit||len, want=s.feed||'auto';
+  const L=want==='auto'
+    ? FEEDS.map(f=>dataLayout(s,f,cap)).reduce((b,x)=>(b.clean||(!x.clean&&x.edge<=b.edge))?b:x)
+    : dataLayout(s,want,cap);
+  const runs=L.runs, list=s.runs, u=unitOf(s);
+  list.forEach(ch=>ch.tiles=[]);
+  const avail=list.map((ch,i)=>({ch,i})).filter(x=>!(isBackupRun(s,x.ch)||portOwner(u,x.i,s)));
+  runs.forEach((t,n)=>{ if(avail[n]) avail[n].ch.tiles=t; });
+  const side={left:'down the left side',right:'down the right side',top:'along the top',bottom:'along the bottom'}[L.feed];
+  if(runs.length>avail.length) setStatus(`Needs ${runs.length} ports, only ${avail.length} free — raise tiles per chain or add a processor`);
+  else setStatus(`${runs.length} data run${runs.length===1?'':'s'}, up to ${cap} tiles each, home runs ${side}${L.clean?'':' (some start mid-wall to save ports)'}`);
+  active.data=avail.length?avail[0].i:0;
   syncForm(); renderSlots(); redraw(); renderSide(); save();
 }
 function tidyChains(){ S.screens.forEach(hardPrune); }

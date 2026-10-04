@@ -88,7 +88,7 @@ function download(blob,name){
   setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},2500);
 }
 const fileBase=()=>((((S.exp&&S.exp.show)||S.name||'wall-map').replace(/[^a-z0-9\-_ ]/gi,'_')).trim())||'wall-map';
-function exportPDF(){ openExport(); }
+function exportPDF(){ if(needScreen()) return; openExport(); }
 function openExport(){
   expDraft=Object.assign(defExp(),JSON.parse(JSON.stringify(expOf())));
   const g=id=>document.getElementById(id);
@@ -152,6 +152,7 @@ function doExportPDF(){
   finally{ XO=null; focusIdx=wasFocus; b.disabled=false; b.textContent='PDF drawing set…'; redraw(); }
 }
 function exportPNG(){
+  if(needScreen()) return;
   try{
     const c=withPrint(()=>{ XO=Object.assign({},expOf());
       try{ return focusIdx!=null?pairCanvas(S.screens[focusIdx]):setCanvas(null); } finally { XO=null; } });

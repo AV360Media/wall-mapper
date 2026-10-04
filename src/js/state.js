@@ -40,7 +40,7 @@ const used=(s,kind)=>chains(s,kind).filter(ch=>LT(s,ch).length);
 function units(){ return (S.procs=S.procs||[]); }
 function unitOf(sn){
   const U=units();
-  return U.find(u=>u.id===sn.procRef) || U[0] || null;
+  return U.find(u=>sn&&u.id===sn.procRef) || U[0] || null;
 }
 function unitProc(u){ return (u&&procById(u.procId))||NOPROC; }
 const procOfUnit=unitProc;

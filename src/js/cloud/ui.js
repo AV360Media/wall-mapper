@@ -151,7 +151,7 @@ function importJSON(f){
     try{
       if(Array.isArray(d)) d={name:f.name.replace(/\.json$/i,''),screens:d};
       if(d&&d.project&&d.project.screens) d=d.project;              /* tolerate a wrapper */
-      if(!d||typeof d!=='object'||!Array.isArray(d.screens)||!d.screens.length){
+      if(!d||typeof d!=='object'||!Array.isArray(d.screens)||(!d.screens.length&&!d.opt)){
         setStatus('No screens found in that file — is it a Wall Mapper project?');
         if(inp) inp.value=''; return;
       }

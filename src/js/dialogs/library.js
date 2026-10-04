@@ -9,7 +9,7 @@ function openLib(kind,setup){
 }
 function closeMask(id){ document.getElementById(id).classList.add('hide'); }
 function libRows(){
-  const sc0=libDraft||sc(), cust=libDraft?(libDraft.custom?[libDraft.custom]:[]):(S.customPanels||[]);
+  const sc0=libDraft||sc()||{panelId:S.defPanel,procId:unitProc(units()[0]).id}, cust=libDraft?(libDraft.custom?[libDraft.custom]:[]):(S.customPanels||[]);
   return libKind==='panel'
     ? PANELS.concat(cust).map(p=>({id:p.id,sel:p.id===sc0.panelId,v:p.v,d:p.d,pop:p.pop,
         n:`${p.brand} ${p.model}`,
@@ -48,7 +48,7 @@ function chooseLib(id){
   if(libDraft){ libDraft[libKind==='panel'?'panelId':'procId']=id; closeMask('libModal'); nwCheck(); return; }
   pushUndo(libKind==='panel'?'panel change':'processor change');
   const wasPanel=libKind==='panel';
-  if(wasPanel) sc().panelId=id;
+  if(wasPanel){ if(sc()) sc().panelId=id; else S.defPanel=id; }
   else {
     const u=(libUnit&&units().find(x=>x.id===libUnit))||unitOf(sc());
     libUnit=null;
@@ -76,6 +76,7 @@ function saveCustomPanel(){
     wmax:+g('cpWmax')||0,wavg:+g('cpWavg')||0,v:1};
   if(libDraft){ libDraft.custom=p; libDraft.panelId=p.id; closeMask('cpModal'); nwCheck(); return; }
   S.customPanels=S.customPanels||[]; S.customPanels.push(p);
-  sc().panelId=p.id; closeMask('cpModal'); syncForm(); renderSide(); redraw(); save();
+  if(sc()) sc().panelId=p.id; else S.defPanel=p.id;
+  closeMask('cpModal'); syncForm(); renderSide(); redraw(); save();
 }
 

@@ -17,11 +17,11 @@
     }
     if(!S&&want&&projIndex.some(e=>e.id===want)){
       const d=await sGet(PKEY(want));
-      if(d&&d.screens&&d.screens.length){ projId=want; S=d; }
+      if(d&&Array.isArray(d.screens)){ projId=want; S=d; }
     }
     if(!S&&projIndex.length){
       const d=await sGet(PKEY(projIndex[0].id));
-      if(d&&d.screens&&d.screens.length){ projId=projIndex[0].id; S=d; }
+      if(d&&Array.isArray(d.screens)){ projId=projIndex[0].id; S=d; }
     }
   }catch(e){ console.error('project load failed',e); }
 
@@ -31,7 +31,7 @@
   normalize();
 
   renderTabs(); setMode('layout'); renderSide(); fitView(); updateUndoUI();
-  setStatus(sc().panelId?'Ready':'Choose an LED panel in the sidebar to start');
+  setStatus(!sc()||sc().panelId?'Ready':'Choose an LED panel in the sidebar to start');
   if(fresh&&!(cloudOn()&&signedIn())) openSetup(true);   /* a signed-in browser pulls its projects instead */
 
   /* persist afterwards, and never let it break anything */
@@ -45,6 +45,6 @@
   if(cloudOn()&&signedIn()){
     setStatus('Syncing your projects…');
     await sbSyncAll(true);
-    if(!syncErr) setStatus('Synced · '+(sc().panelId?'ready':'choose an LED panel'));
+    if(!syncErr) setStatus('Synced · '+(!sc()||sc().panelId?'ready':'choose an LED panel'));
   }
 })();

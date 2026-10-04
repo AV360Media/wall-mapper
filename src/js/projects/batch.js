@@ -11,7 +11,7 @@ function openBatch(){
   const g=id=>document.getElementById(id);
   const cur0=sc();
   g('btPanel').innerHTML=PANELS.concat(S.customPanels||[]).map(p=>
-    `<option value="${p.id}" ${p.id===cur0.panelId?'selected':''}>${escp(p.brand+' '+p.model)} · ${p.pitch}mm</option>`).join('');
+    `<option value="${p.id}" ${p.id===(cur0?cur0.panelId:S.defPanel)?'selected':''}>${escp(p.brand+' '+p.model)} · ${p.pitch}mm</option>`).join('');
   const cu=unitOf(cur0);
   if(!batch.length){
     const st=starterScreen();
@@ -110,6 +110,7 @@ function batchCreate(){
     q.name=b.name.trim()||batchName(i);
     q.cols=b.cols; q.rows=b.rows; q.panelId=panelId;
     q.procRef=uu?uu.id:''; q.procId=uu?uu.procId:'none';
+    if(!q.feed&&S.defFeed) q.feed=S.defFeed;
     made.push(q);
   });
   S.screens=S.screens.filter(q=>made.includes(q)||!screenBlank(q));

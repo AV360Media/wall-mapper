@@ -59,6 +59,21 @@ aside.r{width:266px;border-left:1px solid var(--line)}
   background:#1b2230f2;border:1px solid var(--ac);border-radius:8px;padding:6px 8px 6px 13px;font-size:12px;z-index:5}
 .focusbar b{color:var(--ac)}
 .focusbar.hide{display:none}
+/* ---- project with no screens yet ---- */
+.emptyset{display:none;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(440px,calc(100% - 32px));
+  background:var(--panel);border:1px solid var(--line2);border-radius:var(--r-lg,10px);box-shadow:var(--shadow,none);padding:20px;z-index:4}
+body.noscreens .emptyset{display:block}
+.emptyset h3{margin:2px 0 4px;font-size:18px}
+.emptyset .es-k{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--tx3);font-weight:700}
+.emptyset .hint{margin-bottom:10px}
+.es-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line)}
+.es-row .k{width:108px;flex-shrink:0;font-size:11px;color:var(--tx3)}
+.es-row .v{flex:1;min-width:0;font-size:12.5px;color:var(--tx)}
+.es-row .v small{display:block;font-size:10.5px;color:var(--tx3);margin-top:2px}
+.es-row .v em{color:var(--ac);font-style:normal}
+.es-row select{background:var(--elev);border:1px solid var(--line2);color:var(--tx);border-radius:4px;padding:4px 6px;font:inherit;font-size:12px}
+body.noscreens main>aside,body.noscreens .zoombar,body.noscreens #helper,body.noscreens #modeSeg,
+body.noscreens .tabtools>:not(:first-child){display:none}
 h4{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--tx3);margin:17px 0 8px;font-weight:700}
 h4:first-child{margin-top:0}
 .f{margin-bottom:8px}
@@ -757,6 +772,7 @@ body{font-size:13.5px;letter-spacing:.005em}
 
     <div id="stage">
       <canvas id="cv"></canvas>
+      <div class="emptyset" id="emptySet"></div>
       <div class="focusbar hide" id="focusBar">
         <span>Focused on <b id="focusName"></b></span>
         <button class="btn sm" onclick="exitFocus()">Back to set · Esc</button>
@@ -789,7 +805,7 @@ body{font-size:13.5px;letter-spacing:.005em}
 <div class="mask hide" id="nwModal">
   <div class="modal form" style="width:520px">
     <h3>New project setup</h3>
-    <div class="hint" style="margin:-4px 0 12px">Everything marked * is needed before the project starts. You can change any of it later.</div>
+    <div class="hint" style="margin:-4px 0 12px">Everything marked * is needed before the project starts. It opens on a blank canvas and you add screens after. You can change any of it later.</div>
     <div class="grp">Project</div>
     <div class="g2">
       <div class="f"><label>Project name *</label><input id="nwName" oninput="nwCheck()" placeholder="Show or client name" /></div>
@@ -809,12 +825,8 @@ body{font-size:13.5px;letter-spacing:.005em}
         <option value="avg80">Average watts, 80% derate</option>
         <option value="avg100">Average watts, full breaker</option>
       </select></div>
-    <div class="grp" style="margin-top:12px">Wall</div>
+    <div class="grp" style="margin-top:12px">LED</div>
     <div class="f"><label>LED panel *</label><button class="picker" id="nwPanel" onclick="openLib('panel',true)"></button></div>
-    <div class="g2" style="margin-top:8px">
-      <div class="f"><label>Columns</label><input type="number" min="1" id="nwCols" value="8" /></div>
-      <div class="f"><label>Rows</label><input type="number" min="1" id="nwRows" value="4" /></div>
-    </div>
     <div class="grp" style="margin-top:12px">Data</div>
     <div class="f"><label>Processor *</label><button class="picker" id="nwProc" onclick="openLib('proc',true)"></button></div>
     <div class="g2" style="margin-top:8px">
@@ -1616,7 +1628,7 @@ const used=(s,kind)=>chains(s,kind).filter(ch=>LT(s,ch).length);
 function units(){ return (S.procs=S.procs||[]); }
 function unitOf(sn){
   const U=units();
-  return U.find(u=>u.id===sn.procRef) || U[0] || null;
+  return U.find(u=>sn&&u.id===sn.procRef) || U[0] || null;
 }
 function unitProc(u){ return (u&&procById(u.procId))||NOPROC; }
 const procOfUnit=unitProc;
@@ -2600,10 +2612,12 @@ function redraw(){
   ctx.translate(view.x,view.y); ctx.scale(view.k,view.k);
   const B=setBounds();
   if((mode==='arrange'||moving)&&focusIdx==null&&opt().snap) drawArrangeGrid(ctx,w,h);
-  ctx.save();
-  ctx.translate(-(SETGAP-B.x1),-(titleH()-B.y1));
-  drawSet(ctx,{interactive:true});
-  ctx.restore();
+  if(S.screens.length){
+    ctx.save();
+    ctx.translate(-(SETGAP-B.x1),-(titleH()-B.y1));
+    drawSet(ctx,{interactive:true});
+    ctx.restore();
+  }
   if(dragGuides.length) drawGuides(ctx,B,w,h);
   document.getElementById('zoomPct').textContent=Math.round(view.k*100)+'%';
 }
@@ -2758,7 +2772,7 @@ function pushUndo(label){
 }
 function restore(entry){
   S=JSON.parse(entry.snap);
-  cur=Math.min(entry.cur||0,S.screens.length-1);
+  cur=Math.max(0,Math.min(entry.cur||0,S.screens.length-1));
   if(focusIdx!=null&&focusIdx>=S.screens.length) exitFocus();
   const a=entry.act||active;
   active={power:Math.min(Math.max(a.power|0,0),SLOTS-1),data:Math.min(Math.max(a.data|0,0),SLOTS-1)};
@@ -2897,7 +2911,7 @@ window.addEventListener('keydown',e=>{
   if(e.key.startsWith('Arrow')&&focusIdx==null){
     const s=sc(), step=e.shiftKey?SNAP*4:SNAP;
     const d={ArrowLeft:[-step,0],ArrowRight:[step,0],ArrowUp:[0,-step],ArrowDown:[0,step]}[e.key];
-    if(d){ e.preventDefault(); s.x+=opt().rear?-d[0]:d[0]; s.y+=d[1]; redraw(); save(); }
+    if(d&&s){ e.preventDefault(); s.x+=opt().rear?-d[0]:d[0]; s.y+=d[1]; redraw(); save(); }
   }
 });
 window.addEventListener('keyup',e=>{ if(e.code==='Space'){ spaceDown=false; cv.classList.remove('pan'); } });
@@ -2952,7 +2966,7 @@ function renameUnit(id,v){
 }
 function renderUnits(){
   const el=document.getElementById('unitList'); if(!el) return;
-  const U=units(), curU=unitOf(sc()), many=U.length>1;
+  const U=units(), curU=sc()&&unitOf(sc()), many=U.length>1;
   document.getElementById('unitCount').textContent=many?U.length:'';
   el.innerHTML=U.map(u=>{
     const L=unitLoad(u), pr=unitProc(u), none=pr.id==='none';
@@ -3034,6 +3048,7 @@ function setMode(m){
 }
 /* keyboard selection, with a brief on-canvas confirmation */
 function keyPick(i){
+  if(!sc()) return;
   const before=active[mode];
   pickSlot(i);
   const s=sc(), ch=chains(s,mode)[i];
@@ -3163,6 +3178,7 @@ function autoData(s){
 }
 function tidyChains(){ S.screens.forEach(hardPrune); }
 function clearAllMapping(){
+  if(needScreen()) return;
   const n=S.screens.length;
   if(!confirm(`Clear every power circuit, data run and backup on ${n===1?'this screen':'all '+n+' screens'}?\n\nTile layout, panels and processors are kept. This can be undone.`)) return;
   pushUndo('clear all mapping');
@@ -3178,6 +3194,15 @@ function clearAllMapping(){
 function clearChains(){ pushUndo('clear '+(mode==='power'?'circuits':'data runs')); chains(sc(),mode).forEach(ch=>ch.tiles=[]); renderSlots(); redraw(); renderSide(); save(); }
 
 /* ========================= SCREENS ========================= */
+/* A project from the setup dialog starts with no screens. Its starting panel, processor and
+   data feed live on the project, and every new screen picks them up. */
+function needScreen(){ if(S.screens.length) return false; setStatus('Nothing here yet — add a screen first'); return true; }
+function startScreen(ns){
+  const u=units()[0];
+  ns.panelId=S.defPanel||''; ns.feed=S.defFeed||'auto';
+  if(u){ ns.procRef=u.id; ns.procId=u.procId; }
+  return ns;
+}
 function nextSpot(){
   let x=0,y=0;
   S.screens.forEach(s=>{ const b=sbox(s); if(s.x+b.w+SETGAP>x){ x=s.x+b.w+SETGAP; y=s.y; } });
@@ -3194,13 +3219,15 @@ function addScreen(){
   const p=nextSpot();
   const src=sc();
   const ns=blankScreen(S.screens.length+1,p.x,p.y);
-  if(src&&src.panelId){ ns.panelId=src.panelId; ns.procId=src.procId; }
+  if(!src) startScreen(ns);
+  else if(src.panelId){ ns.panelId=src.panelId; ns.procId=src.procId; ns.procRef=src.procRef; ns.feed=src.feed; }
   S.screens.push(ns);
   focusIdx=null; document.getElementById('focusBar').classList.add('hide');
   document.getElementById('focusBtn').classList.remove('on');
   selectScreen(S.screens.length-1); fitView(); save();
 }
 function dupScreen(){
+  if(needScreen()) return;
   pushUndo('duplicate screen');
   const src=sc(), p=nextSpot();
   const copy=JSON.parse(JSON.stringify(src));
@@ -3219,6 +3246,7 @@ function delScreen(){
   selectScreen(cur); fitView(); save();
 }
 function tidySet(){
+  if(needScreen()) return;
   pushUndo('tidy set');
   let x=0;
   const maxH=Math.max(...S.screens.map(s=>sbox(s).h));
@@ -3261,8 +3289,30 @@ function renderTabs(){
     S.screens.map((s,i)=>`<div class="tab ${i===cur?'on':''}" onclick="selectScreen(${i})" ondblclick="enterFocus(${i})"
       oncontextmenu="event.preventDefault();openScreenMenu(${i},event.clientX,event.clientY)">${escp(s.name)}</div>`).join('')+
     `<div class="tab" style="color:var(--tx3)" onclick="addScreen()">+</div>`;
+  renderEmpty();
+}
+/* ---- a project with no screens yet: show its settings and the way to add one ---- */
+function renderEmpty(){
+  const none=!S.screens.length, el=document.getElementById('emptySet');
+  if(document.body.classList.contains('noscreens')!==none){
+    document.body.classList.toggle('noscreens',none); requestAnimationFrame(segSync);   /* the mode switch was hidden */
+  }
+  if(!el||!none) return;
+  const p=panelById(S.defPanel), u=units()[0], pr=unitProc(u), o=opt();
+  const row=(k,v,fn)=>`<div class="es-row"><span class="k">${k}</span><span class="v">${v}</span><button class="btn sm ghost" onclick="${fn}">Change</button></div>`;
+  const basis=(o.useAvg?'average':'max')+' watts, '+(o.derate?'80% derate':'full breaker');
+  el.innerHTML=`<div class="es-k">${escp(S.name||'Untitled Project')}</div>
+    <h3>Blank canvas</h3>
+    <div class="hint">Every screen you add starts with these settings.</div>
+    ${row('LED panel',p?`${escp(p.brand+' '+p.model)}<small>${p.pitch} mm · ${p.pw}×${p.ph} px</small>`:'<em>None chosen</em>',"openLib('panel')")}
+    ${row('Processor',pr.id!=='none'?`${escp((pr.brand?pr.brand+' ':'')+pr.model)}<small>${pr.total?pr.ports+' ports · '+(portCap(pr)/1000).toFixed(0)+'k px each at '+bitDepth()+'-bit':'no capacity check'}</small>`:'<em>None chosen</em>',"openLib('proc')")}
+    ${row('Power',`${o.volts} V · ${o.breaker} A breaker<small>${basis}</small>`,"openSettings('power')")}
+    <div class="es-row"><span class="k">Data home runs</span><span class="v"><select onchange="S.defFeed=this.value;save()">
+      ${['auto','top','bottom','left','right'].map(f=>`<option value="${f}" ${(S.defFeed||'auto')===f?'selected':''}>${f[0].toUpperCase()+f.slice(1)}</option>`).join('')}</select></span></div>
+    <button class="btn pri" style="width:100%;margin-top:14px" onclick="openBatch()">+ Add screens</button>`;
 }
 function renderSlots(){
+  if(!sc()) return;
   const bb=document.getElementById('bkBtn'), bn=document.getElementById('bkNote');
   if(bb){
     bb.style.display=mode==='data'?'':'none';
@@ -3287,6 +3337,7 @@ function renderSlots(){
   }).join('');
 }
 function renderSide(){
+  renderEmpty(); if(!sc()) return;
   const s=sc(), t=totals(s), pr=procOf(s);
   { const pn=panelById(s.panelId), n=document.getElementById('inspName'), sub=document.getElementById('inspSub');
     if(n) n.textContent=(s.name||'Screen').trim();
@@ -3332,7 +3383,7 @@ function renderSide(){
     <div class="row"><span>Load max / avg</span><span class="v">${(st.wMax/1000).toFixed(1)} / ${(st.wAvg/1000).toFixed(1)} kW</span></div>`;
 }
 function syncForm(){
-  const s=sc(), p=panelById(s.panelId), o=opt();
+  const s=sc()||startScreen(blankScreen(1)), p=panelById(s.panelId), o=opt();   /* no screens: show what the next one gets */
   const prU=procOf(s), pr=prU.id==='none'?null:prU;
   const canMap=!!p;
   document.getElementById('modeSeg').style.opacity=canMap?'1':'.45';
@@ -3362,7 +3413,7 @@ function syncForm(){
   const us=document.getElementById('scUnit');
   if(us){
     us.innerHTML=units().map(u=>`<option value="${u.id}">${escp(unitLabel(u))}</option>`).join('');
-    const cu=unitOf(sc()); if(cu) us.value=cu.id;
+    const cu=unitOf(s); if(cu) us.value=cu.id;
   }
   renderUnits();
   const uw=document.getElementById('scUnitWrap'); if(uw) uw.style.display=units().length>1?'':'none';
@@ -3430,7 +3481,7 @@ function openLib(kind,setup){
 }
 function closeMask(id){ document.getElementById(id).classList.add('hide'); }
 function libRows(){
-  const sc0=libDraft||sc(), cust=libDraft?(libDraft.custom?[libDraft.custom]:[]):(S.customPanels||[]);
+  const sc0=libDraft||sc()||{panelId:S.defPanel,procId:unitProc(units()[0]).id}, cust=libDraft?(libDraft.custom?[libDraft.custom]:[]):(S.customPanels||[]);
   return libKind==='panel'
     ? PANELS.concat(cust).map(p=>({id:p.id,sel:p.id===sc0.panelId,v:p.v,d:p.d,pop:p.pop,
         n:`${p.brand} ${p.model}`,
@@ -3469,7 +3520,7 @@ function chooseLib(id){
   if(libDraft){ libDraft[libKind==='panel'?'panelId':'procId']=id; closeMask('libModal'); nwCheck(); return; }
   pushUndo(libKind==='panel'?'panel change':'processor change');
   const wasPanel=libKind==='panel';
-  if(wasPanel) sc().panelId=id;
+  if(wasPanel){ if(sc()) sc().panelId=id; else S.defPanel=id; }
   else {
     const u=(libUnit&&units().find(x=>x.id===libUnit))||unitOf(sc());
     libUnit=null;
@@ -3497,7 +3548,8 @@ function saveCustomPanel(){
     wmax:+g('cpWmax')||0,wavg:+g('cpWavg')||0,v:1};
   if(libDraft){ libDraft.custom=p; libDraft.panelId=p.id; closeMask('cpModal'); nwCheck(); return; }
   S.customPanels=S.customPanels||[]; S.customPanels.push(p);
-  sc().panelId=p.id; closeMask('cpModal'); syncForm(); renderSide(); redraw(); save();
+  if(sc()) sc().panelId=p.id; else S.defPanel=p.id;
+  closeMask('cpModal'); syncForm(); renderSide(); redraw(); save();
 }
 
 /* ========================= BACKUP DIALOG ========================= */
@@ -3612,7 +3664,6 @@ function openSetup(forced){
   document.getElementById('nwVolts').value='';
   document.getElementById('nwAmps').value=20;
   document.getElementById('nwBasis').value='max80';
-  document.getElementById('nwCols').value=8; document.getElementById('nwRows').value=4;
   document.getElementById('nwBits').value='8'; document.getElementById('nwFeed').value='auto';
   document.getElementById('nwCancel').style.display=forced?'none':'';
   closeMask('pjModal');
@@ -3645,8 +3696,7 @@ async function nwCreate(){
   await newProject(g('nwName').trim(),{
     venue:g('nwVenue').trim(), volts:+g('nwVolts'), breaker:+g('nwAmps'),
     useAvg:basis.startsWith('avg'), derate:basis.endsWith('80'), bits:+g('nwBits'),
-    panelId:d.panelId, procId:d.procId, custom:d.custom, feed:g('nwFeed'),
-    cols:Math.max(1,+g('nwCols')||8), rows:Math.max(1,+g('nwRows')||4)});
+    panelId:d.panelId, procId:d.procId, custom:d.custom, feed:g('nwFeed')});
   if(old&&old!==projId){
     projIndex=projIndex.filter(e=>e.id!==old);
     await sDel(PKEY(old)); await sSet(IDX,projIndex);
@@ -3742,7 +3792,7 @@ function download(blob,name){
   setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},2500);
 }
 const fileBase=()=>((((S.exp&&S.exp.show)||S.name||'wall-map').replace(/[^a-z0-9\-_ ]/gi,'_')).trim())||'wall-map';
-function exportPDF(){ openExport(); }
+function exportPDF(){ if(needScreen()) return; openExport(); }
 function openExport(){
   expDraft=Object.assign(defExp(),JSON.parse(JSON.stringify(expOf())));
   const g=id=>document.getElementById(id);
@@ -3806,6 +3856,7 @@ function doExportPDF(){
   finally{ XO=null; focusIdx=wasFocus; b.disabled=false; b.textContent='PDF drawing set…'; redraw(); }
 }
 function exportPNG(){
+  if(needScreen()) return;
   try{
     const c=withPrint(()=>{ XO=Object.assign({},expOf());
       try{ return focusIdx!=null?pairCanvas(S.screens[focusIdx]):setCanvas(null); } finally { XO=null; } });
@@ -4320,7 +4371,7 @@ function labelsCSV(){
     fileBase()+' labels.csv');
   setStatus('Label CSV exported — merge it in P-touch Editor or DYMO Connect');
 }
-function openLabels(){ document.getElementById('lbModal').classList.remove('hide'); syncLabels(); }
+function openLabels(){ if(needScreen()) return; document.getElementById('lbModal').classList.remove('hide'); syncLabels(); }
 function setLab(f,v){ labOf()[f]=v; syncLabels(); save(); }
 function syncLabels(){
   const L=labOf(), g=id=>document.getElementById(id), z=tagSize();
@@ -5232,6 +5283,7 @@ function pmOverviewCanvas(M){
 /* ---- Pixel Map workspace ---- */
 let pmOpen=false, pmSel=null, pmDrag=null, pmHits=[], pmLast=null;
 function openPM(){
+  if(needScreen()) return;
   if(!S.screens.some(s=>panelById(s.panelId))){ setStatus('Choose an LED panel for a screen first'); return; }
   pmOpen=true; document.getElementById('pmModal').classList.remove('hide'); pmSync();
 }
@@ -5448,6 +5500,7 @@ function pmResolumeXML(M,presetName){
 `;
 }
 function pmDownloadResolume(){
+  if(needScreen()) return;
   const M=pmBuild(); if(!M.L.length){ setStatus('Choose an LED panel for a screen first'); return; }
   const name=`${fileBase()} pixel map`;
   download(new Blob([pmResolumeXML(M,name)],{type:'application/xml'}),`${name}.xml`);
@@ -5625,6 +5678,7 @@ async function pmDownload(){
 /* ========================= XLSX EXPORT ========================= */
 const XFILL=['C0504D','4F81BD','9BBB59','8064A2','E36C0A','4BACC6','7F7F7F','943634'];
 function xlsxExport(){
+  if(needScreen()) return;
   const btn=document.getElementById('xlsBtn'); btn.disabled=true; btn.textContent='Building…';
   try{
     const P=pullRows(), rows=[], BLANK=3;
@@ -5758,7 +5812,7 @@ function save(){
 }
 async function openProject(id){
   const d=await sGet(PKEY(id));
-  if(!d||!d.screens||!d.screens.length){ setStatus('That project could not be loaded'); return; }
+  if(!d||!Array.isArray(d.screens)){ setStatus('That project could not be loaded'); return; }
   projId=id; S=d; normalize(); cur=0; focusIdx=null; active={power:0,data:0};
   undoStack.length=0; redoStack.length=0; updateUndoUI();
   document.getElementById('focusBar').classList.add('hide');
@@ -5770,12 +5824,11 @@ async function openProject(id){
 async function newProject(name,cfg){
   S=blankProject();
   if(name) S.name=name;
-  if(cfg){                                      /* from the setup dialog */
-    const s=S.screens[0];
-    S.venue=cfg.venue;
+  if(cfg){                                      /* from the setup dialog: settings only, screens come later */
+    S.screens=[]; S.venue=cfg.venue;
     Object.assign(S.opt,{volts:cfg.volts,breaker:cfg.breaker,useAvg:cfg.useAvg,derate:cfg.derate,bits:cfg.bits});
     if(cfg.custom) S.customPanels.push(cfg.custom);
-    Object.assign(s,{panelId:cfg.panelId,procId:cfg.procId,feed:cfg.feed,cols:cfg.cols,rows:cfg.rows});
+    S.defPanel=cfg.panelId; S.defFeed=cfg.feed; addUnit(cfg.procId);
   }
   projId=uid('p'); normalize(); cur=0; focusIdx=null; active={power:0,data:0};
   undoStack.length=0; redoStack.length=0; updateUndoUI();
@@ -5783,7 +5836,7 @@ async function newProject(name,cfg){
   touchIndex();
   closeMask('pjModal');
   renderTabs(); setMode('layout'); renderSide(); fitView(); renderProjects();
-  setStatus(cfg?'Project ready — '+S.screens[0].cols+'×'+S.screens[0].rows+' wall':'New project — choose an LED panel in the sidebar');
+  setStatus(cfg?'Project ready — add your first screen':'New project — choose an LED panel in the sidebar');
   await sSet(PKEY(projId),S); await sSet(IDX,projIndex); await sSet(CURKEY,projId);
 }
 async function dupProject(id){
@@ -5850,7 +5903,7 @@ function openBatch(){
   const g=id=>document.getElementById(id);
   const cur0=sc();
   g('btPanel').innerHTML=PANELS.concat(S.customPanels||[]).map(p=>
-    `<option value="${p.id}" ${p.id===cur0.panelId?'selected':''}>${escp(p.brand+' '+p.model)} · ${p.pitch}mm</option>`).join('');
+    `<option value="${p.id}" ${p.id===(cur0?cur0.panelId:S.defPanel)?'selected':''}>${escp(p.brand+' '+p.model)} · ${p.pitch}mm</option>`).join('');
   const cu=unitOf(cur0);
   if(!batch.length){
     const st=starterScreen();
@@ -5949,6 +6002,7 @@ function batchCreate(){
     q.name=b.name.trim()||batchName(i);
     q.cols=b.cols; q.rows=b.rows; q.panelId=panelId;
     q.procRef=uu?uu.id:''; q.procId=uu?uu.procId:'none';
+    if(!q.feed&&S.defFeed) q.feed=S.defFeed;
     made.push(q);
   });
   S.screens=S.screens.filter(q=>made.includes(q)||!screenBlank(q));
@@ -6130,7 +6184,7 @@ function importJSON(f){
     try{
       if(Array.isArray(d)) d={name:f.name.replace(/\.json$/i,''),screens:d};
       if(d&&d.project&&d.project.screens) d=d.project;              /* tolerate a wrapper */
-      if(!d||typeof d!=='object'||!Array.isArray(d.screens)||!d.screens.length){
+      if(!d||typeof d!=='object'||!Array.isArray(d.screens)||(!d.screens.length&&!d.opt)){
         setStatus('No screens found in that file — is it a Wall Mapper project?');
         if(inp) inp.value=''; return;
       }
@@ -6201,11 +6255,11 @@ window.addEventListener('resize',()=>requestAnimationFrame(segSync));
     }
     if(!S&&want&&projIndex.some(e=>e.id===want)){
       const d=await sGet(PKEY(want));
-      if(d&&d.screens&&d.screens.length){ projId=want; S=d; }
+      if(d&&Array.isArray(d.screens)){ projId=want; S=d; }
     }
     if(!S&&projIndex.length){
       const d=await sGet(PKEY(projIndex[0].id));
-      if(d&&d.screens&&d.screens.length){ projId=projIndex[0].id; S=d; }
+      if(d&&Array.isArray(d.screens)){ projId=projIndex[0].id; S=d; }
     }
   }catch(e){ console.error('project load failed',e); }
 
@@ -6215,7 +6269,7 @@ window.addEventListener('resize',()=>requestAnimationFrame(segSync));
   normalize();
 
   renderTabs(); setMode('layout'); renderSide(); fitView(); updateUndoUI();
-  setStatus(sc().panelId?'Ready':'Choose an LED panel in the sidebar to start');
+  setStatus(!sc()||sc().panelId?'Ready':'Choose an LED panel in the sidebar to start');
   if(fresh&&!(cloudOn()&&signedIn())) openSetup(true);   /* a signed-in browser pulls its projects instead */
 
   /* persist afterwards, and never let it break anything */
@@ -6229,7 +6283,7 @@ window.addEventListener('resize',()=>requestAnimationFrame(segSync));
   if(cloudOn()&&signedIn()){
     setStatus('Syncing your projects…');
     await sbSyncAll(true);
-    if(!syncErr) setStatus('Synced · '+(sc().panelId?'ready':'choose an LED panel'));
+    if(!syncErr) setStatus('Synced · '+(!sc()||sc().panelId?'ready':'choose an LED panel'));
   }
 })();
 </script>

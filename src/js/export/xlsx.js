@@ -1,6 +1,7 @@
 /* ========================= XLSX EXPORT ========================= */
 const XFILL=['C0504D','4F81BD','9BBB59','8064A2','E36C0A','4BACC6','7F7F7F','943634'];
 function xlsxExport(){
+  if(needScreen()) return;
   const btn=document.getElementById('xlsBtn'); btn.disabled=true; btn.textContent='Building…';
   try{
     const P=pullRows(), rows=[], BLANK=3;

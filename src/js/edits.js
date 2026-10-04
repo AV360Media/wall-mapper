@@ -47,7 +47,7 @@ function renameUnit(id,v){
 }
 function renderUnits(){
   const el=document.getElementById('unitList'); if(!el) return;
-  const U=units(), curU=unitOf(sc()), many=U.length>1;
+  const U=units(), curU=sc()&&unitOf(sc()), many=U.length>1;
   document.getElementById('unitCount').textContent=many?U.length:'';
   el.innerHTML=U.map(u=>{
     const L=unitLoad(u), pr=unitProc(u), none=pr.id==='none';
@@ -129,6 +129,7 @@ function setMode(m){
 }
 /* keyboard selection, with a brief on-canvas confirmation */
 function keyPick(i){
+  if(!sc()) return;
   const before=active[mode];
   pickSlot(i);
   const s=sc(), ch=chains(s,mode)[i];
@@ -258,6 +259,7 @@ function autoData(s){
 }
 function tidyChains(){ S.screens.forEach(hardPrune); }
 function clearAllMapping(){
+  if(needScreen()) return;
   const n=S.screens.length;
   if(!confirm(`Clear every power circuit, data run and backup on ${n===1?'this screen':'all '+n+' screens'}?\n\nTile layout, panels and processors are kept. This can be undone.`)) return;
   pushUndo('clear all mapping');

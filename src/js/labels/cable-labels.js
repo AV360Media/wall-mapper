@@ -208,7 +208,7 @@ function labelsCSV(){
     fileBase()+' labels.csv');
   setStatus('Label CSV exported — merge it in P-touch Editor or DYMO Connect');
 }
-function openLabels(){ document.getElementById('lbModal').classList.remove('hide'); syncLabels(); }
+function openLabels(){ if(needScreen()) return; document.getElementById('lbModal').classList.remove('hide'); syncLabels(); }
 function setLab(f,v){ labOf()[f]=v; syncLabels(); save(); }
 function syncLabels(){
   const L=labOf(), g=id=>document.getElementById(id), z=tagSize();

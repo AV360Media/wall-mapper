@@ -6,7 +6,7 @@ function pushUndo(label){
 }
 function restore(entry){
   S=JSON.parse(entry.snap);
-  cur=Math.min(entry.cur||0,S.screens.length-1);
+  cur=Math.max(0,Math.min(entry.cur||0,S.screens.length-1));
   if(focusIdx!=null&&focusIdx>=S.screens.length) exitFocus();
   const a=entry.act||active;
   active={power:Math.min(Math.max(a.power|0,0),SLOTS-1),data:Math.min(Math.max(a.data|0,0),SLOTS-1)};

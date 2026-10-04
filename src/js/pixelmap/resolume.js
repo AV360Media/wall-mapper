@@ -61,6 +61,7 @@ function pmResolumeXML(M,presetName){
 `;
 }
 function pmDownloadResolume(){
+  if(needScreen()) return;
   const M=pmBuild(); if(!M.L.length){ setStatus('Choose an LED panel for a screen first'); return; }
   const name=`${fileBase()} pixel map`;
   download(new Blob([pmResolumeXML(M,name)],{type:'application/xml'}),`${name}.xml`);

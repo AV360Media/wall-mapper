@@ -33,8 +33,30 @@ function renderTabs(){
     S.screens.map((s,i)=>`<div class="tab ${i===cur?'on':''}" onclick="selectScreen(${i})" ondblclick="enterFocus(${i})"
       oncontextmenu="event.preventDefault();openScreenMenu(${i},event.clientX,event.clientY)">${escp(s.name)}</div>`).join('')+
     `<div class="tab" style="color:var(--tx3)" onclick="addScreen()">+</div>`;
+  renderEmpty();
+}
+/* ---- a project with no screens yet: show its settings and the way to add one ---- */
+function renderEmpty(){
+  const none=!S.screens.length, el=document.getElementById('emptySet');
+  if(document.body.classList.contains('noscreens')!==none){
+    document.body.classList.toggle('noscreens',none); requestAnimationFrame(segSync);   /* the mode switch was hidden */
+  }
+  if(!el||!none) return;
+  const p=panelById(S.defPanel), u=units()[0], pr=unitProc(u), o=opt();
+  const row=(k,v,fn)=>`<div class="es-row"><span class="k">${k}</span><span class="v">${v}</span><button class="btn sm ghost" onclick="${fn}">Change</button></div>`;
+  const basis=(o.useAvg?'average':'max')+' watts, '+(o.derate?'80% derate':'full breaker');
+  el.innerHTML=`<div class="es-k">${escp(S.name||'Untitled Project')}</div>
+    <h3>Blank canvas</h3>
+    <div class="hint">Every screen you add starts with these settings.</div>
+    ${row('LED panel',p?`${escp(p.brand+' '+p.model)}<small>${p.pitch} mm · ${p.pw}×${p.ph} px</small>`:'<em>None chosen</em>',"openLib('panel')")}
+    ${row('Processor',pr.id!=='none'?`${escp((pr.brand?pr.brand+' ':'')+pr.model)}<small>${pr.total?pr.ports+' ports · '+(portCap(pr)/1000).toFixed(0)+'k px each at '+bitDepth()+'-bit':'no capacity check'}</small>`:'<em>None chosen</em>',"openLib('proc')")}
+    ${row('Power',`${o.volts} V · ${o.breaker} A breaker<small>${basis}</small>`,"openSettings('power')")}
+    <div class="es-row"><span class="k">Data home runs</span><span class="v"><select onchange="S.defFeed=this.value;save()">
+      ${['auto','top','bottom','left','right'].map(f=>`<option value="${f}" ${(S.defFeed||'auto')===f?'selected':''}>${f[0].toUpperCase()+f.slice(1)}</option>`).join('')}</select></span></div>
+    <button class="btn pri" style="width:100%;margin-top:14px" onclick="openBatch()">+ Add screens</button>`;
 }
 function renderSlots(){
+  if(!sc()) return;
   const bb=document.getElementById('bkBtn'), bn=document.getElementById('bkNote');
   if(bb){
     bb.style.display=mode==='data'?'':'none';
@@ -59,6 +81,7 @@ function renderSlots(){
   }).join('');
 }
 function renderSide(){
+  renderEmpty(); if(!sc()) return;
   const s=sc(), t=totals(s), pr=procOf(s);
   { const pn=panelById(s.panelId), n=document.getElementById('inspName'), sub=document.getElementById('inspSub');
     if(n) n.textContent=(s.name||'Screen').trim();
@@ -104,7 +127,7 @@ function renderSide(){
     <div class="row"><span>Load max / avg</span><span class="v">${(st.wMax/1000).toFixed(1)} / ${(st.wAvg/1000).toFixed(1)} kW</span></div>`;
 }
 function syncForm(){
-  const s=sc(), p=panelById(s.panelId), o=opt();
+  const s=sc()||startScreen(blankScreen(1)), p=panelById(s.panelId), o=opt();   /* no screens: show what the next one gets */
   const prU=procOf(s), pr=prU.id==='none'?null:prU;
   const canMap=!!p;
   document.getElementById('modeSeg').style.opacity=canMap?'1':'.45';
@@ -134,7 +157,7 @@ function syncForm(){
   const us=document.getElementById('scUnit');
   if(us){
     us.innerHTML=units().map(u=>`<option value="${u.id}">${escp(unitLabel(u))}</option>`).join('');
-    const cu=unitOf(sc()); if(cu) us.value=cu.id;
+    const cu=unitOf(s); if(cu) us.value=cu.id;
   }
   renderUnits();
   const uw=document.getElementById('scUnitWrap'); if(uw) uw.style.display=units().length>1?'':'none';

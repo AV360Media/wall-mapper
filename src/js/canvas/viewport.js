@@ -13,10 +13,12 @@ function redraw(){
   ctx.translate(view.x,view.y); ctx.scale(view.k,view.k);
   const B=setBounds();
   if((mode==='arrange'||moving)&&focusIdx==null&&opt().snap) drawArrangeGrid(ctx,w,h);
-  ctx.save();
-  ctx.translate(-(SETGAP-B.x1),-(titleH()-B.y1));
-  drawSet(ctx,{interactive:true});
-  ctx.restore();
+  if(S.screens.length){
+    ctx.save();
+    ctx.translate(-(SETGAP-B.x1),-(titleH()-B.y1));
+    drawSet(ctx,{interactive:true});
+    ctx.restore();
+  }
   if(dragGuides.length) drawGuides(ctx,B,w,h);
   document.getElementById('zoomPct').textContent=Math.round(view.k*100)+'%';
 }

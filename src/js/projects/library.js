@@ -54,7 +54,7 @@ function save(){
 }
 async function openProject(id){
   const d=await sGet(PKEY(id));
-  if(!d||!d.screens||!d.screens.length){ setStatus('That project could not be loaded'); return; }
+  if(!d||!Array.isArray(d.screens)){ setStatus('That project could not be loaded'); return; }
   projId=id; S=d; normalize(); cur=0; focusIdx=null; active={power:0,data:0};
   undoStack.length=0; redoStack.length=0; updateUndoUI();
   document.getElementById('focusBar').classList.add('hide');
@@ -66,12 +66,11 @@ async function openProject(id){
 async function newProject(name,cfg){
   S=blankProject();
   if(name) S.name=name;
-  if(cfg){                                      /* from the setup dialog */
-    const s=S.screens[0];
-    S.venue=cfg.venue;
+  if(cfg){                                      /* from the setup dialog: settings only, screens come later */
+    S.screens=[]; S.venue=cfg.venue;
     Object.assign(S.opt,{volts:cfg.volts,breaker:cfg.breaker,useAvg:cfg.useAvg,derate:cfg.derate,bits:cfg.bits});
     if(cfg.custom) S.customPanels.push(cfg.custom);
-    Object.assign(s,{panelId:cfg.panelId,procId:cfg.procId,feed:cfg.feed,cols:cfg.cols,rows:cfg.rows});
+    S.defPanel=cfg.panelId; S.defFeed=cfg.feed; addUnit(cfg.procId);
   }
   projId=uid('p'); normalize(); cur=0; focusIdx=null; active={power:0,data:0};
   undoStack.length=0; redoStack.length=0; updateUndoUI();
@@ -79,7 +78,7 @@ async function newProject(name,cfg){
   touchIndex();
   closeMask('pjModal');
   renderTabs(); setMode('layout'); renderSide(); fitView(); renderProjects();
-  setStatus(cfg?'Project ready — '+S.screens[0].cols+'×'+S.screens[0].rows+' wall':'New project — choose an LED panel in the sidebar');
+  setStatus(cfg?'Project ready — add your first screen':'New project — choose an LED panel in the sidebar');
   await sSet(PKEY(projId),S); await sSet(IDX,projIndex); await sSet(CURKEY,projId);
 }
 async function dupProject(id){

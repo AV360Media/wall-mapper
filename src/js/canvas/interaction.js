@@ -108,7 +108,7 @@ window.addEventListener('keydown',e=>{
   if(e.key.startsWith('Arrow')&&focusIdx==null){
     const s=sc(), step=e.shiftKey?SNAP*4:SNAP;
     const d={ArrowLeft:[-step,0],ArrowRight:[step,0],ArrowUp:[0,-step],ArrowDown:[0,step]}[e.key];
-    if(d){ e.preventDefault(); s.x+=opt().rear?-d[0]:d[0]; s.y+=d[1]; redraw(); save(); }
+    if(d&&s){ e.preventDefault(); s.x+=opt().rear?-d[0]:d[0]; s.y+=d[1]; redraw(); save(); }
   }
 });
 window.addEventListener('keyup',e=>{ if(e.code==='Space'){ spaceDown=false; cv.classList.remove('pan'); } });

@@ -9,7 +9,6 @@ function openSetup(forced){
   document.getElementById('nwVolts').value='';
   document.getElementById('nwAmps').value=20;
   document.getElementById('nwBasis').value='max80';
-  document.getElementById('nwCols').value=8; document.getElementById('nwRows').value=4;
   document.getElementById('nwBits').value='8'; document.getElementById('nwFeed').value='auto';
   document.getElementById('nwCancel').style.display=forced?'none':'';
   closeMask('pjModal');
@@ -42,8 +41,7 @@ async function nwCreate(){
   await newProject(g('nwName').trim(),{
     venue:g('nwVenue').trim(), volts:+g('nwVolts'), breaker:+g('nwAmps'),
     useAvg:basis.startsWith('avg'), derate:basis.endsWith('80'), bits:+g('nwBits'),
-    panelId:d.panelId, procId:d.procId, custom:d.custom, feed:g('nwFeed'),
-    cols:Math.max(1,+g('nwCols')||8), rows:Math.max(1,+g('nwRows')||4)});
+    panelId:d.panelId, procId:d.procId, custom:d.custom, feed:g('nwFeed')});
   if(old&&old!==projId){
     projIndex=projIndex.filter(e=>e.id!==old);
     await sDel(PKEY(old)); await sSet(IDX,projIndex);

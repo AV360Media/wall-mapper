@@ -1,6 +1,7 @@
 /* ---- Pixel Map workspace ---- */
 let pmOpen=false, pmSel=null, pmDrag=null, pmHits=[], pmLast=null;
 function openPM(){
+  if(needScreen()) return;
   if(!S.screens.some(s=>panelById(s.panelId))){ setStatus('Choose an LED panel for a screen first'); return; }
   pmOpen=true; document.getElementById('pmModal').classList.remove('hide'); pmSync();
 }

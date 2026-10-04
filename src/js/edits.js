@@ -201,45 +201,46 @@ function autoChain(){
   active[mode]=avail.length?avail[0].i:0;
   syncForm(); renderSlots(); redraw(); renderSide(); save();
 }
-/* Data runs laid out the way a crew patches them: every run starts on the edge the home runs
-   come from, takes whole columns (or rows) and snakes away from that edge and back, so all the
-   home runs land side by side in port order. A wall too deep for one run per column is cut into
-   bands; each band's runs start on its own edge nearest the feed. Runs are balanced so they
-   carry similar tile counts, and never exceed tiles-per-chain or the port's pixel capacity. */
+/* Data runs use as few ports as the wall allows: each port is filled to capacity, so the run
+   count is always ceil(tiles / tiles-per-port). Within that minimum the cleanest layout wins:
+   whole columns (or rows) snaking away from the feed edge and back, so every home run lands on
+   that edge in port order. Only when whole columns would cost an extra port does it fall back
+   to one continuous snake cut at capacity, where some runs start where the last one ended. */
 function dataLayout(s,feed,cap){
   const vert=feed!=='left'&&feed!=='right', D=vert?s.rows:s.cols, A=vert?s.cols:s.rows;
   const flip=feed==='bottom'||feed==='right';
   const at=(d,a)=>{ const dd=flip?D-1-d:d; return vert?[dd,a]:[a,dd]; };
   const live=(d,a)=>{ const[r,c]=at(d,a); return !isOff(s,r,c); };
-  const nb=Math.ceil(D/cap), out=[];
+  const line=(a,ds,up)=>(up?[...ds].reverse():ds).filter(d=>live(d,a)).map(d=>key(...at(d,a)));
+  const all=[...Array(D).keys()], min=Math.ceil(tileCount(s)/cap);
+  /* whole lines, greedily packed to capacity, in bands when one line is longer than a port */
+  const nb=Math.ceil(D/cap), whole=[];
   for(let b=0,d0=0;b<nb;b++){
-    const h=Math.floor(D/nb)+(b<D%nb?1:0), ds=[...Array(h).keys()].map(i=>d0+i); d0+=h;
-    const lines=[...Array(A).keys()].map(a=>({a,n:ds.filter(d=>live(d,a)).length})).filter(l=>l.n);
-    if(!lines.length) continue;
-    const pack=lim=>{ const g=[[]]; let t=0;
-      lines.forEach(l=>{ if(t+l.n>lim&&g[g.length-1].length){ g.push([]); t=0; } g[g.length-1].push(l); t+=l.n; });
-      return g; };
-    const n=pack(cap).length, tot=lines.reduce((t,l)=>t+l.n,0);
-    /* spread the lines evenly over those n runs; keep the greedy packing if that would overfill one */
-    let g=[...Array(n)].map(()=>[]), t=0;
-    lines.forEach(l=>{ g[Math.min(n-1,Math.floor((t+l.n/2)*n/tot))].push(l); t+=l.n; });
-    if(g.some(x=>!x.length||x.reduce((u,l)=>u+l.n,0)>cap)) g=pack(cap);
-    g.forEach(x=>out.push(x.flatMap((l,i)=>(i%2?[...ds].reverse():ds)
-      .filter(d=>live(d,l.a)).map(d=>key(...at(d,l.a))))));
+    const h=Math.floor(D/nb)+(b<D%nb?1:0), ds=all.slice(d0,d0+h); d0+=h;
+    let g=null;
+    for(let a=0;a<A;a++){
+      const n=ds.filter(d=>live(d,a)).length; if(!n) continue;
+      if(!g||g.n+n>cap){ g={n:0,ls:[],ds}; whole.push(g); }
+      g.ls.push(a); g.n+=n;
+    }
   }
+  if(whole.length<=min) return whole.map(g=>g.ls.flatMap((a,i)=>line(a,g.ds,i%2)));
+  /* one snake through the wall, cut every cap tiles */
+  const seq=[...Array(A).keys()].flatMap((a,i)=>line(a,all,i%2)), out=[];
+  for(let i=0;i<seq.length;i+=cap) out.push(seq.slice(i,i+cap));
   return out;
 }
 function autoData(s,len){
   const p=panelById(s.panelId), pc=portCap(procOf(s));
   const fit=pc?Math.floor(pc/(p.pw*p.ph)):0;
   if(pc&&!fit){ setStatus('One '+p.model+' is more than a port can carry at '+bitDepth()+'-bit'); return; }
-  const cap=fit?Math.min(len,fit):len, feed=s.feed||'top';
+  const cap=fit||len, feed=s.feed||'top';
   const runs=dataLayout(s,feed,cap), list=s.runs, u=unitOf(s);
   list.forEach(ch=>ch.tiles=[]);
   const avail=list.map((ch,i)=>({ch,i})).filter(x=>!(isBackupRun(s,x.ch)||portOwner(u,x.i,s)));
   runs.forEach((t,n)=>{ if(avail[n]) avail[n].ch.tiles=t; });
   if(runs.length>avail.length) setStatus(`Needs ${runs.length} ports, only ${avail.length} free — raise tiles per chain or add a processor`);
-  else setStatus(`${runs.length} data run${runs.length===1?'':'s'}, up to ${cap} tiles each${fit&&fit<len?' (port capacity)':''}, home runs from the ${feed}`);
+  else setStatus(`${runs.length} data run${runs.length===1?'':'s'}, up to ${cap} tiles each${fit?' (port capacity)':''}, home runs from the ${feed}`);
   active.data=avail.length?avail[0].i:0;
   syncForm(); renderSlots(); redraw(); renderSide(); save();
 }

@@ -223,8 +223,8 @@ function pmBuild(){
     const rowsY=[...new Set(g.items.map(o=>o.y))];
     g.items.sort((a,b)=>(rowsY.indexOf(a.y)-rowsY.indexOf(b.y))||a.x-b.x);
     const pk=pmPackBlocks(g.items.map((o,i)=>({w:o.W,h:o.H,i})),pm.outW,pm.outH);
-    if(pk&&pk.W*pk.H<=pm.outPx){ g.items.forEach((o,i)=>{ o.lx=pk.pos[i].x; o.ly=pk.pos[i].y; }); g.W=pk.W; g.H=pk.H; }
-    else {                                                   /* too big for one output: lay out in rows and flag it */
+    if(pk){ g.items.forEach((o,i)=>{ o.lx=pk.pos[i].x; o.ly=pk.pos[i].y; }); g.W=pk.W; g.H=pk.H; }   /* over the pixel limit still packs tight, and is flagged */
+    else {                                                   /* wider or taller than one output: lay out in rows and flag it */
       let x=0,y=0,rh=0,W=0;
       g.items.forEach(o=>{ if(x>0&&x+o.W>pm.outW){ y+=rh; x=0; rh=0; } o.lx=x; o.ly=y; x+=o.W; rh=Math.max(rh,o.H); W=Math.max(W,x); });
       g.W=W; g.H=y+rh;
@@ -279,22 +279,9 @@ function pmBuild(){
       compW=up8(pk.W); compH=up8(pk.H);
     } else warn.push('The outputs are too large to pack into one composition. Raise the output limits or use fewer outputs.');
   }
-  /* input rectangles: native in packed mode, the stage layout scaled to a standard size otherwise */
-  const FITS={fithd:[1920,1080],fit4k:[3840,2160],fit8k:[7680,4320]};
-  let k=1, n=1, exact=true;
-  if(!gpu&&FITS[pm.inFit]){
-    const [fw,fh]=FITS[pm.inFit], need=Math.max(1,stageW/fw,stageH/fh);
-    while(n<need) n*=2;                                   /* smallest power-of-two step that fits */
-    const divides=d=>L.every(o=>o.x%d===0&&o.y%d===0&&o.W%d===0&&o.H%d===0);
-    const want=n;
-    while(n>1&&!divides(n)) n/=2;                          /* step back toward 1:1 until every slice is exact */
-    if(n<want) warn.push(`Your panels don't divide evenly at 1/${want} scale, so the composition uses 1/${n} and is larger than the chosen size. Every slice stays pixel-exact.`);
-    k=1/n;
-  }
-  L.forEach(o=>{
-    o.ix=Math.round(o.x*k); o.iy=Math.round(o.y*k);
-    o.iw=Math.round((o.x+o.W)*k)-o.ix; o.ih=Math.round((o.y+o.H)*k)-o.iy;     /* exact at power-of-two steps */
-  });
+  /* input rectangles are always 1:1 with the LED */
+  const k=1, n=1, exact=true;
+  L.forEach(o=>{ o.ix=o.x; o.iy=o.y; o.iw=o.W; o.ih=o.H; });
 
   if(!gpu){ compW=Math.max(...L.map(o=>o.ix+o.iw)); compH=Math.max(...L.map(o=>o.iy+o.ih)); compW+=compW%2; compH+=compH%2; }
   if(compW>PM_MAXTEX||compH>PM_MAXTEX) warn.push(`The composition is ${compW} × ${compH}. Resolume on Apple Silicon tops out at ${PM_MAXTEX} pixels a side — rearrange or stack screens.`);

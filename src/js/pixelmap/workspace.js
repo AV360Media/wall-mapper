@@ -69,17 +69,14 @@ function pmRender(){
 function pmSide(){
   const M=pmLast, pm=pmOf(), g=id=>document.getElementById(id);
   g('pmSize').textContent=M.L.length?`${M.compW} × ${M.compH}`:'—';
-  g('pmPx').textContent=M.L.length?`composition · ${(M.lit/1e6).toFixed(2)} M LED pixels${M.n>1?` · scale 1/${M.n}`:''}`:'';
+  g('pmPx').textContent=M.L.length?`composition · ${(M.lit/1e6).toFixed(2)} M LED pixels`:'';
   const sw=g('pmMode'); if(sw) sw.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.v===(M.gpu?'gpu':'input')));
-  if(g('pmFit')) g('pmFit').value=pm.inFit||'fit4k';
   const eff=M.compW?Math.round(M.lit/(M.compW*M.compH)*100):0;
   g('pmOrient').innerHTML=M.gpu
     ?`<b>${(M.compW*M.compH/1e6).toFixed(2)} M px</b> to render, ${eff}% of it lit.`
       +(M.stagePx>M.compW*M.compH?` Matching the stage would be ${(M.stagePx/1e6).toFixed(2)} M px, so this saves ${Math.round((1-M.compW*M.compH/M.stagePx)*100)}% of the GPU work.`:'')
       +` Each output is one solid block of the composition.`
-    :`<b>${(M.compW*M.compH/1e6).toFixed(2)} M px</b> to render, laid out like the stage (${opt().rear?'rear':'front'} view${pm.flip?', flipped':''}). `
-      +(M.k<1?`Each composition pixel covers ${M.n} × ${M.n} LED pixels (scale 1/${M.n}), so content is scaled up ${M.n}× to reach the LED. Choose Native for pixel-perfect playback.`
-             :`Every composition pixel is one LED pixel.`);
+    :`<b>${(M.compW*M.compH/1e6).toFixed(2)} M px</b> to render, ${eff}% of it lit. Laid out like the stage (${opt().rear?'rear':'front'} view${pm.flip?', flipped':''}) with the gaps closed up. Every composition pixel is one LED pixel.`;
   document.querySelectorAll('.pm-stageonly').forEach(el=>el.style.display=M.gpu?'none':'');
   g('pmWarn').innerHTML=M.warn.map(w=>`<div class="pmw">${escp(w)}</div>`).join('');
   const sel=M.L.find(o=>o.id===pmSel);

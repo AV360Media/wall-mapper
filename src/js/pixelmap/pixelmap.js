@@ -9,7 +9,7 @@ const PM_PRESETS={
 };
 const PM_COLS=['#226ec8','#009678','#d27800','#aa32a0','#c83c3c','#4a8f2f','#7a5bd6','#b89600','#1f93a8','#c0507a','#5f7d1e','#8c5a2b'];
 const PM_MAXTEX=16384;
-const defPM=()=>({mV:10,mH:5,mFps:30,mSecs:10,pattern:'classic',palette:'vivid',labels:'large',outCount:4,compMode:'input',inFit:'fit4k',flip:false,pos:{},preset:'tb6k',outW:6144,outH:3456,outPx:8847360,share:true,assign:{}});
+const defPM=()=>({mV:10,mH:5,mFps:30,mSecs:10,pattern:'classic',palette:'vivid',labels:'large',outCount:4,compMode:'input',flip:false,pos:{},preset:'tb6k',outW:6144,outH:3456,outPx:8847360,share:true,assign:{}});
 function pmOf(){ S.pm=S.pm||{}; const d=defPM(); for(const k in d) if(!(k in S.pm)) S.pm[k]=d[k]; return S.pm; }
 const r8=v=>Math.round(v/8)*8, up8=v=>Math.ceil(v/8)*8;
 const median=a=>{ const b=a.slice().sort((x,y)=>x-y); return b.length?b[Math.floor(b.length/2)]:1; };
@@ -30,10 +30,10 @@ function pmMapX(map,k,wx){
   for(const m of map){ const d=wx<m.w0?m.w0-wx:wx-m.w1; if(!best||d<best.d) best={d,m}; }
   const m=best.m; return wx<m.w0?m.p0-(m.w0-wx)*k:m.p1+(wx-m.w1)*k;
 }
+/* the stage arrangement at 1:1, with the gaps between screens and rows closed up so nothing is wasted */
 function pmAutoLayout(L){
   if(!L.length) return;
   const k=median(L.map(o=>o.W/Math.max(1,o.gw)));
-  const TOL=48;                                   /* screens this close in the layout are treated as touching */
   const rows=[];
   L.slice().sort((a,b)=>a.gy-b.gy).forEach(o=>{
     const r=rows.find(r=>r.some(q=>o.gy<q.gy+q.gh*0.9&&o.gy+o.gh>q.gy+q.gh*0.1));
@@ -45,7 +45,7 @@ function pmAutoLayout(L){
     if(ri===0){
       let prev=null;
       row.forEach(o=>{
-        o.x=prev?prev.x+prev.W+((o.bx-(prev.bx+prev.bw))<TOL?0:r8((o.bx-(prev.bx+prev.bw))*k)):0;
+        o.x=prev?prev.x+prev.W:0;
         map.push({w0:o.gx,w1:o.gx+o.gw,p0:o.x,p1:o.x+o.W}); prev=o;
       });
       map.sort((a,b)=>a.w0-b.w0);
@@ -53,10 +53,7 @@ function pmAutoLayout(L){
       row.forEach(o=>o.y=r8((o.gy-top)*k));
     } else {
       const above=rows.slice(0,ri).flat();
-      const bottomPx=Math.max(...above.map(o=>o.y+o.H));
-      const upperBox=Math.max(...rows[ri-1].map(o=>o.by+o.bh));
-      const g=Math.min(...row.map(o=>o.by))-upperBox;
-      const yBase=bottomPx+(g<TOL?0:r8(g*k));
+      const yBase=Math.max(...above.map(o=>o.y+o.H));
       const gtop=Math.min(...row.map(o=>o.gy));
       /* snap to a centre, seam or edge of the screens above when within a cabinet of it */
       const cands=[];

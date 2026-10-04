@@ -27,14 +27,14 @@ Two copies of the app live on `main`:
 | `index.test.html` | https://bryanchorton.github.io/wall-mapper/index.test.html | every change to `src/` (rebuilt and committed with it) |
 | `index.html` | https://bryanchorton.github.io/wall-mapper/ | only when the test build is promoted |
 
-Every edit lands in `index.test.html` first. After testing it, promoting copies it over
+Every edit is committed straight to `main` and lands in `index.test.html` first. After testing it, promoting copies it over
 `index.html` in one commit on `main`; asking Claude to **"Promote to production"** does that.
 GitHub Pages republishes both files whenever either changes (`.github/workflows/pages.yml`),
 so production only moves on a promotion. The test page shows a red TEST BUILD tag and keeps its
 projects separate from production's; use Export / Import to carry a project across.
 
-`.github/workflows/check.yml` fails a pull request whose `index.test.html` is not the current
-build of `src/`.
+`.github/workflows/check.yml` fails any push or pull request whose `index.test.html` is not the
+current build of `src/`.
 
 ## Layout
 

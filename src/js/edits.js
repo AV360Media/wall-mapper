@@ -203,15 +203,16 @@ function autoChain(){
 }
 /* Data runs use as few ports as the wall allows: each port is filled to capacity, so the run
    count is always ceil(tiles / tiles-per-port). Within that minimum the cleanest layout wins:
-   whole columns (or rows) snaking away from the feed edge and back, so every home run lands on
-   that edge in port order. Only when whole columns would cost an extra port does it fall back
-   to one continuous snake cut at capacity, where some runs start where the last one ended. */
+   whole rows (or columns) starting on the feed edge, so every home run comes in along that one
+   edge. Side feeds number from the bottom row up; top and bottom feeds from left to right.
+   Only when whole lines would cost an extra port does it fall back to one continuous snake
+   cut at capacity, where some runs start where the last one ended. */
 function dataLayout(s,feed,cap){
-  const vert=feed!=='left'&&feed!=='right', D=vert?s.rows:s.cols, A=vert?s.cols:s.rows;
+  const vert=feed==='top'||feed==='bottom', D=vert?s.rows:s.cols, A=vert?s.cols:s.rows;
   const flip=feed==='bottom'||feed==='right';
-  const at=(d,a)=>{ const dd=flip?D-1-d:d; return vert?[dd,a]:[a,dd]; };
+  const at=(d,a)=>{ const dd=flip?D-1-d:d; return vert?[dd,a]:[A-1-a,dd]; };
   const live=(d,a)=>{ const[r,c]=at(d,a); return !isOff(s,r,c); };
-  const line=(a,ds,up)=>(up?[...ds].reverse():ds).filter(d=>live(d,a)).map(d=>key(...at(d,a)));
+  const line=(a,ds,back)=>(back?[...ds].reverse():ds).filter(d=>live(d,a)).map(d=>({d,t:key(...at(d,a))}));
   const all=[...Array(D).keys()], min=Math.ceil(tileCount(s)/cap);
   /* whole lines, greedily packed to capacity, in bands when one line is longer than a port */
   const nb=Math.ceil(D/cap), whole=[];
@@ -224,23 +225,31 @@ function dataLayout(s,feed,cap){
       g.ls.push(a); g.n+=n;
     }
   }
-  if(whole.length<=min) return whole.map(g=>g.ls.flatMap((a,i)=>line(a,g.ds,i%2)));
+  if(whole.length<=min) return {feed,clean:true,runs:whole.map(g=>g.ls.flatMap((a,i)=>line(a,g.ds,i%2)).map(x=>x.t))};
   /* one snake through the wall, cut every cap tiles */
-  const seq=[...Array(A).keys()].flatMap((a,i)=>line(a,all,i%2)), out=[];
-  for(let i=0;i<seq.length;i+=cap) out.push(seq.slice(i,i+cap));
-  return out;
+  const seq=[...Array(A).keys()].flatMap((a,i)=>line(a,all,i%2)), runs=[];
+  let edge=0;
+  for(let i=0;i<seq.length;i+=cap){ runs.push(seq.slice(i,i+cap).map(x=>x.t)); if(!seq[i].d) edge++; }
+  return {feed,clean:false,edge,runs};
 }
+/* Auto tries each edge and keeps the first that reaches the minimum with whole lines, else the
+   snake with the most runs starting on its edge */
+const FEEDS=['left','top','right','bottom'];
 function autoData(s,len){
   const p=panelById(s.panelId), pc=portCap(procOf(s));
   const fit=pc?Math.floor(pc/(p.pw*p.ph)):0;
   if(pc&&!fit){ setStatus('One '+p.model+' is more than a port can carry at '+bitDepth()+'-bit'); return; }
-  const cap=fit||len, feed=s.feed||'top';
-  const runs=dataLayout(s,feed,cap), list=s.runs, u=unitOf(s);
+  const cap=fit||len, want=s.feed||'auto';
+  const L=want==='auto'
+    ? FEEDS.map(f=>dataLayout(s,f,cap)).reduce((b,x)=>(b.clean||(!x.clean&&x.edge<=b.edge))?b:x)
+    : dataLayout(s,want,cap);
+  const runs=L.runs, list=s.runs, u=unitOf(s);
   list.forEach(ch=>ch.tiles=[]);
   const avail=list.map((ch,i)=>({ch,i})).filter(x=>!(isBackupRun(s,x.ch)||portOwner(u,x.i,s)));
   runs.forEach((t,n)=>{ if(avail[n]) avail[n].ch.tiles=t; });
+  const side={left:'down the left side',right:'down the right side',top:'along the top',bottom:'along the bottom'}[L.feed];
   if(runs.length>avail.length) setStatus(`Needs ${runs.length} ports, only ${avail.length} free — raise tiles per chain or add a processor`);
-  else setStatus(`${runs.length} data run${runs.length===1?'':'s'}, up to ${cap} tiles each${fit?' (port capacity)':''}, home runs from the ${feed}`);
+  else setStatus(`${runs.length} data run${runs.length===1?'':'s'}, up to ${cap} tiles each, home runs ${side}${L.clean?'':' (some start mid-wall to save ports)'}`);
   active.data=avail.length?avail[0].i:0;
   syncForm(); renderSlots(); redraw(); renderSide(); save();
 }

@@ -1,9 +1,12 @@
-# Builds dist/wall-mapper.html from main and publishes it to GitHub Pages as index.html.
-# Runs only when started by hand (Actions → Publish to GitHub Pages → Run workflow),
-# so merged changes stay unpublished until then.
+# Publishes the committed index.html (production) and index.test.html (test) to GitHub Pages
+# whenever either changes on main. index.test.html is rebuilt with every change; index.html only
+# changes when the test build is promoted, so production moves only on that command.
 name: Publish to GitHub Pages
 
 on:
+  push:
+    branches: [main]
+    paths: [index.html, index.test.html]
   workflow_dispatch:
 
 permissions:
@@ -23,11 +26,7 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - run: npm run build
-      - run: mkdir -p site && cp dist/wall-mapper.html site/index.html
+      - run: mkdir -p site && cp index.html index.test.html site/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

@@ -1,0 +1,19 @@
+# Fails when index.test.html is not the current build of src/, so the test page always
+# matches the code being reviewed.
+name: Check test build
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm run build
+      - run: git diff --exit-code index.test.html || (echo "::error::index.test.html is out of date. Run npm run build and commit it." && exit 1)

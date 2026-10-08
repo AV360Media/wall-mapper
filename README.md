@@ -24,8 +24,8 @@ Two copies of the app live on `main`:
 
 | File | Site | Changes when |
 |---|---|---|
-| `index.test.html` | https://bryanchorton.github.io/wall-mapper/index.test.html | every change to `src/` (rebuilt and committed with it) |
-| `index.html` | https://bryanchorton.github.io/wall-mapper/ | only when the test build is promoted |
+| `index.test.html` | https://av360media.github.io/wall-mapper/index.test.html | every change to `src/` (rebuilt and committed with it) |
+| `index.html` | https://av360media.github.io/wall-mapper/ | only when the test build is promoted |
 
 Every edit is committed straight to `main` and lands in `index.test.html` first. After testing it, promoting copies it over
 `index.html` in one commit on `main`; asking Claude to **"Promote to production"** does that.

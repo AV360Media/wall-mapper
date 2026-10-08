@@ -52,7 +52,7 @@ function xlsxExport(){
     cr.push({c:CH.map(h=>({v:h,s:HDR(5)})),h:20});
     let cur='';
     cableRows().forEach(r=>{
-      if(r.screen!==cur){ cur=r.screen; cr.push({c:[{v:cur,s:S_BOLD}]}); }
+      if(r.sid!==cur){ cur=r.sid; cr.push({c:[{v:r.screen,s:S_BOLD}]}); }
       cr.push({c:[r.screen,r.kind,r.id,r.from,r.to,{v:r.tiles},r.load,`${r.est} ft`,`${r.spec} ft`,'']});
     });
 

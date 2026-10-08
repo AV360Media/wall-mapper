@@ -15,19 +15,14 @@ function setBkPair(primaryId,backupId){
   if(backupId) bkDraft.pairs[primaryId]=backupId; else delete bkDraft.pairs[primaryId];
   renderBackup();
 }
-function setBkUnit(v){
-  if(v==='__new'){
-    const me=unitOf(sc());
-    const u=addUnit(me?me.procId:'none',(unitLabel(me)||'Processor')+' backup');
-    bkDraft.bkUnit=u.id;
-  } else bkDraft.bkUnit=v;
-  renderBackup();
-}
+function setBkUnit(v){ bkDraft.bkUnit=v; renderBackup(); }   /* "__new" is only made on Done */
+function closeBackup(){ bkDraft=null; closeMask('bkModal'); }
 function renderBackup(){
   const s=sc(), body=document.getElementById('bkBody');
   ['none','port','device'].forEach(m=>
     document.getElementById(m==='none'?'bkNone':m==='port'?'bkPort':'bkDev').classList.toggle('on',bkDraft.mode===m));
   const primaries=used(s,'data');
+  document.getElementById('bkClear').style.visibility=bkDraft.mode==='port'&&Object.keys(bkDraft.pairs||{}).length?'':'hidden';
   if(bkDraft.mode==='none'){
     body.innerHTML='<div class="empty" style="padding:16px">No redundancy. Only the primary data runs are drawn.</div>';
     return;
@@ -48,7 +43,7 @@ function renderBackup(){
         <select onchange="setBkUnit(this.value)">
           <option value="" ${!bkDraft.bkUnit?'selected':''}>— choose a processor —</option>
           ${opts}
-          <option value="__new">+ Add a new processor as the backup</option>
+          <option value="__new" ${bkDraft.bkUnit==='__new'?'selected':''}>+ Add a new processor as the backup</option>
         </select></div>
       <div class="hint">${U.length?`${S.screens.filter(x=>unitOf(x)===me).length} screen${S.screens.filter(x=>unitOf(x)===me).length===1?'':'s'} on ${escp(unitLabel(me))} will show backup runs.`
         :'You only have one processor. Add a second one to mirror onto.'}</div>
@@ -81,10 +76,11 @@ function renderBackup(){
     }).join('');
 }
 function applyBackup(){
-  pushUndo('backup setup');
   const s=sc(), me=unitOf(s);
+  if(bkDraft.mode==='device'&&!bkDraft.bkUnit){ setStatus('Choose which processor mirrors this one'); return; }
+  pushUndo('backup setup');
   if(bkDraft.mode==='device'){
-    if(!bkDraft.bkUnit){ setStatus('Choose which processor mirrors this one'); return; }
+    if(bkDraft.bkUnit==='__new') bkDraft.bkUnit=addUnit(me?me.procId:'none',(unitLabel(me)||'Processor')+' backup').id;
     if(me) me.bkUnit=bkDraft.bkUnit;
     bkDraft.pairs={};
   } else {
@@ -94,7 +90,7 @@ function applyBackup(){
   s.backup={mode:bkDraft.mode,pairs:bkDraft.pairs,procId:'',unitRef:'',_i:1};
   /* a port acting as a backup carries no tiles of its own */
   Object.values(s.backup.pairs).forEach(id=>{ const r=s.runs.find(x=>x.id===id); if(r) r.tiles=[]; });
-  closeMask('bkModal'); setLayers('data');
+  closeBackup(); setLayers('data');
   syncForm(); renderSlots(); renderSide(); redraw(); save();
   setStatus(s.backup.mode==='none'?'Backup cleared':'Backup saved');
 }

@@ -11,6 +11,7 @@ cv.addEventListener('dblclick',e=>{
 cv.addEventListener('contextmenu',e=>e.preventDefault());
 let ctxPress=null;
 cv.addEventListener('mousedown',e=>{
+  if(e.button===0&&document.querySelector('.menu.open')){ closeMenus(); return; }   /* first click just dismisses an open menu */
   ctxPress=e.button===2&&!spaceDown?{x:e.clientX,y:e.clientY}:null;
   if(e.button===2&&!spaceDown&&(mode==='power'||mode==='data')){
     const w=toWorld(e), h=pickScreen(w.x,w.y);
@@ -30,8 +31,7 @@ cv.addEventListener('mousedown',e=>{
   if(!h){ panning={x:e.clientX,y:e.clientY}; cv.classList.add('panning'); return; }
   if(h.i!==cur) selectScreen(h.i);
   if(focusIdx==null&&(mode==='arrange'||h.onHeader)){
-    pushUndo('screen move');
-    moving={sx:e.clientX,sy:e.clientY,ox:h.s.x,oy:h.s.y}; cv.classList.add('move'); return;
+    moving={sx:e.clientX,sy:e.clientY,ox:h.s.x,oy:h.s.y,moved:false}; cv.classList.add('move'); return;
   }
   const t=hitTileLocal(h.s,h.b,h.lx,h.ly);
   if(!t){ panning={x:e.clientX,y:e.clientY}; cv.classList.add('panning'); return; }
@@ -45,6 +45,7 @@ window.addEventListener('mousemove',e=>{
     const s=sc();
     let dx=(e.clientX-moving.sx)/view.k, dy=(e.clientY-moving.sy)/view.k;
     if(opt().rear) dx=-dx;
+    if(!moving.moved){ if(Math.hypot(e.clientX-moving.sx,e.clientY-moving.sy)<3) return; moving.moved=true; pushUndo('screen move'); }
     const np=snapPos(s,moving.ox+dx,moving.oy+dy,e.altKey);
     s.x=np.x; s.y=np.y; redraw(); return;
   }
@@ -62,22 +63,34 @@ window.addEventListener('mouseup',e=>{
     if(h){ panning=null; cv.classList.remove('panning'); openScreenMenu(h.i,e.clientX,e.clientY); }
   }
   ctxPress=null;
-  if(moving){ dragGuides=[]; save(); redraw(); }
+  if(moving){ dragGuides=[]; if(moving.moved) save(); redraw(); }
   paint=null; panning=null; moving=null;
   cv.classList.remove('panning'); cv.classList.remove('move'); cv.classList.remove('erasing');
 });
 window.addEventListener('keydown',e=>{
   const inField=/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
-  if((e.metaKey||e.ctrlKey)&&!inField){
+  const dlgOpen=MASKS.some(id=>!document.getElementById(id).classList.contains('hide'));
+  if((e.metaKey||e.ctrlKey)&&!inField&&!dlgOpen){   /* undo stays out of an open dialog's way */
     const k=e.key.toLowerCase();
     if(k==='z'){ e.preventDefault(); e.shiftKey?redo():undo(); return; }
     if(k==='y'){ e.preventDefault(); redo(); return; }
   }
-  if(pmOpen){
+  if(pmOpen&&!dlgOpen){
     if(e.key==='Escape'){ closePM(); return; }
     if(!inField&&e.key.startsWith('Arrow')&&pmSel){
       e.preventDefault(); const st=e.shiftKey?64:8;
       const d={ArrowLeft:[-st,0],ArrowRight:[st,0],ArrowUp:[0,-st],ArrowDown:[0,st]}[e.key]; if(d) pmNudge(d[0],d[1]);
+    }
+    return;
+  }
+  const dlg=MASKS.filter(id=>!document.getElementById(id).classList.contains('hide'));
+  if(dlg.length){
+    if(e.key==='Escape'){                          /* close the dialog on top only */
+      const id=dlg[dlg.length-1];
+      if(id==='btModal') closeBatch();
+      else if(id==='bkModal') closeBackup();
+      else if(id==='nwModal'){ if(nwCancelable()) nwDismiss(); }
+      else closeMask(id);
     }
     return;
   }
@@ -100,17 +113,21 @@ window.addEventListener('keydown',e=>{
     if(k==='f') fitView();
   }
   if(e.key==='Escape'){
-    closeMenus();
-    const open=['libModal','cpModal','bkModal','exModal','pjModal','lbModal','sbModal','siModal','btModal','stModal'].filter(id=>!document.getElementById(id).classList.contains('hide'));
-    if(open.includes('btModal')) batch=[];
-    if(open.length) open.forEach(closeMask); else exitFocus();
+    if(document.querySelector('.menu.open')) closeMenus(); else exitFocus();
   }
   if(e.key.startsWith('Arrow')&&focusIdx==null){
     const s=sc(), step=e.shiftKey?SNAP*4:SNAP;
     const d={ArrowLeft:[-step,0],ArrowRight:[step,0],ArrowUp:[0,-step],ArrowDown:[0,step]}[e.key];
-    if(d&&s){ e.preventDefault(); s.x+=opt().rear?-d[0]:d[0]; s.y+=d[1]; redraw(); save(); }
+    if(d&&s){
+      e.preventDefault();
+      if(Date.now()-nudgeAt>800) pushUndo('nudge screen');   /* one undo step per burst of nudges */
+      nudgeAt=Date.now();
+      s.x+=opt().rear?-d[0]:d[0]; s.y+=d[1]; redraw(); save();
+    }
   }
 });
+let nudgeAt=0;
+const MASKS=['nwModal','libModal','sbModal','siModal','stModal','btModal','lbModal','pjModal','exModal','bkModal','cpModal'];   /* page order: later ones sit on top */
 window.addEventListener('keyup',e=>{ if(e.code==='Space'){ spaceDown=false; cv.classList.remove('pan'); } });
 window.addEventListener('resize',redraw);
 

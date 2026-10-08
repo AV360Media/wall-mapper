@@ -121,7 +121,8 @@ async function sbSyncAll(quiet){
       const i=projIndex.findIndex(e=>e.id===x.id);
       if(i>=0) projIndex[i]=meta; else projIndex.push(meta);
       pulled++;
-      if(x.id===projId){ S=d; normalize(); renderTabs(); setMode('layout'); renderSide(); redraw(); }
+      if(x.id===projId){ S=d; normalize(); cur=Math.max(0,Math.min(cur,S.screens.length-1)); exitFocus();
+        renderTabs(); setMode('layout'); renderSide(); redraw(); }
     }
     /* push anything newer or missing remotely */
     for(const e of projIndex.slice()){

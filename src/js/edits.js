@@ -1,8 +1,10 @@
 /* ========================= EDITS ========================= */
+const MAXGRID=200;                            /* cabinets a side: plenty for any wall, and the canvas stays quick */
 function setScreen(f,v){
-  const s=sc();
+  const s=sc(); if(!s) return;
   if(f==='rows'||f==='cols'){
     if(!(v>=1)) return;                       /* ignore blank / mid-typing values */
+    v=Math.min(MAXGRID,Math.floor(v));
     if(v===s[f]) return;
     pushUndo('grid size');
     s[f]=v;                                   /* chains keep their tiles — see LT() */
@@ -16,7 +18,10 @@ function setScreen(f,v){
   if(f==='name'){ renderTabs(); if(focusIdx!=null) document.getElementById('focusName').textContent=v; }
   syncForm(); redraw(); renderSide(); renderSlots(); save();
 }
-function setOpt(f,v){ S.opt[f]=v; syncForm(); redraw(); renderSide(); save(); }
+function setOpt(f,v){
+  if((f==='volts'||f==='breaker')&&!(v>0)) return;   /* blank or zero while typing: keep the last good value */
+  S.opt[f]=v; syncForm(); redraw(); renderSide(); save();
+}
 function setScreenUnit(id){ pushUndo('processor assignment'); sc().procRef=id; syncForm(); renderSlots(); renderSide(); redraw(); save(); }
 function newUnit(){
   pushUndo('add processor');
@@ -42,7 +47,6 @@ function renameUnit(id,v){
   u.name=v.trim(); u.custom=u.name?1:0;      /* keeps the name when the model changes */
   const sel=document.getElementById('scUnit');
   if(sel) Array.from(sel.options).forEach(o=>{ if(o.value===id) o.textContent=unitLabel(u); });
-  document.querySelectorAll('.u-bk').forEach(()=>{});
   renderSide(); redraw(); save();
 }
 function renderUnits(){
@@ -71,13 +75,17 @@ function renderUnits(){
       ${L.ports?`<div class="u-trk"><div class="u-fil" style="width:${pct}%;background:${bad?'var(--bad)':'var(--ac)'}"></div></div>`:''}
       ${many?`<div class="u-sub">${escp(mine.length?'feeds '+mine.join(', '):'no screens yet')}</div>`:''}
       ${notes.length?`<div class="u-bk">${notes.join(' · ')}</div>`:''}
-      ${bad?'<div class="u-bad">More runs than this processor has ports</div>':''}
+      ${L.over?'<div class="u-bad">More runs than this processor has ports</div>':''}
+      ${L.capOver?`<div class="u-bad">${(L.px/1e6).toFixed(2)} M px is over this processor's ${(L.cap/1e6).toFixed(2)} M limit</div>`:''}
     </div>`;
   }).join('');
 }
 let libUnit=null;
 function pickUnitModel(id){ libUnit=id; openLib('proc'); }
-function setCab(f,v){ cabOf()[f]=v; syncForm(); renderSide(); save(); }
+function setCab(f,v){
+  if(typeof v==='number'&&!(v>0)&&f!=='cvtQty'&&f!=='fiberQty') return;   /* those two use blank for automatic */
+  cabOf()[f]=v; syncForm(); renderSide(); save();
+}
 function setTheme(k){ S.opt.ui=k; applyTheme(k); syncForm(); redraw(); save(); }
 function setBasis(v){ S.opt.useAvg=v.startsWith('avg'); S.opt.derate=v.endsWith('80'); redraw(); renderSide(); renderSlots(); save(); }
 
@@ -88,7 +96,7 @@ function toggleMenu(id,e){
   closeMenus(); if(!was) m.classList.add('open');
 }
 function closeMenus(){ document.querySelectorAll('.menu.open').forEach(m=>m.classList.remove('open')); }
-document.addEventListener('click',e=>{ if(!e.target.closest('.menu')) closeMenus(); });
+document.addEventListener('click',e=>{ if(e.isTrusted&&!e.target.closest('.menu')) closeMenus(); });   /* a finished download's click must not shut a menu */
 /* ---- settings ---- */
 function openSettings(t){
   syncForm();
@@ -198,7 +206,8 @@ function autoChain(){
     .filter(x=>!(mode==='data'&&(isBackupRun(s,x.ch)||portOwner(u,x.i,s))));
   let n=0;
   for(let i=0;i<seq.length&&n<avail.length;i+=len,n++) avail[n].ch.tiles=seq.slice(i,i+len);
-  if(seq.length>len*avail.length) setStatus(`Only ${avail.length} free port${avail.length===1?'':'s'} — raise tiles per chain or add a processor`);
+  if(seq.length>len*avail.length) setStatus(`Needs ${Math.ceil(seq.length/len)} circuits but there are only ${avail.length} — raise tiles per chain`);
+  else setStatus(`${n} circuit${n===1?'':'s'}, up to ${len} tiles each`);
   active[mode]=avail.length?avail[0].i:0;
   syncForm(); renderSlots(); redraw(); renderSide(); save();
 }
@@ -252,7 +261,7 @@ function autoData(s){
   const avail=list.map((ch,i)=>({ch,i})).filter(x=>!(isBackupRun(s,x.ch)||portOwner(u,x.i,s)));
   runs.forEach((t,n)=>{ if(avail[n]) avail[n].ch.tiles=t; });
   const side={left:'down the left side',right:'down the right side',top:'along the top',bottom:'along the bottom'}[L.feed];
-  if(runs.length>avail.length) setStatus(`Needs ${runs.length} ports, only ${avail.length} free — raise tiles per chain or add a processor`);
+  if(runs.length>avail.length) setStatus(`Needs ${runs.length} ports, only ${avail.length} free — add a processor and move this screen to it`);
   else setStatus(`${runs.length} data run${runs.length===1?'':'s'}, up to ${cap} tiles each, home runs ${side}${L.clean?'':' (some start mid-wall to save ports)'}${portCap(procOf(s))?'':' — standard 650k port assumed, pick a processor for its exact capacity'}`);
   active.data=avail.length?avail[0].i:0;
   syncForm(); renderSlots(); redraw(); renderSide(); save();
@@ -260,17 +269,15 @@ function autoData(s){
 function tidyChains(){ S.screens.forEach(hardPrune); }
 function clearAllMapping(){
   if(needScreen()) return;
-  const n=S.screens.length;
-  if(!confirm(`Clear every power circuit, data run and backup on ${n===1?'this screen':'all '+n+' screens'}?\n\nTile layout, panels and processors are kept. This can be undone.`)) return;
-  pushUndo('clear all mapping');
-  S.screens.forEach(s=>{
-    s.circuits.forEach(ch=>ch.tiles=[]);
-    s.runs.forEach(ch=>ch.tiles=[]);
-    s.backup={mode:'none',pairs:{},procId:''};
-  });
+  const s=sc();
+  if(!confirm(`Clear every power circuit, data run and backup pair on ${s.name||'this screen'}?\n\nIts tile layout, panel and processor are kept. This can be undone.`)) return;
+  pushUndo('clear mapping');
+  s.circuits.forEach(ch=>ch.tiles=[]);
+  s.runs.forEach(ch=>ch.tiles=[]);
+  s.backup={mode:'none',pairs:{},procId:''};
   active={power:0,data:0};
   syncForm(); renderSlots(); renderSide(); redraw(); save();
-  setStatus('All mapping cleared');
+  setStatus('Mapping cleared on '+(s.name||'this screen'));
 }
 function clearChains(){ pushUndo('clear '+(mode==='power'?'circuits':'data runs')); chains(sc(),mode).forEach(ch=>ch.tiles=[]); renderSlots(); redraw(); renderSide(); save(); }
 

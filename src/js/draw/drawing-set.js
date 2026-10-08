@@ -373,7 +373,7 @@ function drawSummary(ctx){
         f:k.cap?`${k.pct.toFixed(0)}%`:'',over:k.pct>=100});});
   });
   const st=setTotalsCalc();
-  rows.push({h:1,a:'SET TOTAL',b:`${S.screens.length} screens`,c:`${(st.px/1e6).toFixed(2)} M px`,d:lbFmt(st.lb),
+  rows.push({h:1,a:'SET TOTAL',b:`${S.screens.length} screen${S.screens.length===1?'':'s'}`,c:`${(st.px/1e6).toFixed(2)} M px`,d:lbFmt(st.lb),
     e:`${st.tiles} tiles · ${(st.wMax/1000).toFixed(2)} kW max / ${(st.wAvg/1000).toFixed(2)} kW avg`,
     f:`${st.circ} circuits · ${st.runs} runs`});
   const H=Math.max(520,120+rows.length*20+60);
@@ -418,10 +418,10 @@ function drawSchedule(ctx){
   ['Type','ID','From','To','Tiles','Load','Est. run','Spec'].forEach((t,i)=>txt(ctx,t,cols[i],94,`600 9.5px ${FS}`,C.faint));
   let y=114, cur='', zi=0;
   rows.forEach(r=>{
-    if(r.screen!==cur){
-      cur=r.screen; zi=0;
+    if(r.sid!==cur){
+      cur=r.sid; zi=0;
       roundRect(ctx,36,y-14,W-72,22,7); ctx.fillStyle=C.band; ctx.fill();
-      txt(ctx,clipText(ctx,cur,W-90,`700 11px ${FS}`),44,y,`700 11px ${FS}`,C.head);
+      txt(ctx,clipText(ctx,r.screen,W-90,`700 11px ${FS}`),44,y,`700 11px ${FS}`,C.head);
       y+=22;
     }
     if(zi++%2){ roundRect(ctx,36,y-13,W-72,20,6); ctx.save(); ctx.globalAlpha=.5; ctx.fillStyle=C.band; ctx.fill(); ctx.restore(); }

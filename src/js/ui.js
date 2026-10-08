@@ -3,7 +3,7 @@ function openScreenMenu(i,x,y){
   closeScreenMenu(); closeMenus();
   const s=S.screens[i]; if(!s) return;
   selectScreen(i);
-  const only=S.screens.length<2, m=document.createElement('div');
+  const m=document.createElement('div');
   m.id='ctxMenu'; m.className='ctxmenu';
   const I=d=>`<svg viewBox="0 0 24 24">${d}</svg>`;
   m.innerHTML=`<div class="ctx-t">${escp((s.name||'Screen').trim())}</div>
@@ -11,7 +11,7 @@ function openScreenMenu(i,x,y){
     <button onclick="closeScreenMenu();dupScreen()">${I('<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/>')}Duplicate</button>
     <button onclick="closeScreenMenu();clearAllMapping()">${I('<path d="M4 4l16 16M20 4L4 20"/>')}Clear mapping</button>
     <div class="ctx-sep"></div>
-    <button class="dgr" ${only?'disabled title="A project needs at least one screen"':''} onclick="closeScreenMenu();ctxDelete(${i})">${I('<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>')}Delete screen</button>`;
+    <button class="dgr" onclick="closeScreenMenu();ctxDelete(${i})">${I('<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>')}Delete screen</button>`;
   document.body.appendChild(m);
   const r=m.getBoundingClientRect();
   m.style.left=Math.min(x,innerWidth-r.width-10)+'px';
@@ -20,19 +20,22 @@ function openScreenMenu(i,x,y){
 }
 function closeScreenMenu(){ const m=document.getElementById('ctxMenu'); if(m) m.remove(); }
 function ctxDelete(i){
-  if(S.screens.length<2) return;
   const name=(S.screens[i].name||'Screen').trim();
   selectScreen(i); delScreen();
   setStatus(`Deleted ${name} · ⌘Z to undo`);
 }
-document.addEventListener('mousedown',e=>{ if(!e.target.closest('#ctxMenu')) closeScreenMenu(); },true);
+document.addEventListener('mousedown',e=>{
+  if(e.target.closest('#ctxMenu')||!document.getElementById('ctxMenu')) return;
+  closeScreenMenu(); if(e.target.id==='cv') e.stopPropagation();   /* that click only dismisses the menu */
+},true);
 document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeScreenMenu(); });
 window.addEventListener('blur',closeScreenMenu);
 function renderTabs(){
   document.getElementById('tabs').innerHTML=
-    S.screens.map((s,i)=>`<div class="tab ${i===cur?'on':''}" onclick="selectScreen(${i})" ondblclick="enterFocus(${i})"
+    S.screens.map((s,i)=>`<div class="tab ${i===cur?'on':''}" title="${escp(s.name)}" onclick="selectScreen(${i})" ondblclick="enterFocus(${i})"
       oncontextmenu="event.preventDefault();openScreenMenu(${i},event.clientX,event.clientY)">${escp(s.name)}</div>`).join('')+
-    `<div class="tab" style="color:var(--tx3)" onclick="addScreen()">+</div>`;
+    `<div class="tab" style="color:var(--tx3)" title="Add a screen" onclick="addScreen()">+</div>`;
+  const on=document.querySelector('#tabs .tab.on'); if(on) on.scrollIntoView({block:'nearest',inline:'nearest'});
   renderEmpty();
 }
 /* ---- a project with no screens yet: show its settings and the way to add one ---- */

@@ -73,7 +73,7 @@ function drawGuides(ctx,B,w,h){
 function fitView(){
   const B=setBounds(), w=stage.clientWidth, h=stage.clientHeight;
   const T=titleH(), W=B.w+SETGAP*2, H=B.h+T+SETGAP;
-  view.k=Math.max(0.12,Math.min(Math.min(w/W,h/H)*0.94,6));
+  view.k=Math.max(0.03,Math.min(Math.min(w/W,h/H)*0.94,6));
   view.x=(w-W*view.k)/2+(SETGAP-B.x1)*view.k;
   view.y=(h-H*view.k)/2+(T-B.y1)*view.k;
   redraw();
@@ -81,7 +81,7 @@ function fitView(){
 function setZoom(k){ zoomAt(k,stage.clientWidth/2,stage.clientHeight/2); }
 function zoomBy(f){ zoomAt(view.k*f,stage.clientWidth/2,stage.clientHeight/2); }
 function zoomAt(k,sx,sy){
-  k=Math.max(0.12,Math.min(8,k));
+  k=Math.max(0.03,Math.min(8,k));
   const wx=(sx-view.x)/view.k, wy=(sy-view.y)/view.k;
   view.k=k; view.x=sx-wx*k; view.y=sy-wy*k; redraw();
 }

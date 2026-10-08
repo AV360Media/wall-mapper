@@ -1,5 +1,5 @@
 /* ---- batch screen creation ---- */
-let batch=[];
+let batch=[], batchUnits=[];          /* processors made from this dialog, dropped again if it is cancelled */
 const screenUnmapped=q=>!(q.off||[]).length
   && !q.circuits.some(c=>c.tiles.length) && !q.runs.some(c=>c.tiles.length);
 const screenBlank=q=>!q.panelId && screenUnmapped(q) && /^Screen \d+$/.test(q.name||'');
@@ -13,6 +13,7 @@ function openBatch(){
   g('btPanel').innerHTML=PANELS.concat(S.customPanels||[]).map(p=>
     `<option value="${p.id}" ${p.id===(cur0?cur0.panelId:S.defPanel)?'selected':''}>${escp(p.brand+' '+p.model)} · ${p.pitch}mm</option>`).join('');
   const cu=unitOf(cur0);
+  batchUnits=[];
   if(!batch.length){
     const st=starterScreen();
     batch=st
@@ -35,11 +36,11 @@ function batchDel(i){
   if(!batch.length){ const cu=unitOf(sc()); batch=[{name:'',cols:8,rows:4,unit:cu?cu.id:''}]; }
   renderBatch();
 }
-function batchSet(i,f,v){ if(batch[i]) batch[i][f]=(f==='name')?v:Math.max(1,+v||1); renderBatch(1); }
+function batchSet(i,f,v){ if(batch[i]) batch[i][f]=(f==='name')?v:Math.min(MAXGRID,Math.max(1,+v||1)); renderBatch(1); }
 function batchUnit(i,v){
   if(v==='__new'){
     const base=unitOf(sc());
-    const u=addUnit(base?base.procId:'none');
+    const u=addUnit(base?base.procId:'none'); batchUnits.push(u.id);
     batch[i].unit=u.id;
     setStatus('Added '+unitLabel(u));
   } else batch[i].unit=v;
@@ -47,13 +48,17 @@ function batchUnit(i,v){
 }
 function batchBulkUnit(v){
   if(!v) return;
-  if(v==='__new'){ const base=unitOf(sc()); const u=addUnit(base?base.procId:'none'); batch.forEach(b=>b.unit=u.id); }
+  if(v==='__new'){ const base=unitOf(sc()); const u=addUnit(base?base.procId:'none'); batchUnits.push(u.id); batch.forEach(b=>b.unit=u.id); }
   else batch.forEach(b=>b.unit=v);
   document.getElementById('btBulk').value='';
   renderBatch();
 }
 function batchClear(){ const cu=unitOf(sc()); batch=[{name:'',cols:8,rows:4,unit:cu?cu.id:''}]; renderBatch(); }
-function closeBatch(){ batch=[]; closeMask('btModal'); }
+function closeBatch(){
+  const drop=new Set(batchUnits.filter(id=>!S.screens.some(q=>q.procRef===id)));
+  if(drop.size&&units().length>drop.size) S.procs=units().filter(u=>!drop.has(u.id));
+  batch=[]; batchUnits=[]; closeMask('btModal'); syncForm();
+}
 function batchName(i){
   const b=batch[i];
   if(b.name.trim()) return b.name.trim();
@@ -102,12 +107,12 @@ function batchCreate(){
   const gapFt=Math.max(0,+g('btGap').value||0);
   pushUndo('add '+batch.length+' screen'+(batch.length===1?'':'s'));
   const gapW=gapFt*304.8*MM;
-  const made=[];
+  const made=[], names=batch.map((b,i)=>b.name.trim()||batchName(i));   /* named before any are added */
   batch.forEach((b,i)=>{
     const uu=units().find(u=>u.id===b.unit)||units()[0];
     let q=b.ref?S.screens.find(x=>x.id===b.ref):null;
     if(!q){ q=blankScreen(1); S.screens.push(q); }
-    q.name=b.name.trim()||batchName(i);
+    q.name=names[i];
     q.cols=b.cols; q.rows=b.rows; q.panelId=panelId;
     q.procRef=uu?uu.id:''; q.procId=uu?uu.procId:'none';
     if(!q.feed&&S.defFeed) q.feed=S.defFeed;
@@ -128,7 +133,8 @@ function batchCreate(){
       else { q.x=cx; q.y=(place==='row')?(maxH-b.h):0; cx+=b.w+gapW; }
     });
   } else made.forEach(q=>{ q.x=x; q.y=0; });
-  closeMask('btModal');
+  closeMask('btModal'); batchUnits=[];
+  if(focusIdx!=null){ focusIdx=null; prevView=null; document.getElementById('focusBar').classList.add('hide'); document.getElementById('focusBtn').classList.remove('on'); }
   cur=Math.max(0,S.screens.indexOf(made[0]));
   renderTabs(); syncForm(); renderSlots(); renderSide(); fitView(); save();
   setStatus(`Added ${made.length} screen${made.length===1?'':'s'}`);

@@ -105,7 +105,7 @@ async function pmDownloadMotion(){
   const pm=pmOf(), fps=+pm.mFps||30, secs=pmMotionLen(pm), base=fileBase();
   const btn=document.getElementById('pmMo'), bar=document.getElementById('pmMoBar'), msg=document.getElementById('pmMoMsg');
   pmMotionBusy=true; pmMotionCancel=false; btn.textContent='Stop'; btn.onclick=()=>{ pmMotionCancel=true; };
-  const files=[], skipped=[], codecs=new Set();
+  const files=[], skipped=[], codecs=new Set(), names=new Set();
   try{
     for(let k=0;k<M.slices.length;k++){
       const o=M.slices[k];
@@ -113,7 +113,10 @@ async function pmDownloadMotion(){
       const r=await pmEncodeSlice(M,o,fps,secs,p=>{ bar.style.width=(((k+p)/M.slices.length)*100).toFixed(1)+'%'; });
       if(r.skip){ skipped.push(r.skip); continue; }
       codecs.add(r.codec);
-      files.push({name:`Motion test patterns/${String(o.name).replace(/[\\\\/:*?"<>|]+/g,'-').trim()} ${o.W}x${o.H}.mp4`,data:r.data});
+      const nm0=`Motion test patterns/${String(o.name).replace(/[\\\\/:*?"<>|]+/g,'-').trim()||'Screen'}`;
+      let nm=`${nm0} ${o.W}x${o.H}.mp4`, n2=2;
+      while(names.has(nm)) nm=`${nm0} (${n2++}) ${o.W}x${o.H}.mp4`;
+      names.add(nm); files.push({name:nm,data:r.data});
     }
     bar.style.width='100%';
     if(!files.length) throw new Error(skipped[0]||'nothing encoded');

@@ -43,9 +43,10 @@ function dupScreen(){
   selectScreen(S.screens.length-1); fitView(); save();
 }
 function delScreen(){
-  if(S.screens.length<2) return;
+  if(needScreen()) return;
   pushUndo('delete screen');
-  S.screens.splice(cur,1); cur=Math.max(0,cur-1);
+  const gone=S.screens.splice(cur,1)[0]; cur=Math.max(0,Math.min(cur,S.screens.length-1));
+  if(!S.screens.length){ S.defPanel=S.defPanel||gone.panelId; S.defFeed=S.defFeed||gone.feed; }   /* back to the blank canvas, keeping its panel */
   focusIdx=null; document.getElementById('focusBar').classList.add('hide');
   document.getElementById('focusBtn').classList.remove('on');
   selectScreen(cur); fitView(); save();

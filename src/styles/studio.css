@@ -104,6 +104,8 @@ input.bare:focus{background:var(--surface);border-color:var(--line2);outline:non
 .tab:hover{color:var(--tx);background:var(--inner)}
 .tab.on{background:var(--tx);color:var(--bg);box-shadow:0 6px 16px -8px rgba(0,0,0,.5)}
 .tab.on::before{display:none}
+.tab{max-width:240px;overflow:hidden;text-overflow:ellipsis;flex-shrink:0}
+.modal.form .acts,.modal.wide .acts{position:sticky;bottom:-24px;margin:12px -26px -24px;padding:12px 26px 24px;background:var(--surface);z-index:2}   /* buttons stay in reach on short screens */
 .tabtools{margin-left:auto;display:flex;gap:2px}
 
 /* ---------- main area ---------- */
@@ -212,6 +214,7 @@ html[data-theme=light] .btn.pri{box-shadow:0 10px 24px -12px rgba(40,32,20,.55)}
 #totals .row,#setTotals .row{display:flex;justify-content:space-between;align-items:baseline;padding:9px 0;border-bottom:1px solid var(--line);font-size:12px;color:var(--tx2)}
 #totals .row:last-child,#setTotals .row:last-child{border-bottom:none}
 #totals .v,#setTotals .v{font-family:var(--mono);font-size:12px;color:var(--tx);font-weight:500}
+#totals .v.w,#setTotals .v.w{color:var(--bad)}
 
 /* ---------- canvas overlays ---------- */
 .zoombar{right:18px;bottom:18px;border-radius:99px;padding:5px;background:var(--surface)!important;border:1px solid var(--line)!important;box-shadow:var(--shadow)}
@@ -255,10 +258,11 @@ label.sw{font-size:12.5px}
 .pmtab td,.pmtab th{font-family:var(--mono)}
 
 /* ---------- toast ---------- */
-#toast{position:fixed;left:50%;bottom:30px;z-index:90;transform:translate(-50%,28px) scale(.95);opacity:0;pointer-events:none;display:flex;align-items:center;gap:10px;
+#toast{position:fixed;left:50%;top:18px;z-index:90;max-width:min(560px,calc(100vw - 32px));transform:translate(-50%,-24px) scale(.95);opacity:0;pointer-events:none;display:flex;align-items:center;gap:10px;
   max-width:min(560px,86vw);padding:11px 18px 11px 12px;border-radius:99px;background:var(--tx);color:var(--bg);font-size:12.5px;font-weight:500;
   box-shadow:var(--shadow-lg);transition:transform .6s var(--spring),opacity .25s}
 #toast.on{transform:translate(-50%,0) scale(1);opacity:1}
+#pmModal:not(.hide) ~ #toast{top:84px}                                     /* below the pixel map bar */
 #toast i{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--ok) 85%,#000);color:#fff;font-style:normal;font-size:11px;font-weight:700}
 #toast.bad i{background:var(--bad)}
 

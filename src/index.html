@@ -105,8 +105,8 @@
         <summary>Screen</summary>
         <div class="f"><input id="scName" class="scname" oninput="setScreen('name',this.value)" placeholder="Screen name" /></div>
         <div class="g2">
-          <div class="f"><label>Columns</label><input type="number" min="1" id="scCols" oninput="setScreen('cols',+this.value)" /></div>
-          <div class="f"><label>Rows</label><input type="number" min="1" id="scRows" oninput="setScreen('rows',+this.value)" /></div>
+          <div class="f"><label>Columns</label><input type="number" min="1" max="200" id="scCols" oninput="setScreen('cols',+this.value)" /></div>
+          <div class="f"><label>Rows</label><input type="number" min="1" max="200" id="scRows" oninput="setScreen('rows',+this.value)" /></div>
         </div>
         <button class="picker" id="panelPick" onclick="openLib('panel')"></button>
         <div class="warn" id="panelWarn"></div>
@@ -191,7 +191,8 @@
     </div>
     <div class="hint" id="nwMsg" style="margin-top:10px"></div>
     <div class="acts" style="justify-content:flex-end;gap:8px">
-      <button class="btn" id="nwCancel" onclick="libDraft=null;closeMask('nwModal')">Cancel</button>
+      <button class="btn ghost" id="nwProjects" style="display:none;margin-right:auto" onclick="nwDismiss();openProjects()">All projects…</button>
+      <button class="btn" id="nwCancel" onclick="nwDismiss()">Cancel</button>
       <button class="btn pri" id="nwGo" onclick="nwCreate()">Create project</button>
     </div>
   </div>
@@ -384,7 +385,7 @@
 <div class="mask hide" id="btModal">
   <div class="modal" style="width:780px">
     <h3>Add screens</h3>
-    <div class="g3" style="display:grid;grid-template-columns:1.4fr 1fr .7fr;gap:12px">
+    <div class="g3" style="display:grid;grid-template-columns:1.3fr 1.2fr .5fr;gap:12px">
       <div class="f"><label>LED panel — all screens</label><select id="btPanel" onchange="renderBatch(1)"></select></div>
       <div class="f"><label>Placement</label>
         <select id="btPlace">
@@ -630,7 +631,7 @@
     </div>
     <div class="list" id="bkBody" style="padding:2px"></div>
     <div class="acts">
-      <button class="btn dgr" onclick="clearBackup()">Clear all pairs</button>
+      <button class="btn dgr" id="bkClear" onclick="clearBackup()">Clear all pairs</button>
       <button class="btn pri" onclick="applyBackup()">Done</button>
     </div>
   </div>

@@ -25,6 +25,7 @@ function pmAssign(key,v){
 }
 function pmSetPos(id,f,v){
   const M=pmLast||pmBuild(), o=M.L.find(q=>q.id===id); if(!o) return;
+  pushUndo('move in pixel map');
   const pm=pmOf(); pm.pos[id]=pm.pos[id]||{x:o.x,y:o.y}; pm.pos[id][f]=Math.max(0,r8((+v||0)/(M.k||1))); pmSync(); save();
 }
 function pmResetOne(id){ pushUndo('pixel map reset'); delete pmOf().pos[id]; pmSync(); save(); }
@@ -37,7 +38,7 @@ function pmRender(){
   x.fillStyle=C.bg; x.fillRect(0,0,W,H); pmHits=[];
   x.fillStyle=C.dot||C.rule; for(let yy=11;yy<H;yy+=22) for(let xx=11;xx<W;xx+=22) x.fillRect(xx-.75,yy-.75,1.5,1.5);
   if(!M.L.length) return;
-  const pad=28, outsH=M.outs.length?Math.min(H*0.34,260):0;
+  const pad=28, outsH=M.outs.length?Math.min(H*0.34,270):0;
   const areaW=W-pad*2, areaH=H-pad*2-outsH-(outsH?54:0)-26;
   const sc=Math.min(areaW/M.compW,areaH/M.compH);
   const cx0=pad+(areaW-M.compW*sc)/2, cy0=pad+26;
@@ -54,15 +55,16 @@ function pmRender(){
   x.strokeStyle=C.edge; x.lineWidth=1; x.strokeRect(cx0,cy0,M.compW*sc,M.compH*sc);
   if(!outsH) return;
   const oy=cy0+M.compH*sc+44, gap=24;
-  const sumW=M.outs.reduce((a,o)=>a+o.W,0), os=Math.min((W-pad*2-gap*(M.outs.length-1))/sumW,(outsH-30)/Math.max(...M.outs.map(o=>o.H)));
+  const sumW=M.outs.reduce((a,o)=>a+o.W,0), os=Math.min((W-pad*2-gap*(M.outs.length-1))/sumW,(outsH-40)/Math.max(...M.outs.map(o=>o.H)));
   let ox=pad+(W-pad*2-(sumW*os+gap*(M.outs.length-1)))/2;
   M.outs.forEach(o=>{
     const over=o.W>pmOf().outW||o.H>pmOf().outH||o.W*o.H>pmOf().outPx;
-    x.font=`700 12px ${FS}`; x.fillStyle=over?C.bad:C.head; x.fillText(`OUTPUT ${o.n}`,ox,oy);
-    x.font=`11px ${FM}`; x.fillStyle=C.faint; x.fillText(`${o.W} × ${o.H}`,ox+78,oy+1);
-    x.save(); x.translate(ox,oy+20); x.scale(os,os); pmDead(x,o.W,o.H);
+    const room=o.W*os+gap-6;                   /* name over size, so narrow outputs never collide */
+    x.font=`700 12px ${FS}`; x.fillStyle=over?C.bad:C.head; x.fillText(clipText(x,`OUTPUT ${o.n}`,room,`700 12px ${FS}`),ox,oy);
+    x.font=`10.5px ${FM}`; x.fillStyle=C.faint; x.fillText(clipText(x,`${o.W} × ${o.H}`,room,`10.5px ${FM}`),ox,oy+15);
+    x.save(); x.translate(ox,oy+31); x.scale(os,os); pmDead(x,o.W,o.H);
     M.L.filter(q=>q.out===o.n).forEach(q=>pmDrawSurface(x,q,q.ox,q.oy,pmWhereOut(q),false)); x.restore();
-    x.strokeStyle=over?'#ff6b6b':'#39435599'; x.strokeRect(ox,oy+20,o.W*os,o.H*os);
+    x.strokeStyle=over?'#ff6b6b':'#39435599'; x.strokeRect(ox,oy+31,o.W*os,o.H*os);
     ox+=o.W*os+gap;
   });
 }
@@ -88,7 +90,7 @@ function pmSide(){
     </div>
     <div class="hint">Panel ${sel.cw} × ${sel.ch} px · ${sel.s.cols} × ${sel.s.rows} panels. Input ${sel.iw} × ${sel.ih} in the composition. Lands on Output ${sel.out} at X ${sel.ox}, Y ${sel.oy} as ${sel.W} × ${sel.H}.${sel.manual?' Placed by hand.':''}</div>
     ${sel.manual?`<button class="btn sm ghost" onclick="pmResetOne('${sel.id}')">Back to automatic position</button>`:''}`
-    :(M.gpu?'<div class="hint">Click a screen to see where it sits. In GPU optimised mode every position is worked out for you.</div>'
+    :(M.gpu?'<div class="hint">Click a screen to see where it sits. In Packed 1:1 mode every position is worked out for you.</div>'
       :'<div class="hint">Click a screen to select it. Drag to move it, or nudge with the arrow keys (Shift for bigger steps).</div>');
   g('pmPreset').value=pm.preset; g('pmW').value=pm.outW; g('pmH').value=pm.outH; g('pmMax').value=pm.outPx;
   pmSwatches();
@@ -107,7 +109,7 @@ function pmSide(){
       ${iss.map(i=>`<div class="pmiss-i"><div class="pmiss-t">${escp(i.title)}</div><div class="pmiss-d">${escp(i.detail)}</div>
         ${i.kind==='split'?`<button class="btn sm" onclick="pmFix('split','${i.id}')">Split screen</button>`:''}
         ${i.kind==='rebalance'?`<button class="btn sm" onclick="pmFix('rebalance','${i.id}')">Add processors and rebalance</button>`:''}</div>`).join('')}
-    </div>`:`<div class="pmok">Every processor is within its limits and fits ${M.outs.length} of your ${pm.outCount||4} outputs.</div>`);
+    </div>`:(M.outs.length>(pm.outCount||4)?'':`<div class="pmok">Every processor is within its limits, using ${M.outs.length} of your ${pm.outCount||4} output${(pm.outCount||4)===1?'':'s'}.</div>`));
   g('pmOuts').innerHTML=M.outs.map(o=>{
     const px=o.W*o.H, over=o.W>pm.outW||o.H>pm.outH||px>pm.outPx;
     return `<div class="pmout ${over?'bad':''}">
@@ -131,14 +133,13 @@ function pmDown(e){
   const hit=pmHit(e); if(!hit){ pmSel=null; pmSync(); return; }
   pmSel=hit.h.id; const o=pmLast.L.find(q=>q.id===pmSel);
   if(pmLast.gpu){ pmSync(); return; }
-  pushUndo('move in pixel map');
   pmDrag={id:o.id,sx:e.clientX,sy:e.clientY,x0:o.x,y0:o.y,sc:hit.h.sc,moved:false};
   pmSync();
 }
 function pmMove(e){
   if(!pmDrag) return;
   const d=pmDrag, dx=(e.clientX-d.sx)/d.sc, dy=(e.clientY-d.sy)/d.sc;
-  if(!d.moved&&Math.hypot(e.clientX-d.sx,e.clientY-d.sy)<3) return; d.moved=true;
+  if(!d.moved){ if(Math.hypot(e.clientX-d.sx,e.clientY-d.sy)<3) return; d.moved=true; pushUndo('move in pixel map'); }
   const o=pmLast.L.find(q=>q.id===d.id); let nx=d.x0+dx, ny=d.y0+dy;
   const snap=10/d.sc;                                      /* snap to other screens' edges and centres */
   pmLast.L.forEach(q=>{ if(q.id===d.id) return;

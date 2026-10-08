@@ -440,6 +440,8 @@ input.bare:focus{background:var(--surface);border-color:var(--line2);outline:non
 .tab:hover{color:var(--tx);background:var(--inner)}
 .tab.on{background:var(--tx);color:var(--bg);box-shadow:0 6px 16px -8px rgba(0,0,0,.5)}
 .tab.on::before{display:none}
+.tab{max-width:240px;overflow:hidden;text-overflow:ellipsis;flex-shrink:0}
+.modal.form .acts,.modal.wide .acts{position:sticky;bottom:-24px;margin:12px -26px -24px;padding:12px 26px 24px;background:var(--surface);z-index:2}   /* buttons stay in reach on short screens */
 .tabtools{margin-left:auto;display:flex;gap:2px}
 
 /* ---------- main area ---------- */
@@ -548,6 +550,7 @@ html[data-theme=light] .btn.pri{box-shadow:0 10px 24px -12px rgba(40,32,20,.55)}
 #totals .row,#setTotals .row{display:flex;justify-content:space-between;align-items:baseline;padding:9px 0;border-bottom:1px solid var(--line);font-size:12px;color:var(--tx2)}
 #totals .row:last-child,#setTotals .row:last-child{border-bottom:none}
 #totals .v,#setTotals .v{font-family:var(--mono);font-size:12px;color:var(--tx);font-weight:500}
+#totals .v.w,#setTotals .v.w{color:var(--bad)}
 
 /* ---------- canvas overlays ---------- */
 .zoombar{right:18px;bottom:18px;border-radius:99px;padding:5px;background:var(--surface)!important;border:1px solid var(--line)!important;box-shadow:var(--shadow)}
@@ -591,10 +594,11 @@ label.sw{font-size:12.5px}
 .pmtab td,.pmtab th{font-family:var(--mono)}
 
 /* ---------- toast ---------- */
-#toast{position:fixed;left:50%;bottom:30px;z-index:90;transform:translate(-50%,28px) scale(.95);opacity:0;pointer-events:none;display:flex;align-items:center;gap:10px;
+#toast{position:fixed;left:50%;top:18px;z-index:90;max-width:min(560px,calc(100vw - 32px));transform:translate(-50%,-24px) scale(.95);opacity:0;pointer-events:none;display:flex;align-items:center;gap:10px;
   max-width:min(560px,86vw);padding:11px 18px 11px 12px;border-radius:99px;background:var(--tx);color:var(--bg);font-size:12.5px;font-weight:500;
   box-shadow:var(--shadow-lg);transition:transform .6s var(--spring),opacity .25s}
 #toast.on{transform:translate(-50%,0) scale(1);opacity:1}
+#pmModal:not(.hide) ~ #toast{top:84px}                                     /* below the pixel map bar */
 #toast i{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--ok) 85%,#000);color:#fff;font-style:normal;font-size:11px;font-weight:700}
 #toast.bad i{background:var(--bad)}
 
@@ -753,8 +757,8 @@ body{font-size:13.5px;letter-spacing:.005em}
         <summary>Screen</summary>
         <div class="f"><input id="scName" class="scname" oninput="setScreen('name',this.value)" placeholder="Screen name" /></div>
         <div class="g2">
-          <div class="f"><label>Columns</label><input type="number" min="1" id="scCols" oninput="setScreen('cols',+this.value)" /></div>
-          <div class="f"><label>Rows</label><input type="number" min="1" id="scRows" oninput="setScreen('rows',+this.value)" /></div>
+          <div class="f"><label>Columns</label><input type="number" min="1" max="200" id="scCols" oninput="setScreen('cols',+this.value)" /></div>
+          <div class="f"><label>Rows</label><input type="number" min="1" max="200" id="scRows" oninput="setScreen('rows',+this.value)" /></div>
         </div>
         <button class="picker" id="panelPick" onclick="openLib('panel')"></button>
         <div class="warn" id="panelWarn"></div>
@@ -839,7 +843,8 @@ body{font-size:13.5px;letter-spacing:.005em}
     </div>
     <div class="hint" id="nwMsg" style="margin-top:10px"></div>
     <div class="acts" style="justify-content:flex-end;gap:8px">
-      <button class="btn" id="nwCancel" onclick="libDraft=null;closeMask('nwModal')">Cancel</button>
+      <button class="btn ghost" id="nwProjects" style="display:none;margin-right:auto" onclick="nwDismiss();openProjects()">All projects…</button>
+      <button class="btn" id="nwCancel" onclick="nwDismiss()">Cancel</button>
       <button class="btn pri" id="nwGo" onclick="nwCreate()">Create project</button>
     </div>
   </div>
@@ -1032,7 +1037,7 @@ body{font-size:13.5px;letter-spacing:.005em}
 <div class="mask hide" id="btModal">
   <div class="modal" style="width:780px">
     <h3>Add screens</h3>
-    <div class="g3" style="display:grid;grid-template-columns:1.4fr 1fr .7fr;gap:12px">
+    <div class="g3" style="display:grid;grid-template-columns:1.3fr 1.2fr .5fr;gap:12px">
       <div class="f"><label>LED panel — all screens</label><select id="btPanel" onchange="renderBatch(1)"></select></div>
       <div class="f"><label>Placement</label>
         <select id="btPlace">
@@ -1278,7 +1283,7 @@ body{font-size:13.5px;letter-spacing:.005em}
     </div>
     <div class="list" id="bkBody" style="padding:2px"></div>
     <div class="acts">
-      <button class="btn dgr" onclick="clearBackup()">Clear all pairs</button>
+      <button class="btn dgr" id="bkClear" onclick="clearBackup()">Clear all pairs</button>
       <button class="btn pri" onclick="applyBackup()">Done</button>
     </div>
   </div>
@@ -1990,7 +1995,7 @@ function cableRows(){
   S.screens.forEach(s=>{
     used(s,'power').forEach(ch=>{
       const k=circuitCalc(s,ch), L=runLenFt(s,ch);
-      out.push({screen:s.name,kind:'Power',id:ch.name,color:ch.color,
+      out.push({sid:s.id,screen:s.name,kind:'Power',id:ch.name,color:ch.color,
         from:`Distro · ${k.breaker}A ${k.volts}V`,to:`${s.name} ${tileRef(LT(s,ch)[0])}`,
         tiles:LT(s,ch).length,load:`${k.w} W / ${k.amps.toFixed(1)} A`,
         est:Math.round(L),spec:stdLen(L)});
@@ -1998,19 +2003,19 @@ function cableRows(){
     used(s,'data').forEach(ch=>{
       if(isBackupRun(s,ch)) return;
       const k=runCalc(s,ch), L=runLenFt(s,ch), pr=procOf(s);
-      out.push({screen:s.name,kind:'Data',id:ch.name,color:ch.color,
+      out.push({sid:s.id,screen:s.name,kind:'Data',id:ch.name,color:ch.color,
         from:portLabel(s,ch),to:`${s.name} ${tileRef(LT(s,ch)[0])}`,
         tiles:LT(s,ch).length,load:`${(k.px/1000).toFixed(0)}k px · ${pr.pt||'—'}`,
         est:Math.round(L),spec:stdLen(L)});
       const br=backupFor(s,ch);
-      if(br) out.push({screen:s.name,kind:'Backup',id:br.name,color:br.color,
+      if(br) out.push({sid:s.id,screen:s.name,kind:'Backup',id:br.name,color:br.color,
         from:portLabel(s,br)||bkDeviceName(s),to:`${s.name} ${tileRef(LT(s,ch)[LT(s,ch).length-1])}`,
         tiles:LT(s,ch).length,load:`backs up ${ch.name}`,est:Math.round(L),spec:stdLen(L)});
     });
     if(bkMode(s)==='device') used(s,'data').forEach(ch=>{
       if(isBackupRun(s,ch)||backupFor(s,ch)) return;
       const L=runLenFt(s,ch);
-      out.push({screen:s.name,kind:'Backup',id:ch.name+' bk',color:'#c084fc',
+      out.push({sid:s.id,screen:s.name,kind:'Backup',id:ch.name+' bk',color:'#c084fc',
         from:bkDeviceName(s),to:`${s.name} ${tileRef(LT(s,ch)[LT(s,ch).length-1])}`,
         tiles:LT(s,ch).length,load:`mirrors ${ch.name}`,est:Math.round(L),spec:stdLen(L)});
     });
@@ -2054,9 +2059,9 @@ function pullRows(){
   /* ---- power ---- */
   const brk=BRK[C0.breakout]||'Edison';
   if(C0.trunk==='soca'){
-    const per=C0.soca||6, soca=Math.ceil(circuits/per);
+    const per=C0.soca||6; let soca=0;
     Object.entries(homeP).forEach(([L,n])=>{
-      const sn=Math.ceil(n/per);
+      const sn=Math.ceil(n/per); soca+=sn;                 /* one breakout on the end of every soca run */
       out.power.push([`Socapex 19-pin — ${L} ft`,sn,`carries ${per} circuits`]);
     });
     out.power.push([`Soca breakout — ${per}× ${brk}`,soca,'one per soca run']);
@@ -2530,7 +2535,7 @@ function drawSummary(ctx){
         f:k.cap?`${k.pct.toFixed(0)}%`:'',over:k.pct>=100});});
   });
   const st=setTotalsCalc();
-  rows.push({h:1,a:'SET TOTAL',b:`${S.screens.length} screens`,c:`${(st.px/1e6).toFixed(2)} M px`,d:lbFmt(st.lb),
+  rows.push({h:1,a:'SET TOTAL',b:`${S.screens.length} screen${S.screens.length===1?'':'s'}`,c:`${(st.px/1e6).toFixed(2)} M px`,d:lbFmt(st.lb),
     e:`${st.tiles} tiles · ${(st.wMax/1000).toFixed(2)} kW max / ${(st.wAvg/1000).toFixed(2)} kW avg`,
     f:`${st.circ} circuits · ${st.runs} runs`});
   const H=Math.max(520,120+rows.length*20+60);
@@ -2575,10 +2580,10 @@ function drawSchedule(ctx){
   ['Type','ID','From','To','Tiles','Load','Est. run','Spec'].forEach((t,i)=>txt(ctx,t,cols[i],94,`600 9.5px ${FS}`,C.faint));
   let y=114, cur='', zi=0;
   rows.forEach(r=>{
-    if(r.screen!==cur){
-      cur=r.screen; zi=0;
+    if(r.sid!==cur){
+      cur=r.sid; zi=0;
       roundRect(ctx,36,y-14,W-72,22,7); ctx.fillStyle=C.band; ctx.fill();
-      txt(ctx,clipText(ctx,cur,W-90,`700 11px ${FS}`),44,y,`700 11px ${FS}`,C.head);
+      txt(ctx,clipText(ctx,r.screen,W-90,`700 11px ${FS}`),44,y,`700 11px ${FS}`,C.head);
       y+=22;
     }
     if(zi++%2){ roundRect(ctx,36,y-13,W-72,20,6); ctx.save(); ctx.globalAlpha=.5; ctx.fillStyle=C.band; ctx.fill(); ctx.restore(); }
@@ -2668,7 +2673,7 @@ function drawGuides(ctx,B,w,h){
 function fitView(){
   const B=setBounds(), w=stage.clientWidth, h=stage.clientHeight;
   const T=titleH(), W=B.w+SETGAP*2, H=B.h+T+SETGAP;
-  view.k=Math.max(0.12,Math.min(Math.min(w/W,h/H)*0.94,6));
+  view.k=Math.max(0.03,Math.min(Math.min(w/W,h/H)*0.94,6));
   view.x=(w-W*view.k)/2+(SETGAP-B.x1)*view.k;
   view.y=(h-H*view.k)/2+(T-B.y1)*view.k;
   redraw();
@@ -2676,7 +2681,7 @@ function fitView(){
 function setZoom(k){ zoomAt(k,stage.clientWidth/2,stage.clientHeight/2); }
 function zoomBy(f){ zoomAt(view.k*f,stage.clientWidth/2,stage.clientHeight/2); }
 function zoomAt(k,sx,sy){
-  k=Math.max(0.12,Math.min(8,k));
+  k=Math.max(0.03,Math.min(8,k));
   const wx=(sx-view.x)/view.k, wy=(sy-view.y)/view.k;
   view.k=k; view.x=sx-wx*k; view.y=sy-wy*k; redraw();
 }
@@ -2809,6 +2814,7 @@ cv.addEventListener('dblclick',e=>{
 cv.addEventListener('contextmenu',e=>e.preventDefault());
 let ctxPress=null;
 cv.addEventListener('mousedown',e=>{
+  if(e.button===0&&document.querySelector('.menu.open')){ closeMenus(); return; }   /* first click just dismisses an open menu */
   ctxPress=e.button===2&&!spaceDown?{x:e.clientX,y:e.clientY}:null;
   if(e.button===2&&!spaceDown&&(mode==='power'||mode==='data')){
     const w=toWorld(e), h=pickScreen(w.x,w.y);
@@ -2828,8 +2834,7 @@ cv.addEventListener('mousedown',e=>{
   if(!h){ panning={x:e.clientX,y:e.clientY}; cv.classList.add('panning'); return; }
   if(h.i!==cur) selectScreen(h.i);
   if(focusIdx==null&&(mode==='arrange'||h.onHeader)){
-    pushUndo('screen move');
-    moving={sx:e.clientX,sy:e.clientY,ox:h.s.x,oy:h.s.y}; cv.classList.add('move'); return;
+    moving={sx:e.clientX,sy:e.clientY,ox:h.s.x,oy:h.s.y,moved:false}; cv.classList.add('move'); return;
   }
   const t=hitTileLocal(h.s,h.b,h.lx,h.ly);
   if(!t){ panning={x:e.clientX,y:e.clientY}; cv.classList.add('panning'); return; }
@@ -2843,6 +2848,7 @@ window.addEventListener('mousemove',e=>{
     const s=sc();
     let dx=(e.clientX-moving.sx)/view.k, dy=(e.clientY-moving.sy)/view.k;
     if(opt().rear) dx=-dx;
+    if(!moving.moved){ if(Math.hypot(e.clientX-moving.sx,e.clientY-moving.sy)<3) return; moving.moved=true; pushUndo('screen move'); }
     const np=snapPos(s,moving.ox+dx,moving.oy+dy,e.altKey);
     s.x=np.x; s.y=np.y; redraw(); return;
   }
@@ -2860,22 +2866,34 @@ window.addEventListener('mouseup',e=>{
     if(h){ panning=null; cv.classList.remove('panning'); openScreenMenu(h.i,e.clientX,e.clientY); }
   }
   ctxPress=null;
-  if(moving){ dragGuides=[]; save(); redraw(); }
+  if(moving){ dragGuides=[]; if(moving.moved) save(); redraw(); }
   paint=null; panning=null; moving=null;
   cv.classList.remove('panning'); cv.classList.remove('move'); cv.classList.remove('erasing');
 });
 window.addEventListener('keydown',e=>{
   const inField=/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
-  if((e.metaKey||e.ctrlKey)&&!inField){
+  const dlgOpen=MASKS.some(id=>!document.getElementById(id).classList.contains('hide'));
+  if((e.metaKey||e.ctrlKey)&&!inField&&!dlgOpen){   /* undo stays out of an open dialog's way */
     const k=e.key.toLowerCase();
     if(k==='z'){ e.preventDefault(); e.shiftKey?redo():undo(); return; }
     if(k==='y'){ e.preventDefault(); redo(); return; }
   }
-  if(pmOpen){
+  if(pmOpen&&!dlgOpen){
     if(e.key==='Escape'){ closePM(); return; }
     if(!inField&&e.key.startsWith('Arrow')&&pmSel){
       e.preventDefault(); const st=e.shiftKey?64:8;
       const d={ArrowLeft:[-st,0],ArrowRight:[st,0],ArrowUp:[0,-st],ArrowDown:[0,st]}[e.key]; if(d) pmNudge(d[0],d[1]);
+    }
+    return;
+  }
+  const dlg=MASKS.filter(id=>!document.getElementById(id).classList.contains('hide'));
+  if(dlg.length){
+    if(e.key==='Escape'){                          /* close the dialog on top only */
+      const id=dlg[dlg.length-1];
+      if(id==='btModal') closeBatch();
+      else if(id==='bkModal') closeBackup();
+      else if(id==='nwModal'){ if(nwCancelable()) nwDismiss(); }
+      else closeMask(id);
     }
     return;
   }
@@ -2898,25 +2916,31 @@ window.addEventListener('keydown',e=>{
     if(k==='f') fitView();
   }
   if(e.key==='Escape'){
-    closeMenus();
-    const open=['libModal','cpModal','bkModal','exModal','pjModal','lbModal','sbModal','siModal','btModal','stModal'].filter(id=>!document.getElementById(id).classList.contains('hide'));
-    if(open.includes('btModal')) batch=[];
-    if(open.length) open.forEach(closeMask); else exitFocus();
+    if(document.querySelector('.menu.open')) closeMenus(); else exitFocus();
   }
   if(e.key.startsWith('Arrow')&&focusIdx==null){
     const s=sc(), step=e.shiftKey?SNAP*4:SNAP;
     const d={ArrowLeft:[-step,0],ArrowRight:[step,0],ArrowUp:[0,-step],ArrowDown:[0,step]}[e.key];
-    if(d&&s){ e.preventDefault(); s.x+=opt().rear?-d[0]:d[0]; s.y+=d[1]; redraw(); save(); }
+    if(d&&s){
+      e.preventDefault();
+      if(Date.now()-nudgeAt>800) pushUndo('nudge screen');   /* one undo step per burst of nudges */
+      nudgeAt=Date.now();
+      s.x+=opt().rear?-d[0]:d[0]; s.y+=d[1]; redraw(); save();
+    }
   }
 });
+let nudgeAt=0;
+const MASKS=['nwModal','libModal','sbModal','siModal','stModal','btModal','lbModal','pjModal','exModal','bkModal','cpModal'];   /* page order: later ones sit on top */
 window.addEventListener('keyup',e=>{ if(e.code==='Space'){ spaceDown=false; cv.classList.remove('pan'); } });
 window.addEventListener('resize',redraw);
 
 /* ========================= EDITS ========================= */
+const MAXGRID=200;                            /* cabinets a side: plenty for any wall, and the canvas stays quick */
 function setScreen(f,v){
-  const s=sc();
+  const s=sc(); if(!s) return;
   if(f==='rows'||f==='cols'){
     if(!(v>=1)) return;                       /* ignore blank / mid-typing values */
+    v=Math.min(MAXGRID,Math.floor(v));
     if(v===s[f]) return;
     pushUndo('grid size');
     s[f]=v;                                   /* chains keep their tiles — see LT() */
@@ -2930,7 +2954,10 @@ function setScreen(f,v){
   if(f==='name'){ renderTabs(); if(focusIdx!=null) document.getElementById('focusName').textContent=v; }
   syncForm(); redraw(); renderSide(); renderSlots(); save();
 }
-function setOpt(f,v){ S.opt[f]=v; syncForm(); redraw(); renderSide(); save(); }
+function setOpt(f,v){
+  if((f==='volts'||f==='breaker')&&!(v>0)) return;   /* blank or zero while typing: keep the last good value */
+  S.opt[f]=v; syncForm(); redraw(); renderSide(); save();
+}
 function setScreenUnit(id){ pushUndo('processor assignment'); sc().procRef=id; syncForm(); renderSlots(); renderSide(); redraw(); save(); }
 function newUnit(){
   pushUndo('add processor');
@@ -2956,7 +2983,6 @@ function renameUnit(id,v){
   u.name=v.trim(); u.custom=u.name?1:0;      /* keeps the name when the model changes */
   const sel=document.getElementById('scUnit');
   if(sel) Array.from(sel.options).forEach(o=>{ if(o.value===id) o.textContent=unitLabel(u); });
-  document.querySelectorAll('.u-bk').forEach(()=>{});
   renderSide(); redraw(); save();
 }
 function renderUnits(){
@@ -2985,13 +3011,17 @@ function renderUnits(){
       ${L.ports?`<div class="u-trk"><div class="u-fil" style="width:${pct}%;background:${bad?'var(--bad)':'var(--ac)'}"></div></div>`:''}
       ${many?`<div class="u-sub">${escp(mine.length?'feeds '+mine.join(', '):'no screens yet')}</div>`:''}
       ${notes.length?`<div class="u-bk">${notes.join(' · ')}</div>`:''}
-      ${bad?'<div class="u-bad">More runs than this processor has ports</div>':''}
+      ${L.over?'<div class="u-bad">More runs than this processor has ports</div>':''}
+      ${L.capOver?`<div class="u-bad">${(L.px/1e6).toFixed(2)} M px is over this processor's ${(L.cap/1e6).toFixed(2)} M limit</div>`:''}
     </div>`;
   }).join('');
 }
 let libUnit=null;
 function pickUnitModel(id){ libUnit=id; openLib('proc'); }
-function setCab(f,v){ cabOf()[f]=v; syncForm(); renderSide(); save(); }
+function setCab(f,v){
+  if(typeof v==='number'&&!(v>0)&&f!=='cvtQty'&&f!=='fiberQty') return;   /* those two use blank for automatic */
+  cabOf()[f]=v; syncForm(); renderSide(); save();
+}
 function setTheme(k){ S.opt.ui=k; applyTheme(k); syncForm(); redraw(); save(); }
 function setBasis(v){ S.opt.useAvg=v.startsWith('avg'); S.opt.derate=v.endsWith('80'); redraw(); renderSide(); renderSlots(); save(); }
 
@@ -3002,7 +3032,7 @@ function toggleMenu(id,e){
   closeMenus(); if(!was) m.classList.add('open');
 }
 function closeMenus(){ document.querySelectorAll('.menu.open').forEach(m=>m.classList.remove('open')); }
-document.addEventListener('click',e=>{ if(!e.target.closest('.menu')) closeMenus(); });
+document.addEventListener('click',e=>{ if(e.isTrusted&&!e.target.closest('.menu')) closeMenus(); });   /* a finished download's click must not shut a menu */
 /* ---- settings ---- */
 function openSettings(t){
   syncForm();
@@ -3112,7 +3142,8 @@ function autoChain(){
     .filter(x=>!(mode==='data'&&(isBackupRun(s,x.ch)||portOwner(u,x.i,s))));
   let n=0;
   for(let i=0;i<seq.length&&n<avail.length;i+=len,n++) avail[n].ch.tiles=seq.slice(i,i+len);
-  if(seq.length>len*avail.length) setStatus(`Only ${avail.length} free port${avail.length===1?'':'s'} — raise tiles per chain or add a processor`);
+  if(seq.length>len*avail.length) setStatus(`Needs ${Math.ceil(seq.length/len)} circuits but there are only ${avail.length} — raise tiles per chain`);
+  else setStatus(`${n} circuit${n===1?'':'s'}, up to ${len} tiles each`);
   active[mode]=avail.length?avail[0].i:0;
   syncForm(); renderSlots(); redraw(); renderSide(); save();
 }
@@ -3166,7 +3197,7 @@ function autoData(s){
   const avail=list.map((ch,i)=>({ch,i})).filter(x=>!(isBackupRun(s,x.ch)||portOwner(u,x.i,s)));
   runs.forEach((t,n)=>{ if(avail[n]) avail[n].ch.tiles=t; });
   const side={left:'down the left side',right:'down the right side',top:'along the top',bottom:'along the bottom'}[L.feed];
-  if(runs.length>avail.length) setStatus(`Needs ${runs.length} ports, only ${avail.length} free — raise tiles per chain or add a processor`);
+  if(runs.length>avail.length) setStatus(`Needs ${runs.length} ports, only ${avail.length} free — add a processor and move this screen to it`);
   else setStatus(`${runs.length} data run${runs.length===1?'':'s'}, up to ${cap} tiles each, home runs ${side}${L.clean?'':' (some start mid-wall to save ports)'}${portCap(procOf(s))?'':' — standard 650k port assumed, pick a processor for its exact capacity'}`);
   active.data=avail.length?avail[0].i:0;
   syncForm(); renderSlots(); redraw(); renderSide(); save();
@@ -3174,17 +3205,15 @@ function autoData(s){
 function tidyChains(){ S.screens.forEach(hardPrune); }
 function clearAllMapping(){
   if(needScreen()) return;
-  const n=S.screens.length;
-  if(!confirm(`Clear every power circuit, data run and backup on ${n===1?'this screen':'all '+n+' screens'}?\n\nTile layout, panels and processors are kept. This can be undone.`)) return;
-  pushUndo('clear all mapping');
-  S.screens.forEach(s=>{
-    s.circuits.forEach(ch=>ch.tiles=[]);
-    s.runs.forEach(ch=>ch.tiles=[]);
-    s.backup={mode:'none',pairs:{},procId:''};
-  });
+  const s=sc();
+  if(!confirm(`Clear every power circuit, data run and backup pair on ${s.name||'this screen'}?\n\nIts tile layout, panel and processor are kept. This can be undone.`)) return;
+  pushUndo('clear mapping');
+  s.circuits.forEach(ch=>ch.tiles=[]);
+  s.runs.forEach(ch=>ch.tiles=[]);
+  s.backup={mode:'none',pairs:{},procId:''};
   active={power:0,data:0};
   syncForm(); renderSlots(); renderSide(); redraw(); save();
-  setStatus('All mapping cleared');
+  setStatus('Mapping cleared on '+(s.name||'this screen'));
 }
 function clearChains(){ pushUndo('clear '+(mode==='power'?'circuits':'data runs')); chains(sc(),mode).forEach(ch=>ch.tiles=[]); renderSlots(); redraw(); renderSide(); save(); }
 
@@ -3233,9 +3262,10 @@ function dupScreen(){
   selectScreen(S.screens.length-1); fitView(); save();
 }
 function delScreen(){
-  if(S.screens.length<2) return;
+  if(needScreen()) return;
   pushUndo('delete screen');
-  S.screens.splice(cur,1); cur=Math.max(0,cur-1);
+  const gone=S.screens.splice(cur,1)[0]; cur=Math.max(0,Math.min(cur,S.screens.length-1));
+  if(!S.screens.length){ S.defPanel=S.defPanel||gone.panelId; S.defFeed=S.defFeed||gone.feed; }   /* back to the blank canvas, keeping its panel */
   focusIdx=null; document.getElementById('focusBar').classList.add('hide');
   document.getElementById('focusBtn').classList.remove('on');
   selectScreen(cur); fitView(); save();
@@ -3254,7 +3284,7 @@ function openScreenMenu(i,x,y){
   closeScreenMenu(); closeMenus();
   const s=S.screens[i]; if(!s) return;
   selectScreen(i);
-  const only=S.screens.length<2, m=document.createElement('div');
+  const m=document.createElement('div');
   m.id='ctxMenu'; m.className='ctxmenu';
   const I=d=>`<svg viewBox="0 0 24 24">${d}</svg>`;
   m.innerHTML=`<div class="ctx-t">${escp((s.name||'Screen').trim())}</div>
@@ -3262,7 +3292,7 @@ function openScreenMenu(i,x,y){
     <button onclick="closeScreenMenu();dupScreen()">${I('<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/>')}Duplicate</button>
     <button onclick="closeScreenMenu();clearAllMapping()">${I('<path d="M4 4l16 16M20 4L4 20"/>')}Clear mapping</button>
     <div class="ctx-sep"></div>
-    <button class="dgr" ${only?'disabled title="A project needs at least one screen"':''} onclick="closeScreenMenu();ctxDelete(${i})">${I('<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>')}Delete screen</button>`;
+    <button class="dgr" onclick="closeScreenMenu();ctxDelete(${i})">${I('<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>')}Delete screen</button>`;
   document.body.appendChild(m);
   const r=m.getBoundingClientRect();
   m.style.left=Math.min(x,innerWidth-r.width-10)+'px';
@@ -3271,19 +3301,22 @@ function openScreenMenu(i,x,y){
 }
 function closeScreenMenu(){ const m=document.getElementById('ctxMenu'); if(m) m.remove(); }
 function ctxDelete(i){
-  if(S.screens.length<2) return;
   const name=(S.screens[i].name||'Screen').trim();
   selectScreen(i); delScreen();
   setStatus(`Deleted ${name} · ⌘Z to undo`);
 }
-document.addEventListener('mousedown',e=>{ if(!e.target.closest('#ctxMenu')) closeScreenMenu(); },true);
+document.addEventListener('mousedown',e=>{
+  if(e.target.closest('#ctxMenu')||!document.getElementById('ctxMenu')) return;
+  closeScreenMenu(); if(e.target.id==='cv') e.stopPropagation();   /* that click only dismisses the menu */
+},true);
 document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeScreenMenu(); });
 window.addEventListener('blur',closeScreenMenu);
 function renderTabs(){
   document.getElementById('tabs').innerHTML=
-    S.screens.map((s,i)=>`<div class="tab ${i===cur?'on':''}" onclick="selectScreen(${i})" ondblclick="enterFocus(${i})"
+    S.screens.map((s,i)=>`<div class="tab ${i===cur?'on':''}" title="${escp(s.name)}" onclick="selectScreen(${i})" ondblclick="enterFocus(${i})"
       oncontextmenu="event.preventDefault();openScreenMenu(${i},event.clientX,event.clientY)">${escp(s.name)}</div>`).join('')+
-    `<div class="tab" style="color:var(--tx3)" onclick="addScreen()">+</div>`;
+    `<div class="tab" style="color:var(--tx3)" title="Add a screen" onclick="addScreen()">+</div>`;
+  const on=document.querySelector('#tabs .tab.on'); if(on) on.scrollIntoView({block:'nearest',inline:'nearest'});
   renderEmpty();
 }
 /* ---- a project with no screens yet: show its settings and the way to add one ---- */
@@ -3564,19 +3597,14 @@ function setBkPair(primaryId,backupId){
   if(backupId) bkDraft.pairs[primaryId]=backupId; else delete bkDraft.pairs[primaryId];
   renderBackup();
 }
-function setBkUnit(v){
-  if(v==='__new'){
-    const me=unitOf(sc());
-    const u=addUnit(me?me.procId:'none',(unitLabel(me)||'Processor')+' backup');
-    bkDraft.bkUnit=u.id;
-  } else bkDraft.bkUnit=v;
-  renderBackup();
-}
+function setBkUnit(v){ bkDraft.bkUnit=v; renderBackup(); }   /* "__new" is only made on Done */
+function closeBackup(){ bkDraft=null; closeMask('bkModal'); }
 function renderBackup(){
   const s=sc(), body=document.getElementById('bkBody');
   ['none','port','device'].forEach(m=>
     document.getElementById(m==='none'?'bkNone':m==='port'?'bkPort':'bkDev').classList.toggle('on',bkDraft.mode===m));
   const primaries=used(s,'data');
+  document.getElementById('bkClear').style.visibility=bkDraft.mode==='port'&&Object.keys(bkDraft.pairs||{}).length?'':'hidden';
   if(bkDraft.mode==='none'){
     body.innerHTML='<div class="empty" style="padding:16px">No redundancy. Only the primary data runs are drawn.</div>';
     return;
@@ -3597,7 +3625,7 @@ function renderBackup(){
         <select onchange="setBkUnit(this.value)">
           <option value="" ${!bkDraft.bkUnit?'selected':''}>— choose a processor —</option>
           ${opts}
-          <option value="__new">+ Add a new processor as the backup</option>
+          <option value="__new" ${bkDraft.bkUnit==='__new'?'selected':''}>+ Add a new processor as the backup</option>
         </select></div>
       <div class="hint">${U.length?`${S.screens.filter(x=>unitOf(x)===me).length} screen${S.screens.filter(x=>unitOf(x)===me).length===1?'':'s'} on ${escp(unitLabel(me))} will show backup runs.`
         :'You only have one processor. Add a second one to mirror onto.'}</div>
@@ -3630,10 +3658,11 @@ function renderBackup(){
     }).join('');
 }
 function applyBackup(){
-  pushUndo('backup setup');
   const s=sc(), me=unitOf(s);
+  if(bkDraft.mode==='device'&&!bkDraft.bkUnit){ setStatus('Choose which processor mirrors this one'); return; }
+  pushUndo('backup setup');
   if(bkDraft.mode==='device'){
-    if(!bkDraft.bkUnit){ setStatus('Choose which processor mirrors this one'); return; }
+    if(bkDraft.bkUnit==='__new') bkDraft.bkUnit=addUnit(me?me.procId:'none',(unitLabel(me)||'Processor')+' backup').id;
     if(me) me.bkUnit=bkDraft.bkUnit;
     bkDraft.pairs={};
   } else {
@@ -3643,7 +3672,7 @@ function applyBackup(){
   s.backup={mode:bkDraft.mode,pairs:bkDraft.pairs,procId:'',unitRef:'',_i:1};
   /* a port acting as a backup carries no tiles of its own */
   Object.values(s.backup.pairs).forEach(id=>{ const r=s.runs.find(x=>x.id===id); if(r) r.tiles=[]; });
-  closeMask('bkModal'); setLayers('data');
+  closeBackup(); setLayers('data');
   syncForm(); renderSlots(); renderSide(); redraw(); save();
   setStatus(s.backup.mode==='none'?'Backup cleared':'Backup saved');
 }
@@ -3662,11 +3691,16 @@ function openSetup(forced,visit){
   document.getElementById('nwBits').value='8'; document.getElementById('nwFeed').value='auto';
   const cb=document.getElementById('nwCancel');
   cb.style.display=forced?'none':'';
-  cb.textContent=visit&&S&&S.name?'Open “'+S.name+'”':'Cancel';   /* on a visit, skip back to the last project */
+  const nm=S&&S.name||'', short=nm.length>28?nm.slice(0,26).trim()+'…':nm;
+  cb.textContent=visit&&nm?'Open “'+short+'”':'Cancel';
+  cb.title=visit&&nm?'Open '+nm:'';   /* on a visit, skip back to the last project */
+  document.getElementById('nwProjects').style.display=visit&&projIndex.length>1?'':'none';
   closeMask('pjModal');
   document.getElementById('nwModal').classList.remove('hide');
   nwCheck(); setTimeout(()=>document.getElementById('nwName').focus(),30);
 }
+const nwCancelable=()=>document.getElementById('nwCancel').style.display!=='none';
+function nwDismiss(){ libDraft=null; nwReplace=null; closeMask('nwModal'); }
 const nwPanel=()=>libDraft&&(libDraft.custom&&libDraft.custom.id===libDraft.panelId?libDraft.custom:panelById(libDraft.panelId));
 function nwCheck(){
   const p=nwPanel(), pr=libDraft&&procById(libDraft.procId);
@@ -4103,7 +4137,8 @@ async function sbSyncAll(quiet){
       const i=projIndex.findIndex(e=>e.id===x.id);
       if(i>=0) projIndex[i]=meta; else projIndex.push(meta);
       pulled++;
-      if(x.id===projId){ S=d; normalize(); renderTabs(); setMode('layout'); renderSide(); redraw(); }
+      if(x.id===projId){ S=d; normalize(); cur=Math.max(0,Math.min(cur,S.screens.length-1)); exitFocus();
+        renderTabs(); setMode('layout'); renderSide(); redraw(); }
     }
     /* push anything newer or missing remotely */
     for(const e of projIndex.slice()){
@@ -4369,7 +4404,7 @@ function labelsCSV(){
   setStatus('Label CSV exported — merge it in P-touch Editor or DYMO Connect');
 }
 function openLabels(){ if(needScreen()) return; document.getElementById('lbModal').classList.remove('hide'); syncLabels(); }
-function setLab(f,v){ labOf()[f]=v; syncLabels(); save(); }
+function setLab(f,v){ if((f==='face'||f==='wrapMm')&&!(v>0)) return; labOf()[f]=v; syncLabels(); save(); }
 function syncLabels(){
   const L=labOf(), g=id=>document.getElementById(id), z=tagSize();
   const t=g('lbTape');
@@ -5294,6 +5329,7 @@ function pmAssign(key,v){
 }
 function pmSetPos(id,f,v){
   const M=pmLast||pmBuild(), o=M.L.find(q=>q.id===id); if(!o) return;
+  pushUndo('move in pixel map');
   const pm=pmOf(); pm.pos[id]=pm.pos[id]||{x:o.x,y:o.y}; pm.pos[id][f]=Math.max(0,r8((+v||0)/(M.k||1))); pmSync(); save();
 }
 function pmResetOne(id){ pushUndo('pixel map reset'); delete pmOf().pos[id]; pmSync(); save(); }
@@ -5306,7 +5342,7 @@ function pmRender(){
   x.fillStyle=C.bg; x.fillRect(0,0,W,H); pmHits=[];
   x.fillStyle=C.dot||C.rule; for(let yy=11;yy<H;yy+=22) for(let xx=11;xx<W;xx+=22) x.fillRect(xx-.75,yy-.75,1.5,1.5);
   if(!M.L.length) return;
-  const pad=28, outsH=M.outs.length?Math.min(H*0.34,260):0;
+  const pad=28, outsH=M.outs.length?Math.min(H*0.34,270):0;
   const areaW=W-pad*2, areaH=H-pad*2-outsH-(outsH?54:0)-26;
   const sc=Math.min(areaW/M.compW,areaH/M.compH);
   const cx0=pad+(areaW-M.compW*sc)/2, cy0=pad+26;
@@ -5323,15 +5359,16 @@ function pmRender(){
   x.strokeStyle=C.edge; x.lineWidth=1; x.strokeRect(cx0,cy0,M.compW*sc,M.compH*sc);
   if(!outsH) return;
   const oy=cy0+M.compH*sc+44, gap=24;
-  const sumW=M.outs.reduce((a,o)=>a+o.W,0), os=Math.min((W-pad*2-gap*(M.outs.length-1))/sumW,(outsH-30)/Math.max(...M.outs.map(o=>o.H)));
+  const sumW=M.outs.reduce((a,o)=>a+o.W,0), os=Math.min((W-pad*2-gap*(M.outs.length-1))/sumW,(outsH-40)/Math.max(...M.outs.map(o=>o.H)));
   let ox=pad+(W-pad*2-(sumW*os+gap*(M.outs.length-1)))/2;
   M.outs.forEach(o=>{
     const over=o.W>pmOf().outW||o.H>pmOf().outH||o.W*o.H>pmOf().outPx;
-    x.font=`700 12px ${FS}`; x.fillStyle=over?C.bad:C.head; x.fillText(`OUTPUT ${o.n}`,ox,oy);
-    x.font=`11px ${FM}`; x.fillStyle=C.faint; x.fillText(`${o.W} × ${o.H}`,ox+78,oy+1);
-    x.save(); x.translate(ox,oy+20); x.scale(os,os); pmDead(x,o.W,o.H);
+    const room=o.W*os+gap-6;                   /* name over size, so narrow outputs never collide */
+    x.font=`700 12px ${FS}`; x.fillStyle=over?C.bad:C.head; x.fillText(clipText(x,`OUTPUT ${o.n}`,room,`700 12px ${FS}`),ox,oy);
+    x.font=`10.5px ${FM}`; x.fillStyle=C.faint; x.fillText(clipText(x,`${o.W} × ${o.H}`,room,`10.5px ${FM}`),ox,oy+15);
+    x.save(); x.translate(ox,oy+31); x.scale(os,os); pmDead(x,o.W,o.H);
     M.L.filter(q=>q.out===o.n).forEach(q=>pmDrawSurface(x,q,q.ox,q.oy,pmWhereOut(q),false)); x.restore();
-    x.strokeStyle=over?'#ff6b6b':'#39435599'; x.strokeRect(ox,oy+20,o.W*os,o.H*os);
+    x.strokeStyle=over?'#ff6b6b':'#39435599'; x.strokeRect(ox,oy+31,o.W*os,o.H*os);
     ox+=o.W*os+gap;
   });
 }
@@ -5357,7 +5394,7 @@ function pmSide(){
     </div>
     <div class="hint">Panel ${sel.cw} × ${sel.ch} px · ${sel.s.cols} × ${sel.s.rows} panels. Input ${sel.iw} × ${sel.ih} in the composition. Lands on Output ${sel.out} at X ${sel.ox}, Y ${sel.oy} as ${sel.W} × ${sel.H}.${sel.manual?' Placed by hand.':''}</div>
     ${sel.manual?`<button class="btn sm ghost" onclick="pmResetOne('${sel.id}')">Back to automatic position</button>`:''}`
-    :(M.gpu?'<div class="hint">Click a screen to see where it sits. In GPU optimised mode every position is worked out for you.</div>'
+    :(M.gpu?'<div class="hint">Click a screen to see where it sits. In Packed 1:1 mode every position is worked out for you.</div>'
       :'<div class="hint">Click a screen to select it. Drag to move it, or nudge with the arrow keys (Shift for bigger steps).</div>');
   g('pmPreset').value=pm.preset; g('pmW').value=pm.outW; g('pmH').value=pm.outH; g('pmMax').value=pm.outPx;
   pmSwatches();
@@ -5376,7 +5413,7 @@ function pmSide(){
       ${iss.map(i=>`<div class="pmiss-i"><div class="pmiss-t">${escp(i.title)}</div><div class="pmiss-d">${escp(i.detail)}</div>
         ${i.kind==='split'?`<button class="btn sm" onclick="pmFix('split','${i.id}')">Split screen</button>`:''}
         ${i.kind==='rebalance'?`<button class="btn sm" onclick="pmFix('rebalance','${i.id}')">Add processors and rebalance</button>`:''}</div>`).join('')}
-    </div>`:`<div class="pmok">Every processor is within its limits and fits ${M.outs.length} of your ${pm.outCount||4} outputs.</div>`);
+    </div>`:(M.outs.length>(pm.outCount||4)?'':`<div class="pmok">Every processor is within its limits, using ${M.outs.length} of your ${pm.outCount||4} output${(pm.outCount||4)===1?'':'s'}.</div>`));
   g('pmOuts').innerHTML=M.outs.map(o=>{
     const px=o.W*o.H, over=o.W>pm.outW||o.H>pm.outH||px>pm.outPx;
     return `<div class="pmout ${over?'bad':''}">
@@ -5400,14 +5437,13 @@ function pmDown(e){
   const hit=pmHit(e); if(!hit){ pmSel=null; pmSync(); return; }
   pmSel=hit.h.id; const o=pmLast.L.find(q=>q.id===pmSel);
   if(pmLast.gpu){ pmSync(); return; }
-  pushUndo('move in pixel map');
   pmDrag={id:o.id,sx:e.clientX,sy:e.clientY,x0:o.x,y0:o.y,sc:hit.h.sc,moved:false};
   pmSync();
 }
 function pmMove(e){
   if(!pmDrag) return;
   const d=pmDrag, dx=(e.clientX-d.sx)/d.sc, dy=(e.clientY-d.sy)/d.sc;
-  if(!d.moved&&Math.hypot(e.clientX-d.sx,e.clientY-d.sy)<3) return; d.moved=true;
+  if(!d.moved){ if(Math.hypot(e.clientX-d.sx,e.clientY-d.sy)<3) return; d.moved=true; pushUndo('move in pixel map'); }
   const o=pmLast.L.find(q=>q.id===d.id); let nx=d.x0+dx, ny=d.y0+dy;
   const snap=10/d.sc;                                      /* snap to other screens' edges and centres */
   pmLast.L.forEach(q=>{ if(q.id===d.id) return;
@@ -5599,7 +5635,7 @@ async function pmDownloadMotion(){
   const pm=pmOf(), fps=+pm.mFps||30, secs=pmMotionLen(pm), base=fileBase();
   const btn=document.getElementById('pmMo'), bar=document.getElementById('pmMoBar'), msg=document.getElementById('pmMoMsg');
   pmMotionBusy=true; pmMotionCancel=false; btn.textContent='Stop'; btn.onclick=()=>{ pmMotionCancel=true; };
-  const files=[], skipped=[], codecs=new Set();
+  const files=[], skipped=[], codecs=new Set(), names=new Set();
   try{
     for(let k=0;k<M.slices.length;k++){
       const o=M.slices[k];
@@ -5607,7 +5643,10 @@ async function pmDownloadMotion(){
       const r=await pmEncodeSlice(M,o,fps,secs,p=>{ bar.style.width=(((k+p)/M.slices.length)*100).toFixed(1)+'%'; });
       if(r.skip){ skipped.push(r.skip); continue; }
       codecs.add(r.codec);
-      files.push({name:`Motion test patterns/${String(o.name).replace(/[\\\\/:*?"<>|]+/g,'-').trim()} ${o.W}x${o.H}.mp4`,data:r.data});
+      const nm0=`Motion test patterns/${String(o.name).replace(/[\\\\/:*?"<>|]+/g,'-').trim()||'Screen'}`;
+      let nm=`${nm0} ${o.W}x${o.H}.mp4`, n2=2;
+      while(names.has(nm)) nm=`${nm0} (${n2++}) ${o.W}x${o.H}.mp4`;
+      names.add(nm); files.push({name:nm,data:r.data});
     }
     bar.style.width='100%';
     if(!files.length) throw new Error(skipped[0]||'nothing encoded');
@@ -5714,7 +5753,7 @@ function xlsxExport(){
     cr.push({c:CH.map(h=>({v:h,s:HDR(5)})),h:20});
     let cur='';
     cableRows().forEach(r=>{
-      if(r.screen!==cur){ cur=r.screen; cr.push({c:[{v:cur,s:S_BOLD}]}); }
+      if(r.sid!==cur){ cur=r.sid; cr.push({c:[{v:r.screen,s:S_BOLD}]}); }
       cr.push({c:[r.screen,r.kind,r.id,r.from,r.to,{v:r.tiles},r.load,`${r.est} ft`,`${r.spec} ft`,'']});
     });
 
@@ -5876,7 +5915,7 @@ function downloadApp(){
   }catch(e){ setStatus('Could not save the app file: '+e.message); }
 }
 /* ---- batch screen creation ---- */
-let batch=[];
+let batch=[], batchUnits=[];          /* processors made from this dialog, dropped again if it is cancelled */
 const screenUnmapped=q=>!(q.off||[]).length
   && !q.circuits.some(c=>c.tiles.length) && !q.runs.some(c=>c.tiles.length);
 const screenBlank=q=>!q.panelId && screenUnmapped(q) && /^Screen \d+$/.test(q.name||'');
@@ -5890,6 +5929,7 @@ function openBatch(){
   g('btPanel').innerHTML=PANELS.concat(S.customPanels||[]).map(p=>
     `<option value="${p.id}" ${p.id===(cur0?cur0.panelId:S.defPanel)?'selected':''}>${escp(p.brand+' '+p.model)} · ${p.pitch}mm</option>`).join('');
   const cu=unitOf(cur0);
+  batchUnits=[];
   if(!batch.length){
     const st=starterScreen();
     batch=st
@@ -5912,11 +5952,11 @@ function batchDel(i){
   if(!batch.length){ const cu=unitOf(sc()); batch=[{name:'',cols:8,rows:4,unit:cu?cu.id:''}]; }
   renderBatch();
 }
-function batchSet(i,f,v){ if(batch[i]) batch[i][f]=(f==='name')?v:Math.max(1,+v||1); renderBatch(1); }
+function batchSet(i,f,v){ if(batch[i]) batch[i][f]=(f==='name')?v:Math.min(MAXGRID,Math.max(1,+v||1)); renderBatch(1); }
 function batchUnit(i,v){
   if(v==='__new'){
     const base=unitOf(sc());
-    const u=addUnit(base?base.procId:'none');
+    const u=addUnit(base?base.procId:'none'); batchUnits.push(u.id);
     batch[i].unit=u.id;
     setStatus('Added '+unitLabel(u));
   } else batch[i].unit=v;
@@ -5924,13 +5964,17 @@ function batchUnit(i,v){
 }
 function batchBulkUnit(v){
   if(!v) return;
-  if(v==='__new'){ const base=unitOf(sc()); const u=addUnit(base?base.procId:'none'); batch.forEach(b=>b.unit=u.id); }
+  if(v==='__new'){ const base=unitOf(sc()); const u=addUnit(base?base.procId:'none'); batchUnits.push(u.id); batch.forEach(b=>b.unit=u.id); }
   else batch.forEach(b=>b.unit=v);
   document.getElementById('btBulk').value='';
   renderBatch();
 }
 function batchClear(){ const cu=unitOf(sc()); batch=[{name:'',cols:8,rows:4,unit:cu?cu.id:''}]; renderBatch(); }
-function closeBatch(){ batch=[]; closeMask('btModal'); }
+function closeBatch(){
+  const drop=new Set(batchUnits.filter(id=>!S.screens.some(q=>q.procRef===id)));
+  if(drop.size&&units().length>drop.size) S.procs=units().filter(u=>!drop.has(u.id));
+  batch=[]; batchUnits=[]; closeMask('btModal'); syncForm();
+}
 function batchName(i){
   const b=batch[i];
   if(b.name.trim()) return b.name.trim();
@@ -5979,12 +6023,12 @@ function batchCreate(){
   const gapFt=Math.max(0,+g('btGap').value||0);
   pushUndo('add '+batch.length+' screen'+(batch.length===1?'':'s'));
   const gapW=gapFt*304.8*MM;
-  const made=[];
+  const made=[], names=batch.map((b,i)=>b.name.trim()||batchName(i));   /* named before any are added */
   batch.forEach((b,i)=>{
     const uu=units().find(u=>u.id===b.unit)||units()[0];
     let q=b.ref?S.screens.find(x=>x.id===b.ref):null;
     if(!q){ q=blankScreen(1); S.screens.push(q); }
-    q.name=b.name.trim()||batchName(i);
+    q.name=names[i];
     q.cols=b.cols; q.rows=b.rows; q.panelId=panelId;
     q.procRef=uu?uu.id:''; q.procId=uu?uu.procId:'none';
     if(!q.feed&&S.defFeed) q.feed=S.defFeed;
@@ -6005,7 +6049,8 @@ function batchCreate(){
       else { q.x=cx; q.y=(place==='row')?(maxH-b.h):0; cx+=b.w+gapW; }
     });
   } else made.forEach(q=>{ q.x=x; q.y=0; });
-  closeMask('btModal');
+  closeMask('btModal'); batchUnits=[];
+  if(focusIdx!=null){ focusIdx=null; prevView=null; document.getElementById('focusBar').classList.add('hide'); document.getElementById('focusBtn').classList.remove('on'); }
   cur=Math.max(0,S.screens.indexOf(made[0]));
   renderTabs(); syncForm(); renderSlots(); renderSide(); fitView(); save();
   setStatus(`Added ${made.length} screen${made.length===1?'':'s'}`);

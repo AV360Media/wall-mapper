@@ -12,11 +12,16 @@ function openSetup(forced,visit){
   document.getElementById('nwBits').value='8'; document.getElementById('nwFeed').value='auto';
   const cb=document.getElementById('nwCancel');
   cb.style.display=forced?'none':'';
-  cb.textContent=visit&&S&&S.name?'Open “'+S.name+'”':'Cancel';   /* on a visit, skip back to the last project */
+  const nm=S&&S.name||'', short=nm.length>28?nm.slice(0,26).trim()+'…':nm;
+  cb.textContent=visit&&nm?'Open “'+short+'”':'Cancel';
+  cb.title=visit&&nm?'Open '+nm:'';   /* on a visit, skip back to the last project */
+  document.getElementById('nwProjects').style.display=visit&&projIndex.length>1?'':'none';
   closeMask('pjModal');
   document.getElementById('nwModal').classList.remove('hide');
   nwCheck(); setTimeout(()=>document.getElementById('nwName').focus(),30);
 }
+const nwCancelable=()=>document.getElementById('nwCancel').style.display!=='none';
+function nwDismiss(){ libDraft=null; nwReplace=null; closeMask('nwModal'); }
 const nwPanel=()=>libDraft&&(libDraft.custom&&libDraft.custom.id===libDraft.panelId?libDraft.custom:panelById(libDraft.panelId));
 function nwCheck(){
   const p=nwPanel(), pr=libDraft&&procById(libDraft.procId);

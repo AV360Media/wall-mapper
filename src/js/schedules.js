@@ -19,7 +19,7 @@ function cableRows(){
   S.screens.forEach(s=>{
     used(s,'power').forEach(ch=>{
       const k=circuitCalc(s,ch), L=runLenFt(s,ch);
-      out.push({screen:s.name,kind:'Power',id:ch.name,color:ch.color,
+      out.push({sid:s.id,screen:s.name,kind:'Power',id:ch.name,color:ch.color,
         from:`Distro · ${k.breaker}A ${k.volts}V`,to:`${s.name} ${tileRef(LT(s,ch)[0])}`,
         tiles:LT(s,ch).length,load:`${k.w} W / ${k.amps.toFixed(1)} A`,
         est:Math.round(L),spec:stdLen(L)});
@@ -27,19 +27,19 @@ function cableRows(){
     used(s,'data').forEach(ch=>{
       if(isBackupRun(s,ch)) return;
       const k=runCalc(s,ch), L=runLenFt(s,ch), pr=procOf(s);
-      out.push({screen:s.name,kind:'Data',id:ch.name,color:ch.color,
+      out.push({sid:s.id,screen:s.name,kind:'Data',id:ch.name,color:ch.color,
         from:portLabel(s,ch),to:`${s.name} ${tileRef(LT(s,ch)[0])}`,
         tiles:LT(s,ch).length,load:`${(k.px/1000).toFixed(0)}k px · ${pr.pt||'—'}`,
         est:Math.round(L),spec:stdLen(L)});
       const br=backupFor(s,ch);
-      if(br) out.push({screen:s.name,kind:'Backup',id:br.name,color:br.color,
+      if(br) out.push({sid:s.id,screen:s.name,kind:'Backup',id:br.name,color:br.color,
         from:portLabel(s,br)||bkDeviceName(s),to:`${s.name} ${tileRef(LT(s,ch)[LT(s,ch).length-1])}`,
         tiles:LT(s,ch).length,load:`backs up ${ch.name}`,est:Math.round(L),spec:stdLen(L)});
     });
     if(bkMode(s)==='device') used(s,'data').forEach(ch=>{
       if(isBackupRun(s,ch)||backupFor(s,ch)) return;
       const L=runLenFt(s,ch);
-      out.push({screen:s.name,kind:'Backup',id:ch.name+' bk',color:'#c084fc',
+      out.push({sid:s.id,screen:s.name,kind:'Backup',id:ch.name+' bk',color:'#c084fc',
         from:bkDeviceName(s),to:`${s.name} ${tileRef(LT(s,ch)[LT(s,ch).length-1])}`,
         tiles:LT(s,ch).length,load:`mirrors ${ch.name}`,est:Math.round(L),spec:stdLen(L)});
     });
@@ -83,9 +83,9 @@ function pullRows(){
   /* ---- power ---- */
   const brk=BRK[C0.breakout]||'Edison';
   if(C0.trunk==='soca'){
-    const per=C0.soca||6, soca=Math.ceil(circuits/per);
+    const per=C0.soca||6; let soca=0;
     Object.entries(homeP).forEach(([L,n])=>{
-      const sn=Math.ceil(n/per);
+      const sn=Math.ceil(n/per); soca+=sn;                 /* one breakout on the end of every soca run */
       out.power.push([`Socapex 19-pin — ${L} ft`,sn,`carries ${per} circuits`]);
     });
     out.power.push([`Soca breakout — ${per}× ${brk}`,soca,'one per soca run']);

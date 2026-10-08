@@ -4719,7 +4719,7 @@ const PM_PRESETS={
 };
 const PM_COLS=['#226ec8','#009678','#d27800','#aa32a0','#c83c3c','#4a8f2f','#7a5bd6','#b89600','#1f93a8','#c0507a','#5f7d1e','#8c5a2b'];
 const PM_MAXTEX=16384;
-const defPM=()=>({mV:10,mH:5,mFps:30,mSecs:10,pattern:'classic',palette:'vivid',labels:'large',outCount:4,compMode:'input',flip:false,pos:{},preset:'tb6k',outW:6144,outH:3456,outPx:8847360,share:true,assign:{}});
+const defPM=()=>({mV:10,mH:5,mFps:30,mSecs:10,pattern:'cabinets',palette:'vivid',labels:'large',outCount:4,compMode:'input',flip:false,pos:{},preset:'tb6k',outW:6144,outH:3456,outPx:8847360,share:true,assign:{}});
 function pmOf(){ S.pm=S.pm||{}; const d=defPM(); for(const k in d) if(!(k in S.pm)) S.pm[k]=d[k]; return S.pm; }
 const r8=v=>Math.round(v/8)*8, up8=v=>Math.ceil(v/8)*8;
 const median=a=>{ const b=a.slice().sort((x,y)=>x-y); return b.length?b[Math.floor(b.length/2)]:1; };
@@ -5103,70 +5103,82 @@ const PM_PALETTES={
   pastel:['#93c5fd','#86efac','#fcd34d','#fca5a5','#c4b5fd','#f9a8d4','#5eead4','#fdba74','#bef264','#67e8f9','#d8b4fe','#fde68a'],
   mono:['#f4f4f5','#d4d4d8','#a1a1aa','#e4e4e7','#c4c4cc','#b4b4bc']
 };
-const PM_PATTERNS=[['classic','Classic'],['grid','Grid'],['bars','Colour bars'],['spectrum','Spectrum'],['cabinets','Cabinet IDs'],['outline','Outline']];
+const PM_PATTERNS=[['cabinets','Panel IDs'],['grid','Alignment'],['pixel','Pixel check'],['bars','Colour bars'],['grey','Greyscale'],['fields','RGBW fields']];
+const PM_OLD={classic:'cabinets',spectrum:'bars',outline:'grid'};   /* patterns from older projects */
+const pmPat=k=>{ k=PM_OLD[k]||k; return PM_PATTERNS.some(p=>p[0]===k)?k:'cabinets'; };
 const pmCol=i=>{ const P=PM_PALETTES[pmOf().palette]||PM_PALETTES.vivid; return P[i%P.length]; };
 function pmRGBA(hex,a){ const n=parseInt(hex.slice(1),16); return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${a})`; }
 
-/* the pattern itself, inside x,y,W,H, with cabinets cw × ch */
+/* tiny repeat tiles for the pixel check: 1 px verticals, 1 px horizontals, 1 px and 2 px checkers */
+const PM_TILES={};
+function pmTile(m){
+  if(PM_TILES[m]) return PM_TILES[m];
+  const n=m===3?4:2, c=document.createElement('canvas'); c.width=c.height=n; const x=c.getContext('2d');
+  x.fillStyle='#000'; x.fillRect(0,0,n,n); x.fillStyle='#fff';
+  if(m===0) x.fillRect(0,0,1,2); else if(m===1) x.fillRect(0,0,2,1);
+  else if(m===2){ x.fillRect(0,0,1,1); x.fillRect(1,1,1,1); } else { x.fillRect(0,0,2,2); x.fillRect(2,2,2,2); }
+  return PM_TILES[m]=c;
+}
+/* the pattern itself, inside x,y,W,H, with cabinets cw × ch; lines land on whole LED pixels */
 function pmPaint(ctx,o,x,y,style){
+  style=pmPat(style);
   const s=o.s, W=o.W, H=o.H, cw=o.cw, ch=o.ch, col=o.col, cols=s.cols, rows=s.rows;
-  const grid=(stroke,lw)=>{ ctx.strokeStyle=stroke; ctx.lineWidth=lw; ctx.beginPath();
-    for(let i=1;i<cols;i++){ ctx.moveTo(x+i*cw,y); ctx.lineTo(x+i*cw,y+H); }
-    for(let j=1;j<rows;j++){ ctx.moveTo(x,y+j*ch); ctx.lineTo(x+W,y+j*ch); } ctx.stroke(); };
-  const circle=(stroke,lw)=>{ const r=Math.min(W,H)*0.46; ctx.strokeStyle=stroke; ctx.lineWidth=lw;
-    ctx.beginPath(); ctx.arc(x+W/2,y+H/2,r,0,Math.PI*2); ctx.stroke(); };
-  const diag=(stroke,lw)=>{ ctx.strokeStyle=stroke; ctx.lineWidth=lw; ctx.beginPath();
-    ctx.moveTo(x,y); ctx.lineTo(x+W,y+H); ctx.moveTo(x,y+H); ctx.lineTo(x+W,y); ctx.stroke(); };
-  const cross=(stroke,lw)=>{ ctx.strokeStyle=stroke; ctx.lineWidth=lw; ctx.beginPath();
-    ctx.moveTo(x+W/2,y); ctx.lineTo(x+W/2,y+H); ctx.moveTo(x,y+H/2); ctx.lineTo(x+W,y+H/2); ctx.stroke(); };
   const u=Math.max(1,Math.min(cw,ch)/64);                  /* line weight that scales with the cabinet */
+  const px=Math.max(1,Math.round(u*.6));                   /* thin lines: 1 LED pixel on most panels */
+  const vl=(xx,c,w)=>{ ctx.fillStyle=c; ctx.fillRect(Math.round(xx),y,w,H); };
+  const hl=(yy,c,w)=>{ ctx.fillStyle=c; ctx.fillRect(x,Math.round(yy),W,w); };
+  const ring=(r,stroke,lw)=>{ ctx.strokeStyle=stroke; ctx.lineWidth=lw; ctx.beginPath(); ctx.arc(x+W/2,y+H/2,r,0,Math.PI*2); ctx.stroke(); };
+  const seams=(c,w)=>{ for(let i=1;i<cols;i++) vl(x+i*cw-w,c,w*2); for(let j=1;j<rows;j++) hl(y+j*ch-w,c,w*2); };
+  const fs=Math.max(8,Math.min(cw,ch)*.13);
+  const txt=(t,tx,ty,sz,c,al)=>{ ctx.font=`700 ${sz}px ${FS}`; ctx.fillStyle=c; ctx.textAlign=al||'center'; ctx.textBaseline='middle'; ctx.fillText(t,tx,ty); };
   ctx.save(); ctx.beginPath(); ctx.rect(x,y,W,H); ctx.clip();
-  if(style==='grid'){
-    ctx.fillStyle='#07080b'; ctx.fillRect(x,y,W,H);
-    grid(pmRGBA(col,.55),u*1.5);
-    ctx.fillStyle=pmRGBA(col,.9);                            /* a small cross in every cabinet */
-    for(let i=0;i<cols;i++) for(let j=0;j<rows;j++){ const cx=x+(i+.5)*cw, cy=y+(j+.5)*ch, k=Math.min(cw,ch)*.08;
-      ctx.fillRect(cx-k,cy-u*.75,k*2,u*1.5); ctx.fillRect(cx-u*.75,cy-k,u*1.5,k*2); }
-    cross(pmRGBA('#ffffff',.5),u*1.2); circle('#ffffff',u*3);
-    const r2=Math.min(W,H)*.23; ctx.strokeStyle=pmRGBA(col,.9); ctx.lineWidth=u*2; ctx.beginPath(); ctx.arc(x+W/2,y+H/2,r2,0,Math.PI*2); ctx.stroke();
-  } else if(style==='bars'){
-    const bars=['#c0c0c0','#c0c000','#00c0c0','#00c000','#c000c0','#c00000','#0000c0'], bw=W/7, bh=H*.67;
-    bars.forEach((c,i)=>{ ctx.fillStyle=c; ctx.fillRect(x+i*bw,y,Math.ceil(bw),bh); });
-    const mid=['#0000c0','#131313','#c000c0','#131313','#00c0c0','#131313','#c0c0c0'];
-    mid.forEach((c,i)=>{ ctx.fillStyle=c; ctx.fillRect(x+i*bw,y+bh,Math.ceil(bw),H*.08); });
-    const g=ctx.createLinearGradient(x,0,x+W,0); g.addColorStop(0,'#000'); g.addColorStop(1,'#fff');
-    ctx.fillStyle=g; ctx.fillRect(x,y+H*.75,W,H*.25);
-    grid('rgba(0,0,0,.35)',u);
-  } else if(style==='spectrum'){
-    const g=ctx.createLinearGradient(x,0,x+W,0);
-    ['#ff0000','#ffff00','#00ff00','#00ffff','#0000ff','#ff00ff','#ff0000'].forEach((c,i)=>g.addColorStop(i/6,c));
-    ctx.fillStyle=g; ctx.fillRect(x,y,W,H);
-    const v=ctx.createLinearGradient(0,y,0,y+H); v.addColorStop(0,'rgba(255,255,255,.55)'); v.addColorStop(.5,'rgba(255,255,255,0)'); v.addColorStop(.5,'rgba(0,0,0,0)'); v.addColorStop(1,'rgba(0,0,0,.7)');
-    ctx.fillStyle=v; ctx.fillRect(x,y,W,H);
-    grid('rgba(0,0,0,.4)',u*1.5); circle('rgba(255,255,255,.95)',u*3); diag('rgba(255,255,255,.55)',u*1.5);
-  } else if(style==='cabinets'){
+  if(style==='grid'){                                       /* alignment: every panel edge lit, centre lines, circles, diagonals */
+    ctx.fillStyle='#000'; ctx.fillRect(x,y,W,H);
+    for(let i=0;i<cols;i++) for(let j=0;j<rows;j++){ const cx=x+i*cw, cy=y+j*ch;
+      ctx.fillStyle='rgba(255,255,255,.08)'; if((i+j)%2) ctx.fillRect(cx,cy,cw,ch);
+      ctx.strokeStyle='#fff'; ctx.lineWidth=px; ctx.strokeRect(cx+px/2,cy+px/2,cw-px,ch-px);   /* each panel's own outer pixels */
+      const k=Math.min(cw,ch)*.12; ctx.fillStyle=pmRGBA(col,.9);
+      ctx.fillRect(Math.round(cx+cw/2-k),Math.round(cy+ch/2),Math.round(k*2),px); ctx.fillRect(Math.round(cx+cw/2),Math.round(cy+ch/2-k),px,Math.round(k*2)); }
+    vl(x+W/2-px/2,col,px*2); hl(y+H/2-px/2,col,px*2);
+    ctx.strokeStyle=pmRGBA(col,.75); ctx.lineWidth=px*1.5; ctx.beginPath();
+    ctx.moveTo(x,y); ctx.lineTo(x+W,y+H); ctx.moveTo(x,y+H); ctx.lineTo(x+W,y); ctx.stroke();
+    const R=Math.min(W,H)/2; [.98,.66,.33].forEach((k,i)=>ring(R*k,i?pmRGBA('#ffffff',.7):'#fff',px*(i?2:3)));
+  } else if(style==='pixel'){                               /* 1:1 check: fine lines and checkers shimmer if anything scales */
+    ctx.fillStyle='#000'; ctx.fillRect(x,y,W,H); ctx.fillStyle='#fff';
+    for(let i=0;i<cols;i++) for(let j=0;j<rows;j++){
+      const cx=x+i*cw, cy=y+j*ch, hw=Math.floor(cw/2), hh=Math.floor(ch/2), q=(i+j)%2;
+      const A=[[cx,cy,hw,hh],[cx+hw,cy,cw-hw,hh],[cx,cy+hh,hw,ch-hh],[cx+hw,cy+hh,cw-hw,ch-hh]];
+      A.forEach(([ax,ay,aw,ah],k)=>{ const pt=ctx.createPattern(pmTile((k+q*2)%4),'repeat');
+        pt.setTransform(new DOMMatrix([1,0,0,1,ax,ay])); ctx.fillStyle=pt; ctx.fillRect(ax,ay,aw,ah); });
+    }
+    seams(col,px);
+  } else if(style==='bars'){                                /* 100% bars, reverse strip, black level steps */
+    const bars=['#ffffff','#ffff00','#00ffff','#00ff00','#ff00ff','#ff0000','#0000ff'], bw=W/7, bh=Math.round(H*.62);
+    bars.forEach((c,i)=>{ ctx.fillStyle=c; ctx.fillRect(Math.round(x+i*bw),y,Math.ceil(bw),bh); });
+    const mid=['#0000ff','#000000','#ff00ff','#000000','#00ffff','#000000','#ffffff'], mh=Math.round(H*.1);
+    mid.forEach((c,i)=>{ ctx.fillStyle=c; ctx.fillRect(Math.round(x+i*bw),y+bh,Math.ceil(bw),mh); });
+    const lo=['#000000','#050505','#0a0a0a','#141414','#1e1e1e','#282828','#000000'], ly=y+bh+mh;   /* black level: 0, 2, 4, 8, 12, 16% */
+    lo.forEach((c,i)=>{ ctx.fillStyle=c; ctx.fillRect(Math.round(x+i*bw),ly,Math.ceil(bw),y+H-ly); });
+    ['0','2','4','8','12','16'].forEach((t,i)=>txt(t+'%',x+(i+.5)*bw,ly+(y+H-ly)/2,Math.min(fs,(y+H-ly)*.3),'rgba(255,255,255,.35)'));
+  } else if(style==='grey'){                                /* 11 steps on top, smooth ramps below to show banding */
+    const sh=Math.round(H*.5), sw=W/11;
+    for(let i=0;i<11;i++){ const v=Math.round(i*25.5); ctx.fillStyle=`rgb(${v},${v},${v})`; ctx.fillRect(Math.round(x+i*sw),y,Math.ceil(sw),sh);
+      txt(i*10+'%',x+(i+.5)*sw,y+sh-Math.min(fs,sh*.12)*1.2,Math.min(fs,sw*.3,sh*.12),i>5?'#000':'#fff'); }
+    const rh=(H-sh)/4;
+    ['#ffffff','#ff0000','#00ff00','#0000ff'].forEach((c,i)=>{ const g=ctx.createLinearGradient(x,0,x+W,0);
+      g.addColorStop(0,'#000'); g.addColorStop(1,c); ctx.fillStyle=g; ctx.fillRect(x,Math.round(y+sh+i*rh),W,Math.ceil(rh)); });
+  } else if(style==='fields'){                              /* every panel a full field, so a wrong or dim panel stands out */
+    const F=['#ff0000','#00ff00','#0000ff','#ffffff'];
+    for(let i=0;i<cols;i++) for(let j=0;j<rows;j++){ ctx.fillStyle=F[(i+j)%4]; ctx.fillRect(x+i*cw,y+j*ch,cw,ch); }
+    seams('#000',px);
+  } else {                                                  /* panel IDs: checkered panels, each with its column.row */
     for(let i=0;i<cols;i++) for(let j=0;j<rows;j++){
       ctx.fillStyle=(i+j)%2?pmRGBA(col,.62):pmRGBA(col,.4); ctx.fillRect(x+i*cw,y+j*ch,cw,ch);
       ctx.fillStyle='#07080b'; ctx.globalAlpha=.55; ctx.fillRect(x+i*cw,y+j*ch,cw,ch); ctx.globalAlpha=1;
     }
-    grid(pmRGBA(col,.95),u*2);
-    const fs=Math.min(cw*.3,ch*.3); ctx.textAlign='center'; ctx.textBaseline='middle';
-    for(let i=0;i<cols;i++) for(let j=0;j<rows;j++){
-      ctx.font=`700 ${fs}px ${FS}`; ctx.fillStyle='#fff'; ctx.fillText(`${i+1}.${j+1}`,x+(i+.5)*cw,y+(j+.5)*ch);
-    }
-  } else if(style==='outline'){
-    ctx.fillStyle='#050608'; ctx.fillRect(x,y,W,H);
-    cross(pmRGBA(col,.6),u*1.5);
-    const m=Math.min(cw,ch)*.75, ins=u*16; ctx.strokeStyle=col; ctx.lineWidth=u*4;   /* corner brackets, inside the border */
-    [[x,y,1,1],[x+W,y,-1,1],[x,y+H,1,-1],[x+W,y+H,-1,-1]].forEach(([px,py,sx,sy])=>{
-      ctx.beginPath(); ctx.moveTo(px+sx*(ins+m),py+sy*ins); ctx.lineTo(px+sx*ins,py+sy*ins); ctx.lineTo(px+sx*ins,py+sy*(ins+m)); ctx.stroke(); });
-    ctx.strokeStyle=pmRGBA(col,.8); ctx.lineWidth=u*2.5; ctx.beginPath(); ctx.arc(x+W/2,y+H/2,Math.min(W,H)*.06,0,Math.PI*2); ctx.stroke();
-  } else {                                                   /* classic */
-    const g=ctx.createLinearGradient(x,y,x+W,y+H); g.addColorStop(0,pmRGBA(col,.58)); g.addColorStop(1,pmRGBA(col,.32));
-    ctx.fillStyle='#07080b'; ctx.fillRect(x,y,W,H); ctx.fillStyle=g; ctx.fillRect(x,y,W,H);
-    ctx.fillStyle='rgba(255,255,255,.07)';
-    for(let i=0;i<cols;i++) for(let j=0;j<rows;j++) if((i+j)%2) ctx.fillRect(x+i*cw,y+j*ch,cw,ch);
-    grid(pmRGBA(col,.85),u*1.5); diag('rgba(255,255,255,.7)',u*2); circle('#ffffff',u*3.5);
+    seams(pmRGBA(col,.95),Math.max(1,Math.round(u)));
+    const f2=Math.min(cw*.3,ch*.3);
+    for(let i=0;i<cols;i++) for(let j=0;j<rows;j++) txt(`${i+1}.${j+1}`,x+(i+.5)*cw,y+(j+.5)*ch,f2,'#fff');
   }
   /* cabinets switched off in Wall Mapper are not lit */
   (s.off||[]).forEach(t=>{ const [r,c]=t.split(':').map(Number); if(r>=rows||c>=cols) return;
@@ -5175,13 +5187,15 @@ function pmPaint(ctx,o,x,y,style){
     ctx.moveTo(x+(c+1)*cw,y+r*ch); ctx.lineTo(x+c*cw,y+(r+1)*ch); ctx.stroke(); });
   /* top-left marker: shows straight away if a slice is flipped or rotated */
   const t=Math.min(cw,ch,W*.2,H*.2)*.55;
-  ctx.fillStyle=style==='bars'||style==='spectrum'?'#ffffff':col;
+  ctx.fillStyle=style==='bars'||style==='grey'||style==='fields'?'#ffffff':col;
   ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x+t,y); ctx.lineTo(x,y+t); ctx.closePath(); ctx.fill();
   ctx.restore();
-  /* border: colour, with a fine white line inside */
-  const bw=Math.max(2,u*5);
-  ctx.strokeStyle=col; ctx.lineWidth=bw; ctx.strokeRect(x+bw/2,y+bw/2,W-bw,H-bw);
-  ctx.strokeStyle='rgba(255,255,255,.85)'; ctx.lineWidth=Math.max(1,u*1.2); ctx.strokeRect(x+bw+u,y+bw+u,W-2*(bw+u),H-2*(bw+u));
+  /* border: colour with a fine white line inside; test patterns keep the edge pixels clear, so only a thin outline */
+  if(pmPat(style)==='cabinets'){
+    const bw=Math.max(2,u*5);
+    ctx.strokeStyle=col; ctx.lineWidth=bw; ctx.strokeRect(x+bw/2,y+bw/2,W-bw,H-bw);
+    ctx.strokeStyle='rgba(255,255,255,.85)'; ctx.lineWidth=Math.max(1,u*1.2); ctx.strokeRect(x+bw+u,y+bw+u,W-2*(bw+u),H-2*(bw+u));
+  } else { const bw=Math.max(1,Math.round(u)); ctx.strokeStyle=col; ctx.lineWidth=bw; ctx.strokeRect(x+bw/2,y+bw/2,W-bw,H-bw); }
 }
 /* labels on a rounded card */
 function pmLabels(ctx,o,x,y,where,withSize){
@@ -5200,19 +5214,19 @@ function pmLabels(ctx,o,x,y,where,withSize){
     tw=0; lines.forEach(l=>{ ctx.font=`${l.w} ${l.sz}px ${l.fam}`; tw=Math.max(tw,ctx.measureText(l.t).width); }); }
   const cw=Math.min(W*.94,tw+pad*2.4), chh=Math.min(H*.94,th+pad*1.8);
   const cx=x+W/2-cw/2, cy=y+H/2-chh/2;
-  roundRect(ctx,cx,cy,cw,chh,Math.min(chh*.22,pad*1.6)); ctx.fillStyle=(pmOf().pattern==='cabinets')?'#06070a':'rgba(6,7,10,.78)'; ctx.fill();
+  roundRect(ctx,cx,cy,cw,chh,Math.min(chh*.22,pad*1.6)); ctx.fillStyle=pmPat(pmOf().pattern)==='cabinets'?'#06070a':'rgba(6,7,10,.82)'; ctx.fill();
   ctx.strokeStyle='rgba(255,255,255,.14)'; ctx.lineWidth=Math.max(1,pad*.06); ctx.stroke();
   let yy=cy+pad*.9; ctx.textAlign='center'; ctx.textBaseline='top';
   lines.forEach(l=>{ ctx.font=`${l.w} ${l.sz}px ${l.fam}`; ctx.fillStyle=l.c; ctx.fillText(l.t,x+W/2,yy); yy+=l.sz*1.22+gap; });
 }
 function pmDrawSurface(ctx,o,x,y,where,detail,withSize){
-  ctx.save(); pmPaint(ctx,o,x,y,pmOf().pattern||'classic'); pmLabels(ctx,o,x,y,where,withSize); ctx.restore();
+  ctx.save(); pmPaint(ctx,o,x,y,pmOf().pattern); pmLabels(ctx,o,x,y,where,withSize); ctx.restore();
 }
 /* small live previews for the pattern picker */
 function pmSwatches(){
   const host=document.getElementById('pmPats'); if(!host) return;
   const pm=pmOf(), demo={s:{cols:4,rows:2,off:[]},W:384,H:216,cw:96,ch:108,col:pmCol(0),name:'A',p:{wmm:500,hmm:500}};
-  host.innerHTML=PM_PATTERNS.map(([k,l])=>`<button class="pmpat ${pm.pattern===k?'on':''}" onclick="pmSet('pattern','${k}')"><canvas width="384" height="216" data-p="${k}"></canvas><span>${l}</span></button>`).join('');
+  host.innerHTML=PM_PATTERNS.map(([k,l])=>`<button class="pmpat ${pmPat(pm.pattern)===k?'on':''}" onclick="pmSet('pattern','${k}')"><canvas width="384" height="216" data-p="${k}"></canvas><span>${l}</span></button>`).join('');
   host.querySelectorAll('canvas').forEach(c=>pmPaint(c.getContext('2d'),demo,0,0,c.dataset.p));
   document.querySelectorAll('#pmPal button').forEach(b=>b.classList.toggle('on',b.dataset.v===(pm.palette||'vivid')));
   const ls=document.getElementById('pmLab'); if(ls) ls.value=pm.labels||'large';
@@ -5609,7 +5623,7 @@ async function pmEncodeSlice(M,o,fps,secs,onProg){
   const pick=await pmPickCodec(W,H,fps,bitrate);
   if(!pick) return {skip:`${o.name}: this computer can't encode ${W} × ${H} video`};
   const base=document.createElement('canvas'); base.width=W; base.height=H;
-  { const bx=base.getContext('2d'); bx.save(); pmPaint(bx,o,0,0,pmOf().pattern||'classic'); bx.restore(); }   /* pattern only; labels go on top of the motion */
+  { const bx=base.getContext('2d'); bx.save(); pmPaint(bx,o,0,0,pmOf().pattern); bx.restore(); }   /* pattern only; labels go on top of the motion */
   const cv=document.createElement('canvas'); cv.width=W; cv.height=H; const cx=cv.getContext('2d');
   const muxer=new Mp4Muxer.Muxer({target:new Mp4Muxer.ArrayBufferTarget(),video:{codec:pick.mux,width:W,height:H,frameRate:fps},fastStart:'in-memory'});
   let err=null;

@@ -79,7 +79,7 @@ async function pmEncodeSlice(M,o,fps,secs,onProg){
   const pick=await pmPickCodec(W,H,fps,bitrate);
   if(!pick) return {skip:`${o.name}: this computer can't encode ${W} × ${H} video`};
   const base=document.createElement('canvas'); base.width=W; base.height=H;
-  { const bx=base.getContext('2d'); bx.save(); pmPaint(bx,o,0,0,pmOf().pattern||'classic'); bx.restore(); }   /* pattern only; labels go on top of the motion */
+  { const bx=base.getContext('2d'); bx.save(); pmPaint(bx,o,0,0,pmOf().pattern); bx.restore(); }   /* pattern only; labels go on top of the motion */
   const cv=document.createElement('canvas'); cv.width=W; cv.height=H; const cx=cv.getContext('2d');
   const muxer=new Mp4Muxer.Muxer({target:new Mp4Muxer.ArrayBufferTarget(),video:{codec:pick.mux,width:W,height:H,frameRate:fps},fastStart:'in-memory'});
   let err=null;

@@ -9,7 +9,7 @@ const PM_PRESETS={
 };
 const PM_COLS=['#226ec8','#009678','#d27800','#aa32a0','#c83c3c','#4a8f2f','#7a5bd6','#b89600','#1f93a8','#c0507a','#5f7d1e','#8c5a2b'];
 const PM_MAXTEX=16384;
-const defPM=()=>({mV:10,mH:5,mFps:30,mSecs:10,pattern:'classic',palette:'vivid',labels:'large',outCount:4,compMode:'input',flip:false,pos:{},preset:'tb6k',outW:6144,outH:3456,outPx:8847360,share:true,assign:{}});
+const defPM=()=>({mV:10,mH:5,mFps:30,mSecs:10,pattern:'cabinets',palette:'vivid',labels:'large',outCount:4,compMode:'input',flip:false,pos:{},preset:'tb6k',outW:6144,outH:3456,outPx:8847360,share:true,assign:{}});
 function pmOf(){ S.pm=S.pm||{}; const d=defPM(); for(const k in d) if(!(k in S.pm)) S.pm[k]=d[k]; return S.pm; }
 const r8=v=>Math.round(v/8)*8, up8=v=>Math.ceil(v/8)*8;
 const median=a=>{ const b=a.slice().sort((x,y)=>x-y); return b.length?b[Math.floor(b.length/2)]:1; };

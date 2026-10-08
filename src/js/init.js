@@ -32,7 +32,8 @@
 
   renderTabs(); setMode('layout'); renderSide(); fitView(); updateUndoUI();
   setStatus(!sc()||sc().panelId?'Ready':'Choose an LED panel in the sidebar to start');
-  if(fresh&&!(cloudOn()&&signedIn())) openSetup(true);   /* a signed-in browser pulls its projects instead */
+  const cloud=cloudOn()&&signedIn();             /* a signed-in browser pulls its projects first */
+  if(!cloud) openSetup(fresh,!fresh);            /* the setup opens on every visit; saved work can be reopened */
 
   /* persist afterwards, and never let it break anything */
   try{
@@ -42,9 +43,10 @@
     await sSet(CURKEY,projId);
   }catch(e){ console.error('project save failed',e); }
 
-  if(cloudOn()&&signedIn()){
+  if(cloud){
     setStatus('Syncing your projects…');
     await sbSyncAll(true);
     if(!syncErr) setStatus('Synced · '+(!sc()||sc().panelId?'ready':'choose an LED panel'));
+    openSetup(false,true);
   }
 })();

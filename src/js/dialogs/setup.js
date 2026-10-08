@@ -2,7 +2,7 @@
 /* Every new project starts here: voltage, panel and processor have to be picked before it
    exists. The library dialog fills the draft while this is open (see libDraft). */
 let libDraft=null, nwReplace=null;
-function openSetup(forced){
+function openSetup(forced,visit){
   libDraft={panelId:'',procId:'',custom:null};
   nwReplace=forced?projId:null;                 /* first run: the placeholder project is swapped out */
   ['nwName','nwVenue'].forEach(id=>document.getElementById(id).value='');
@@ -10,7 +10,9 @@ function openSetup(forced){
   document.getElementById('nwAmps').value=20;
   document.getElementById('nwBasis').value='max80';
   document.getElementById('nwBits').value='8'; document.getElementById('nwFeed').value='auto';
-  document.getElementById('nwCancel').style.display=forced?'none':'';
+  const cb=document.getElementById('nwCancel');
+  cb.style.display=forced?'none':'';
+  cb.textContent=visit&&S&&S.name?'Open “'+S.name+'”':'Cancel';   /* on a visit, skip back to the last project */
   closeMask('pjModal');
   document.getElementById('nwModal').classList.remove('hide');
   nwCheck(); setTimeout(()=>document.getElementById('nwName').focus(),30);

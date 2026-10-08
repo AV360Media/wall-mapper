@@ -15,82 +15,73 @@ const PM_PALETTES={
   pastel:['#93c5fd','#86efac','#fcd34d','#fca5a5','#c4b5fd','#f9a8d4','#5eead4','#fdba74','#bef264','#67e8f9','#d8b4fe','#fde68a'],
   mono:['#f4f4f5','#d4d4d8','#a1a1aa','#e4e4e7','#c4c4cc','#b4b4bc']
 };
-const PM_PATTERNS=[['cabinets','Panel IDs'],['grid','Alignment'],['pixel','Pixel check'],['bars','Colour bars'],['grey','Greyscale'],['fields','RGBW fields']];
-const PM_OLD={classic:'cabinets',spectrum:'bars',outline:'grid'};   /* patterns from older projects */
-const pmPat=k=>{ k=PM_OLD[k]||k; return PM_PATTERNS.some(p=>p[0]===k)?k:'cabinets'; };
+const PM_PATTERNS=[['classic','Classic'],['cabinets','Panel IDs'],['grid','Alignment'],['bars','Colour bars']];
+const PM_OLD={spectrum:'bars',outline:'grid',grey:'classic',fields:'classic',pixel:'grid'};   /* patterns from older builds */
+const pmPat=k=>{ k=PM_OLD[k]||k; return PM_PATTERNS.some(p=>p[0]===k)?k:'classic'; };
 const pmCol=i=>{ const P=PM_PALETTES[pmOf().palette]||PM_PALETTES.vivid; return P[i%P.length]; };
 function pmRGBA(hex,a){ const n=parseInt(hex.slice(1),16); return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${a})`; }
 
-/* tiny repeat tiles for the pixel check: 1 px verticals, 1 px horizontals, 1 px and 2 px checkers */
-const PM_TILES={};
-function pmTile(m){
-  if(PM_TILES[m]) return PM_TILES[m];
-  const n=m===3?4:2, c=document.createElement('canvas'); c.width=c.height=n; const x=c.getContext('2d');
-  x.fillStyle='#000'; x.fillRect(0,0,n,n); x.fillStyle='#fff';
-  if(m===0) x.fillRect(0,0,1,2); else if(m===1) x.fillRect(0,0,2,1);
-  else if(m===2){ x.fillRect(0,0,1,1); x.fillRect(1,1,1,1); } else { x.fillRect(0,0,2,2); x.fillRect(2,2,2,2); }
-  return PM_TILES[m]=c;
-}
 /* the pattern itself, inside x,y,W,H, with cabinets cw × ch; lines land on whole LED pixels */
 function pmPaint(ctx,o,x,y,style){
   style=pmPat(style);
   const s=o.s, W=o.W, H=o.H, cw=o.cw, ch=o.ch, col=o.col, cols=s.cols, rows=s.rows;
   const u=Math.max(1,Math.min(cw,ch)/64);                  /* line weight that scales with the cabinet */
   const px=Math.max(1,Math.round(u*.6));                   /* thin lines: 1 LED pixel on most panels */
-  const vl=(xx,c,w)=>{ ctx.fillStyle=c; ctx.fillRect(Math.round(xx),y,w,H); };
-  const hl=(yy,c,w)=>{ ctx.fillStyle=c; ctx.fillRect(x,Math.round(yy),W,w); };
-  const ring=(r,stroke,lw)=>{ ctx.strokeStyle=stroke; ctx.lineWidth=lw; ctx.beginPath(); ctx.arc(x+W/2,y+H/2,r,0,Math.PI*2); ctx.stroke(); };
+  const R=v=>Math.round(v);
+  const vl=(xx,c,w)=>{ ctx.fillStyle=c; ctx.fillRect(R(xx),y,w,H); };
+  const hl=(yy,c,w)=>{ ctx.fillStyle=c; ctx.fillRect(x,R(yy),W,w); };
   const seams=(c,w)=>{ for(let i=1;i<cols;i++) vl(x+i*cw-w,c,w*2); for(let j=1;j<rows;j++) hl(y+j*ch-w,c,w*2); };
-  const fs=Math.max(8,Math.min(cw,ch)*.13);
-  const txt=(t,tx,ty,sz,c,al)=>{ ctx.font=`700 ${sz}px ${FS}`; ctx.fillStyle=c; ctx.textAlign=al||'center'; ctx.textBaseline='middle'; ctx.fillText(t,tx,ty); };
+  const ring=(cx,cy,r,stroke,lw)=>{ if(r<=0) return; ctx.strokeStyle=stroke; ctx.lineWidth=lw; ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.stroke(); };
+  const diag=(stroke,lw)=>{ ctx.strokeStyle=stroke; ctx.lineWidth=lw; ctx.beginPath();
+    ctx.moveTo(x,y); ctx.lineTo(x+W,y+H); ctx.moveTo(x,y+H); ctx.lineTo(x+W,y); ctx.stroke(); };
+  const txt=(t,tx,ty,sz,c,w,fam)=>{ ctx.font=`${w||700} ${sz}px ${fam||FS}`; ctx.fillStyle=c; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(t,tx,ty); };
+  const mx=x+W/2, my=y+H/2, rad=Math.min(W,H)/2;
   ctx.save(); ctx.beginPath(); ctx.rect(x,y,W,H); ctx.clip();
-  if(style==='grid'){                                       /* alignment: every panel edge lit, centre lines, circles, diagonals */
+  if(style==='cabinets'){                                   /* panel IDs: checkered panels, each with its column.row and pixel origin */
+    for(let i=0;i<cols;i++) for(let j=0;j<rows;j++){ const cx=x+i*cw, cy=y+j*ch;
+      ctx.fillStyle='#07080b'; ctx.fillRect(cx,cy,cw,ch);
+      const g=ctx.createLinearGradient(cx,cy,cx,cy+ch); g.addColorStop(0,pmRGBA(col,(i+j)%2?.42:.26)); g.addColorStop(1,pmRGBA(col,(i+j)%2?.3:.17));
+      ctx.fillStyle=g; ctx.fillRect(cx,cy,cw,ch);
+      ctx.strokeStyle='rgba(255,255,255,.07)'; ctx.lineWidth=px; ctx.strokeRect(cx+px*1.5+u,cy+px*1.5+u,cw-px*3-u*2,ch-px*3-u*2);   /* soft inner edge */
+    }
+    seams(pmRGBA(col,.95),Math.max(1,R(u)));
+    const f2=Math.min(cw*.3,ch*.3), f3=f2*.3, sub=ch>=48&&cw>=48;
+    for(let i=0;i<cols;i++) for(let j=0;j<rows;j++){ const cx=x+(i+.5)*cw, cy=y+(j+.5)*ch;
+      txt(`${i+1}.${j+1}`,cx,cy-(sub?f3*.7:0),f2,'#fff');
+      if(sub) txt(`${i*cw}, ${j*ch}`,cx,cy+f2*.55+f3*.2,f3,'rgba(255,255,255,.55)',500,FM); }
+  } else if(style==='grid'){                                /* alignment: every panel edge lit, centre lines with ticks, circles, diagonals */
     ctx.fillStyle='#000'; ctx.fillRect(x,y,W,H);
     for(let i=0;i<cols;i++) for(let j=0;j<rows;j++){ const cx=x+i*cw, cy=y+j*ch;
-      ctx.fillStyle='rgba(255,255,255,.08)'; if((i+j)%2) ctx.fillRect(cx,cy,cw,ch);
-      ctx.strokeStyle='#fff'; ctx.lineWidth=px; ctx.strokeRect(cx+px/2,cy+px/2,cw-px,ch-px);   /* each panel's own outer pixels */
-      const k=Math.min(cw,ch)*.12; ctx.fillStyle=pmRGBA(col,.9);
-      ctx.fillRect(Math.round(cx+cw/2-k),Math.round(cy+ch/2),Math.round(k*2),px); ctx.fillRect(Math.round(cx+cw/2),Math.round(cy+ch/2-k),px,Math.round(k*2)); }
-    vl(x+W/2-px/2,col,px*2); hl(y+H/2-px/2,col,px*2);
-    ctx.strokeStyle=pmRGBA(col,.75); ctx.lineWidth=px*1.5; ctx.beginPath();
-    ctx.moveTo(x,y); ctx.lineTo(x+W,y+H); ctx.moveTo(x,y+H); ctx.lineTo(x+W,y); ctx.stroke();
-    const R=Math.min(W,H)/2; [.98,.66,.33].forEach((k,i)=>ring(R*k,i?pmRGBA('#ffffff',.7):'#fff',px*(i?2:3)));
-  } else if(style==='pixel'){                               /* 1:1 check: fine lines and checkers shimmer if anything scales */
-    ctx.fillStyle='#000'; ctx.fillRect(x,y,W,H); ctx.fillStyle='#fff';
-    for(let i=0;i<cols;i++) for(let j=0;j<rows;j++){
-      const cx=x+i*cw, cy=y+j*ch, hw=Math.floor(cw/2), hh=Math.floor(ch/2), q=(i+j)%2;
-      const A=[[cx,cy,hw,hh],[cx+hw,cy,cw-hw,hh],[cx,cy+hh,hw,ch-hh],[cx+hw,cy+hh,cw-hw,ch-hh]];
-      A.forEach(([ax,ay,aw,ah],k)=>{ const pt=ctx.createPattern(pmTile((k+q*2)%4),'repeat');
-        pt.setTransform(new DOMMatrix([1,0,0,1,ax,ay])); ctx.fillStyle=pt; ctx.fillRect(ax,ay,aw,ah); });
-    }
-    seams(col,px);
-  } else if(style==='bars'){                                /* 100% bars, reverse strip, black level steps */
-    const bars=['#ffffff','#ffff00','#00ffff','#00ff00','#ff00ff','#ff0000','#0000ff'], bw=W/7, bh=Math.round(H*.62);
-    bars.forEach((c,i)=>{ ctx.fillStyle=c; ctx.fillRect(Math.round(x+i*bw),y,Math.ceil(bw),bh); });
-    const mid=['#0000ff','#000000','#ff00ff','#000000','#00ffff','#000000','#ffffff'], mh=Math.round(H*.1);
-    mid.forEach((c,i)=>{ ctx.fillStyle=c; ctx.fillRect(Math.round(x+i*bw),y+bh,Math.ceil(bw),mh); });
-    const lo=['#000000','#050505','#0a0a0a','#141414','#1e1e1e','#282828','#000000'], ly=y+bh+mh;   /* black level: 0, 2, 4, 8, 12, 16% */
-    lo.forEach((c,i)=>{ ctx.fillStyle=c; ctx.fillRect(Math.round(x+i*bw),ly,Math.ceil(bw),y+H-ly); });
-    ['0','2','4','8','12','16'].forEach((t,i)=>txt(t+'%',x+(i+.5)*bw,ly+(y+H-ly)/2,Math.min(fs,(y+H-ly)*.3),'rgba(255,255,255,.35)'));
-  } else if(style==='grey'){                                /* 11 steps on top, smooth ramps below to show banding */
-    const sh=Math.round(H*.5), sw=W/11;
-    for(let i=0;i<11;i++){ const v=Math.round(i*25.5); ctx.fillStyle=`rgb(${v},${v},${v})`; ctx.fillRect(Math.round(x+i*sw),y,Math.ceil(sw),sh);
-      txt(i*10+'%',x+(i+.5)*sw,y+sh-Math.min(fs,sh*.12)*1.2,Math.min(fs,sw*.3,sh*.12),i>5?'#000':'#fff'); }
-    const rh=(H-sh)/4;
-    ['#ffffff','#ff0000','#00ff00','#0000ff'].forEach((c,i)=>{ const g=ctx.createLinearGradient(x,0,x+W,0);
-      g.addColorStop(0,'#000'); g.addColorStop(1,c); ctx.fillStyle=g; ctx.fillRect(x,Math.round(y+sh+i*rh),W,Math.ceil(rh)); });
-  } else if(style==='fields'){                              /* every panel a full field, so a wrong or dim panel stands out */
-    const F=['#ff0000','#00ff00','#0000ff','#ffffff'];
-    for(let i=0;i<cols;i++) for(let j=0;j<rows;j++){ ctx.fillStyle=F[(i+j)%4]; ctx.fillRect(x+i*cw,y+j*ch,cw,ch); }
-    seams('#000',px);
-  } else {                                                  /* panel IDs: checkered panels, each with its column.row */
-    for(let i=0;i<cols;i++) for(let j=0;j<rows;j++){
-      ctx.fillStyle=(i+j)%2?pmRGBA(col,.62):pmRGBA(col,.4); ctx.fillRect(x+i*cw,y+j*ch,cw,ch);
-      ctx.fillStyle='#07080b'; ctx.globalAlpha=.55; ctx.fillRect(x+i*cw,y+j*ch,cw,ch); ctx.globalAlpha=1;
-    }
-    seams(pmRGBA(col,.95),Math.max(1,Math.round(u)));
-    const f2=Math.min(cw*.3,ch*.3);
-    for(let i=0;i<cols;i++) for(let j=0;j<rows;j++) txt(`${i+1}.${j+1}`,x+(i+.5)*cw,y+(j+.5)*ch,f2,'#fff');
+      if((i+j)%2){ ctx.fillStyle='#0d0e12'; ctx.fillRect(cx,cy,cw,ch); }
+      ctx.strokeStyle='rgba(255,255,255,.9)'; ctx.lineWidth=px; ctx.strokeRect(cx+px/2,cy+px/2,cw-px,ch-px);   /* each panel's own outer pixels */
+      const k=R(Math.min(cw,ch)*.07); ctx.fillStyle=pmRGBA(col,.85);
+      ctx.fillRect(R(cx+cw/2-k),R(cy+ch/2),k*2,px); ctx.fillRect(R(cx+cw/2),R(cy+ch/2-k),px,k*2); }
+    diag(pmRGBA(col,.5),px*1.5);
+    ring(mx,my,rad*.97,'#fff',px*3); ring(mx,my,rad*.66,'rgba(255,255,255,.75)',px*2); ring(mx,my,rad*.33,'rgba(255,255,255,.6)',px*2);
+    const cr=Math.min(W,H)*.12, ci=cr+Math.min(cw,ch)*.25;   /* corner circles show geometry and overscan */
+    [[x+ci,y+ci],[x+W-ci,y+ci],[x+ci,y+H-ci],[x+W-ci,y+H-ci]].forEach(([cx,cy])=>{ ring(cx,cy,cr,'rgba(255,255,255,.7)',px*2);
+      ctx.fillStyle='#fff'; ctx.fillRect(R(cx-cr*.25),R(cy),R(cr*.5),px); ctx.fillRect(R(cx),R(cy-cr*.25),px,R(cr*.5)); });
+    vl(mx-px,col,px*2); hl(my-px,col,px*2);                  /* centre lines, with a tick every quarter panel */
+    const tk=Math.max(4,Math.min(cw,ch)*.08); ctx.fillStyle=col;
+    for(let t=0;t<=W;t+=cw/4) ctx.fillRect(R(x+t),R(my-tk/(t%cw<1?1:2)),px,R(tk*2/(t%cw<1?1:2)));
+    for(let t=0;t<=H;t+=ch/4) ctx.fillRect(R(mx-tk/(t%ch<1?1:2)),R(y+t),R(tk*2/(t%ch<1?1:2)),px);
+    ring(mx,my,Math.max(3,Math.min(cw,ch)*.12),col,px*2); ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(mx,my,Math.max(1.5,px*2),0,Math.PI*2); ctx.fill();
+  } else if(style==='bars'){                                /* SMPTE-style bars with reverse strip and PLUGE */
+    const bw=W/7, bh=R(H*.67), mh=R(H*.08), ly=y+bh+mh;
+    const bar=(c,bx,by,w,h)=>{ ctx.fillStyle=c; ctx.fillRect(R(bx),by,R(bx+w)-R(bx),h); };
+    ['#bfbfbf','#bfbf00','#00bfbf','#00bf00','#bf00bf','#bf0000','#0000bf'].forEach((c,i)=>bar(c,x+i*bw,y,bw,bh));
+    ['#0000bf','#131313','#bf00bf','#131313','#00bfbf','#131313','#bfbfbf'].forEach((c,i)=>bar(c,x+i*bw,y+bh,bw,mh));
+    const lh=y+H-ly, w5=bw*5/4; let bx=x;
+    ['#00214c','#ffffff','#32006a','#131313'].forEach(c=>{ bar(c,bx,ly,w5,lh); bx+=w5; });
+    ['#090909','#131313','#1d1d1d'].forEach(c=>{ bar(c,bx,ly,bw/3,lh); bx+=bw/3; });   /* PLUGE: below, at and above black */
+    bar('#131313',bx,ly,x+W-bx,lh);
+  } else {                                                  /* classic */
+    const g=ctx.createLinearGradient(x,y,x+W,y+H); g.addColorStop(0,pmRGBA(col,.58)); g.addColorStop(1,pmRGBA(col,.32));
+    ctx.fillStyle='#07080b'; ctx.fillRect(x,y,W,H); ctx.fillStyle=g; ctx.fillRect(x,y,W,H);
+    ctx.fillStyle='rgba(255,255,255,.07)';
+    for(let i=0;i<cols;i++) for(let j=0;j<rows;j++) if((i+j)%2) ctx.fillRect(x+i*cw,y+j*ch,cw,ch);
+    seams(pmRGBA(col,.85),Math.max(1,R(u*.75)));
+    diag('rgba(255,255,255,.7)',u*2); ring(mx,my,rad*.92,'#ffffff',u*3.5);
   }
   /* cabinets switched off in Wall Mapper are not lit */
   (s.off||[]).forEach(t=>{ const [r,c]=t.split(':').map(Number); if(r>=rows||c>=cols) return;
@@ -99,15 +90,15 @@ function pmPaint(ctx,o,x,y,style){
     ctx.moveTo(x+(c+1)*cw,y+r*ch); ctx.lineTo(x+c*cw,y+(r+1)*ch); ctx.stroke(); });
   /* top-left marker: shows straight away if a slice is flipped or rotated */
   const t=Math.min(cw,ch,W*.2,H*.2)*.55;
-  ctx.fillStyle=style==='bars'||style==='grey'||style==='fields'?'#ffffff':col;
+  ctx.fillStyle=style==='bars'?'#ffffff':col;
   ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x+t,y); ctx.lineTo(x,y+t); ctx.closePath(); ctx.fill();
   ctx.restore();
-  /* border: colour with a fine white line inside; test patterns keep the edge pixels clear, so only a thin outline */
-  if(pmPat(style)==='cabinets'){
+  /* border: colour with a fine white line inside; pixel-exact patterns keep the edge pixels clear with a thin outline */
+  if(style==='classic'||style==='cabinets'){
     const bw=Math.max(2,u*5);
     ctx.strokeStyle=col; ctx.lineWidth=bw; ctx.strokeRect(x+bw/2,y+bw/2,W-bw,H-bw);
     ctx.strokeStyle='rgba(255,255,255,.85)'; ctx.lineWidth=Math.max(1,u*1.2); ctx.strokeRect(x+bw+u,y+bw+u,W-2*(bw+u),H-2*(bw+u));
-  } else { const bw=Math.max(1,Math.round(u)); ctx.strokeStyle=col; ctx.lineWidth=bw; ctx.strokeRect(x+bw/2,y+bw/2,W-bw,H-bw); }
+  } else { const bw=Math.max(1,R(u)); ctx.strokeStyle=col; ctx.lineWidth=bw; ctx.strokeRect(x+bw/2,y+bw/2,W-bw,H-bw); }
 }
 /* labels on a rounded card */
 function pmLabels(ctx,o,x,y,where,withSize){

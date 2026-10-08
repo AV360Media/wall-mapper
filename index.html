@@ -59,6 +59,21 @@ aside.r{width:266px;border-left:1px solid var(--line)}
   background:#1b2230f2;border:1px solid var(--ac);border-radius:8px;padding:6px 8px 6px 13px;font-size:12px;z-index:5}
 .focusbar b{color:var(--ac)}
 .focusbar.hide{display:none}
+/* ---- project with no screens yet ---- */
+.emptyset{display:none;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(440px,calc(100% - 32px));
+  background:var(--panel);border:1px solid var(--line2);border-radius:var(--r-lg,10px);box-shadow:var(--shadow,none);padding:20px;z-index:4}
+body.noscreens .emptyset{display:block}
+.emptyset h3{margin:2px 0 4px;font-size:18px}
+.emptyset .es-k{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--tx3);font-weight:700}
+.emptyset .hint{margin-bottom:10px}
+.es-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line)}
+.es-row .k{width:108px;flex-shrink:0;font-size:11px;color:var(--tx3)}
+.es-row .v{flex:1;min-width:0;font-size:12.5px;color:var(--tx)}
+.es-row .v small{display:block;font-size:10.5px;color:var(--tx3);margin-top:2px}
+.es-row .v em{color:var(--ac);font-style:normal}
+.es-row select{background:var(--elev);border:1px solid var(--line2);color:var(--tx);border-radius:4px;padding:4px 6px;font:inherit;font-size:12px}
+body.noscreens main>aside,body.noscreens .zoombar,body.noscreens #helper,body.noscreens #modeSeg,
+body.noscreens .tabtools>:not(:first-child){display:none}
 h4{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--tx3);margin:17px 0 8px;font-weight:700}
 h4:first-child{margin-top:0}
 .f{margin-bottom:8px}
@@ -631,6 +646,7 @@ body{font-size:13.5px;letter-spacing:.005em}
 .pmiss-d{font-size:11.5px;color:var(--tx2);line-height:1.5;margin:3px 0 8px}
 .pmok{margin-top:12px;border-radius:14px;padding:10px 12px;font-size:12px;color:var(--tx2);background:color-mix(in srgb,var(--ok) 10%,var(--inner))}
 .pmok::before{content:'✓  ';color:var(--ok);font-weight:700}
+.pmfix{margin-top:12px;border-radius:14px;padding:10px 12px;font-size:12px;color:var(--tx2);background:var(--inner);border:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:10px}
 .pmpats{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .pmpat{display:flex;flex-direction:column;gap:6px;padding:6px;border-radius:12px;border:none;background:var(--inner);color:var(--tx2);font:inherit;font-size:11.5px;font-weight:500;cursor:pointer;
   transition:transform .35s var(--spring),box-shadow .25s,background .2s,color .2s}
@@ -717,9 +733,13 @@ body{font-size:13.5px;letter-spacing:.005em}
         <div class="slots" id="slots"></div>
         <div class="autobox">
           <div class="g2">
-            <div class="f"><label>Tiles per chain</label><input type="number" min="1" id="aoLen" value="8" /></div>
-            <div class="f"><label>Run along</label><select id="aoDir"><option value="col">Columns</option><option value="row">Rows</option></select></div>
+            <div class="f" id="aoLenWrap"><label>Tiles per chain</label><input type="number" min="1" id="aoLen" value="8" /></div>
+            <div class="f" id="aoDirWrap"><label>Run along</label><select id="aoDir"><option value="col">Columns</option><option value="row">Rows</option></select></div>
+            <div class="f" id="aoFeedWrap" style="display:none"><label>Home runs from</label><select id="aoFeed" onchange="sc().feed=this.value;save()">
+              <option value="auto">Auto</option><option value="top">Top</option><option value="bottom">Bottom</option>
+              <option value="left">Left</option><option value="right">Right</option></select></div>
           </div>
+          <div class="hint" id="aoNote" style="display:none;margin:-2px 0 6px"></div>
           <div class="g2">
             <button class="btn sm" onclick="autoChain()">Auto-build</button>
             <button class="btn sm ghost dgr" onclick="clearChains()">Clear</button>
@@ -753,6 +773,7 @@ body{font-size:13.5px;letter-spacing:.005em}
 
     <div id="stage">
       <canvas id="cv"></canvas>
+      <div class="emptyset" id="emptySet"></div>
       <div class="focusbar hide" id="focusBar">
         <span>Focused on <b id="focusName"></b></span>
         <button class="btn sm" onclick="exitFocus()">Back to set · Esc</button>
@@ -781,6 +802,48 @@ body{font-size:13.5px;letter-spacing:.005em}
 
 <div id="printSheet"></div>
 <style id="printCSS"></style>
+
+<div class="mask hide" id="nwModal">
+  <div class="modal form" style="width:520px">
+    <h3>New project setup</h3>
+    <div class="hint" style="margin:-4px 0 12px">Everything marked * is needed before the project starts. It opens on a blank canvas and you add screens after. You can change any of it later.</div>
+    <div class="grp">Project</div>
+    <div class="g2">
+      <div class="f"><label>Project name *</label><input id="nwName" oninput="nwCheck()" placeholder="Show or client name" /></div>
+      <div class="f"><label>Venue</label><input id="nwVenue" placeholder="Optional" /></div>
+    </div>
+    <div class="grp" style="margin-top:12px">Power</div>
+    <div class="g2">
+      <div class="f"><label>Voltage *</label><select id="nwVolts" onchange="nwCheck()">
+        <option value="">Choose…</option><option value="120">120 V</option><option value="208">208 V</option>
+        <option value="230">230 V</option><option value="240">240 V</option></select></div>
+      <div class="f"><label>Breaker (A) *</label><input type="number" min="1" id="nwAmps" value="20" oninput="nwCheck()" /></div>
+    </div>
+    <div class="f"><label>Size circuits on</label>
+      <select id="nwBasis">
+        <option value="max80">Max watts, 80% derate</option>
+        <option value="max100">Max watts, full breaker</option>
+        <option value="avg80">Average watts, 80% derate</option>
+        <option value="avg100">Average watts, full breaker</option>
+      </select></div>
+    <div class="grp" style="margin-top:12px">LED</div>
+    <div class="f"><label>LED panel *</label><button class="picker" id="nwPanel" onclick="openLib('panel',true)"></button></div>
+    <div class="grp" style="margin-top:12px">Data</div>
+    <div class="f"><label>Processor *</label><button class="picker" id="nwProc" onclick="openLib('proc',true)"></button></div>
+    <div class="g2" style="margin-top:8px">
+      <div class="f"><label>Colour depth</label><select id="nwBits">
+        <option value="8">8-bit</option><option value="10">10-bit</option><option value="12">12-bit</option></select></div>
+      <div class="f"><label>Data home runs from</label><select id="nwFeed">
+        <option value="auto">Auto</option><option value="top">Top</option><option value="bottom">Bottom</option>
+        <option value="left">Left</option><option value="right">Right</option></select></div>
+    </div>
+    <div class="hint" id="nwMsg" style="margin-top:10px"></div>
+    <div class="acts" style="justify-content:flex-end;gap:8px">
+      <button class="btn" id="nwCancel" onclick="libDraft=null;closeMask('nwModal')">Cancel</button>
+      <button class="btn pri" id="nwGo" onclick="nwCreate()">Create project</button>
+    </div>
+  </div>
+</div>
 
 <div class="mask hide" id="libModal">
   <div class="modal">
@@ -1091,7 +1154,7 @@ body{font-size:13.5px;letter-spacing:.005em}
     <div class="list" id="pjList"></div>
     <div class="acts">
       <div style="display:flex;gap:8px">
-        <button class="btn pri" onclick="newProject()">+ New project</button>
+        <button class="btn pri" onclick="openSetup()">+ New project</button>
         <button class="btn" onclick="document.getElementById('imp').click()">Import file…</button>
         <button class="btn" onclick="exportJSON()">Export current</button>
         <button class="btn" onclick="downloadApp()">Save app file</button>
@@ -1106,6 +1169,8 @@ body{font-size:13.5px;letter-spacing:.005em}
     <span class="pmt">Pixel map</span>
     <span class="pmsz" id="pmSize"></span><span class="pmpx" id="pmPx"></span>
     <span class="sp"></span>
+    <button class="btn sm ghost ico" id="pmUndo" onclick="undo()" title="Undo (Ctrl/⌘ Z)">↶</button>
+    <button class="btn sm ghost ico" id="pmRedo" onclick="redo()" title="Redo (Ctrl/⌘ Shift Z)">↷</button>
     <button class="btn sm ghost pm-stageonly" onclick="pmAuto()">Auto layout</button>
     <button class="btn sm ghost pm-stageonly" onclick="pmFlip()">Flip left / right</button>
     <button class="btn sm" onclick="pmDownloadResolume()" title="Load it from the preset menu in Resolume's Advanced Output">Resolume preset (.xml)</button>
@@ -1120,13 +1185,6 @@ body{font-size:13.5px;letter-spacing:.005em}
         <button data-v="input" onclick="pmSet('compMode','input')">Input map</button>
         <button data-v="gpu" onclick="pmSet('compMode','gpu')">Packed 1:1</button>
       </div>
-      <div class="f pm-stageonly" style="margin-top:10px"><label>Composition size</label>
-        <select id="pmFit" onchange="pmSet('inFit',this.value)">
-          <option value="fithd">Fit HD · 1920 × 1080</option>
-          <option value="fit4k">Fit 4K · 3840 × 2160</option>
-          <option value="fit8k">Fit 8K · 7680 × 4320</option>
-          <option value="native">Native · 1:1 with the LED</option>
-        </select></div>
       <div class="hint" id="pmOrient" style="margin-top:10px"></div>
       <div id="pmIssues"></div>
       <div id="pmWarn"></div>
@@ -1566,7 +1624,7 @@ const used=(s,kind)=>chains(s,kind).filter(ch=>LT(s,ch).length);
 function units(){ return (S.procs=S.procs||[]); }
 function unitOf(sn){
   const U=units();
-  return U.find(u=>u.id===sn.procRef) || U[0] || null;
+  return U.find(u=>sn&&u.id===sn.procRef) || U[0] || null;
 }
 function unitProc(u){ return (u&&procById(u.procId))||NOPROC; }
 const procOfUnit=unitProc;
@@ -2550,10 +2608,12 @@ function redraw(){
   ctx.translate(view.x,view.y); ctx.scale(view.k,view.k);
   const B=setBounds();
   if((mode==='arrange'||moving)&&focusIdx==null&&opt().snap) drawArrangeGrid(ctx,w,h);
-  ctx.save();
-  ctx.translate(-(SETGAP-B.x1),-(titleH()-B.y1));
-  drawSet(ctx,{interactive:true});
-  ctx.restore();
+  if(S.screens.length){
+    ctx.save();
+    ctx.translate(-(SETGAP-B.x1),-(titleH()-B.y1));
+    drawSet(ctx,{interactive:true});
+    ctx.restore();
+  }
   if(dragGuides.length) drawGuides(ctx,B,w,h);
   document.getElementById('zoomPct').textContent=Math.round(view.k*100)+'%';
 }
@@ -2708,7 +2768,7 @@ function pushUndo(label){
 }
 function restore(entry){
   S=JSON.parse(entry.snap);
-  cur=Math.min(entry.cur||0,S.screens.length-1);
+  cur=Math.max(0,Math.min(entry.cur||0,S.screens.length-1));
   if(focusIdx!=null&&focusIdx>=S.screens.length) exitFocus();
   const a=entry.act||active;
   active={power:Math.min(Math.max(a.power|0,0),SLOTS-1),data:Math.min(Math.max(a.data|0,0),SLOTS-1)};
@@ -2732,9 +2792,8 @@ function redo(){
   restore(e); setStatus('Redone');
 }
 function updateUndoUI(){
-  const u=document.getElementById('undoBtn'), r=document.getElementById('redoBtn');
-  if(u) u.disabled=!undoStack.length;
-  if(r) r.disabled=!redoStack.length;
+  ['undoBtn','pmUndo'].forEach(id=>{ const u=document.getElementById(id); if(u) u.disabled=!undoStack.length; });
+  ['redoBtn','pmRedo'].forEach(id=>{ const r=document.getElementById(id); if(r) r.disabled=!redoStack.length; });
 }
 
 /* ========================= INTERACTION ========================= */
@@ -2847,7 +2906,7 @@ window.addEventListener('keydown',e=>{
   if(e.key.startsWith('Arrow')&&focusIdx==null){
     const s=sc(), step=e.shiftKey?SNAP*4:SNAP;
     const d={ArrowLeft:[-step,0],ArrowRight:[step,0],ArrowUp:[0,-step],ArrowDown:[0,step]}[e.key];
-    if(d){ e.preventDefault(); s.x+=opt().rear?-d[0]:d[0]; s.y+=d[1]; redraw(); save(); }
+    if(d&&s){ e.preventDefault(); s.x+=opt().rear?-d[0]:d[0]; s.y+=d[1]; redraw(); save(); }
   }
 });
 window.addEventListener('keyup',e=>{ if(e.code==='Space'){ spaceDown=false; cv.classList.remove('pan'); } });
@@ -2902,7 +2961,7 @@ function renameUnit(id,v){
 }
 function renderUnits(){
   const el=document.getElementById('unitList'); if(!el) return;
-  const U=units(), curU=unitOf(sc()), many=U.length>1;
+  const U=units(), curU=sc()&&unitOf(sc()), many=U.length>1;
   document.getElementById('unitCount').textContent=many?U.length:'';
   el.innerHTML=U.map(u=>{
     const L=unitLoad(u), pr=unitProc(u), none=pr.id==='none';
@@ -2984,6 +3043,7 @@ function setMode(m){
 }
 /* keyboard selection, with a brief on-canvas confirmation */
 function keyPick(i){
+  if(!sc()) return;
   const before=active[mode];
   pickSlot(i);
   const s=sc(), ch=chains(s,mode)[i];
@@ -3040,6 +3100,7 @@ function autoChain(){
   const s=sc();
   const dir=document.getElementById('aoDir').value;
   const len=Math.max(1,+document.getElementById('aoLen').value||8);
+  if(mode==='data') return autoData(s);
   const rows=[...Array(s.rows).keys()], cols=[...Array(s.cols).keys()], rb=[...rows].reverse();
   const seq=[];
   if(dir==='col') cols.forEach((c,i)=>{ (i%2?rows:rb).forEach(r=>{ if(!isOff(s,r,c)) seq.push(key(r,c)); }); });
@@ -3055,8 +3116,64 @@ function autoChain(){
   active[mode]=avail.length?avail[0].i:0;
   syncForm(); renderSlots(); redraw(); renderSide(); save();
 }
+/* Data runs use as few ports as the wall allows: each port is filled to capacity, so the run
+   count is always ceil(tiles / tiles-per-port). Within that minimum the cleanest layout wins:
+   whole rows (or columns) starting on the feed edge, so every home run comes in along that one
+   edge. Side feeds number from the bottom row up; top and bottom feeds from left to right.
+   Only when whole lines would cost an extra port does it fall back to one continuous snake
+   cut at capacity, where some runs start where the last one ended. */
+function dataLayout(s,feed,cap){
+  const vert=feed==='top'||feed==='bottom', D=vert?s.rows:s.cols, A=vert?s.cols:s.rows;
+  const flip=feed==='bottom'||feed==='right';
+  const at=(d,a)=>{ const dd=flip?D-1-d:d; return vert?[dd,a]:[A-1-a,dd]; };
+  const live=(d,a)=>{ const[r,c]=at(d,a); return !isOff(s,r,c); };
+  const line=(a,ds,back)=>(back?[...ds].reverse():ds).filter(d=>live(d,a)).map(d=>({d,t:key(...at(d,a))}));
+  const all=[...Array(D).keys()], min=Math.ceil(tileCount(s)/cap);
+  /* whole lines, greedily packed to capacity, in bands when one line is longer than a port */
+  const nb=Math.ceil(D/cap), whole=[];
+  for(let b=0,d0=0;b<nb;b++){
+    const h=Math.floor(D/nb)+(b<D%nb?1:0), ds=all.slice(d0,d0+h); d0+=h;
+    let g=null;
+    for(let a=0;a<A;a++){
+      const n=ds.filter(d=>live(d,a)).length; if(!n) continue;
+      if(!g||g.n+n>cap){ g={n:0,ls:[],ds}; whole.push(g); }
+      g.ls.push(a); g.n+=n;
+    }
+  }
+  if(whole.length<=min) return {feed,clean:true,runs:whole.map(g=>g.ls.flatMap((a,i)=>line(a,g.ds,i%2)).map(x=>x.t))};
+  /* one snake through the wall, cut every cap tiles */
+  const seq=[...Array(A).keys()].flatMap((a,i)=>line(a,all,i%2)), runs=[];
+  let edge=0;
+  for(let i=0;i<seq.length;i+=cap){ runs.push(seq.slice(i,i+cap).map(x=>x.t)); if(!seq[i].d) edge++; }
+  return {feed,clean:false,edge,runs};
+}
+/* Auto tries each edge and keeps the first that reaches the minimum with whole lines, else the
+   snake with the most runs starting on its edge */
+const FEEDS=['left','top','right','bottom'];
+/* every run fills its port: tiles per port come from the processor, or from a standard
+   1 Gb port (650k px at 8-bit) until a processor model is picked */
+const STD_PORT=650000;
+const portPx=s=>portCap(procOf(s))||Math.round(STD_PORT*bitFactor());
+const tilesPerPort=s=>{ const p=panelById(s.panelId); return p?Math.floor(portPx(s)/(p.pw*p.ph)):0; };
+function autoData(s){
+  const p=panelById(s.panelId), cap=tilesPerPort(s), want=s.feed||'auto';
+  if(!cap){ setStatus('One '+p.model+' is more than a port can carry at '+bitDepth()+'-bit'); return; }
+  const L=want==='auto'
+    ? FEEDS.map(f=>dataLayout(s,f,cap)).reduce((b,x)=>(b.clean||(!x.clean&&x.edge<=b.edge))?b:x)
+    : dataLayout(s,want,cap);
+  const runs=L.runs, list=s.runs, u=unitOf(s);
+  list.forEach(ch=>ch.tiles=[]);
+  const avail=list.map((ch,i)=>({ch,i})).filter(x=>!(isBackupRun(s,x.ch)||portOwner(u,x.i,s)));
+  runs.forEach((t,n)=>{ if(avail[n]) avail[n].ch.tiles=t; });
+  const side={left:'down the left side',right:'down the right side',top:'along the top',bottom:'along the bottom'}[L.feed];
+  if(runs.length>avail.length) setStatus(`Needs ${runs.length} ports, only ${avail.length} free — raise tiles per chain or add a processor`);
+  else setStatus(`${runs.length} data run${runs.length===1?'':'s'}, up to ${cap} tiles each, home runs ${side}${L.clean?'':' (some start mid-wall to save ports)'}${portCap(procOf(s))?'':' — standard 650k port assumed, pick a processor for its exact capacity'}`);
+  active.data=avail.length?avail[0].i:0;
+  syncForm(); renderSlots(); redraw(); renderSide(); save();
+}
 function tidyChains(){ S.screens.forEach(hardPrune); }
 function clearAllMapping(){
+  if(needScreen()) return;
   const n=S.screens.length;
   if(!confirm(`Clear every power circuit, data run and backup on ${n===1?'this screen':'all '+n+' screens'}?\n\nTile layout, panels and processors are kept. This can be undone.`)) return;
   pushUndo('clear all mapping');
@@ -3072,6 +3189,15 @@ function clearAllMapping(){
 function clearChains(){ pushUndo('clear '+(mode==='power'?'circuits':'data runs')); chains(sc(),mode).forEach(ch=>ch.tiles=[]); renderSlots(); redraw(); renderSide(); save(); }
 
 /* ========================= SCREENS ========================= */
+/* A project from the setup dialog starts with no screens. Its starting panel, processor and
+   data feed live on the project, and every new screen picks them up. */
+function needScreen(){ if(S.screens.length) return false; setStatus('Nothing here yet — add a screen first'); return true; }
+function startScreen(ns){
+  const u=units()[0];
+  ns.panelId=S.defPanel||''; ns.feed=S.defFeed||'auto';
+  if(u){ ns.procRef=u.id; ns.procId=u.procId; }
+  return ns;
+}
 function nextSpot(){
   let x=0,y=0;
   S.screens.forEach(s=>{ const b=sbox(s); if(s.x+b.w+SETGAP>x){ x=s.x+b.w+SETGAP; y=s.y; } });
@@ -3088,13 +3214,15 @@ function addScreen(){
   const p=nextSpot();
   const src=sc();
   const ns=blankScreen(S.screens.length+1,p.x,p.y);
-  if(src&&src.panelId){ ns.panelId=src.panelId; ns.procId=src.procId; }
+  if(!src) startScreen(ns);
+  else if(src.panelId){ ns.panelId=src.panelId; ns.procId=src.procId; ns.procRef=src.procRef; ns.feed=src.feed; }
   S.screens.push(ns);
   focusIdx=null; document.getElementById('focusBar').classList.add('hide');
   document.getElementById('focusBtn').classList.remove('on');
   selectScreen(S.screens.length-1); fitView(); save();
 }
 function dupScreen(){
+  if(needScreen()) return;
   pushUndo('duplicate screen');
   const src=sc(), p=nextSpot();
   const copy=JSON.parse(JSON.stringify(src));
@@ -3113,6 +3241,7 @@ function delScreen(){
   selectScreen(cur); fitView(); save();
 }
 function tidySet(){
+  if(needScreen()) return;
   pushUndo('tidy set');
   let x=0;
   const maxH=Math.max(...S.screens.map(s=>sbox(s).h));
@@ -3155,8 +3284,30 @@ function renderTabs(){
     S.screens.map((s,i)=>`<div class="tab ${i===cur?'on':''}" onclick="selectScreen(${i})" ondblclick="enterFocus(${i})"
       oncontextmenu="event.preventDefault();openScreenMenu(${i},event.clientX,event.clientY)">${escp(s.name)}</div>`).join('')+
     `<div class="tab" style="color:var(--tx3)" onclick="addScreen()">+</div>`;
+  renderEmpty();
+}
+/* ---- a project with no screens yet: show its settings and the way to add one ---- */
+function renderEmpty(){
+  const none=!S.screens.length, el=document.getElementById('emptySet');
+  if(document.body.classList.contains('noscreens')!==none){
+    document.body.classList.toggle('noscreens',none); requestAnimationFrame(segSync);   /* the mode switch was hidden */
+  }
+  if(!el||!none) return;
+  const p=panelById(S.defPanel), u=units()[0], pr=unitProc(u), o=opt();
+  const row=(k,v,fn)=>`<div class="es-row"><span class="k">${k}</span><span class="v">${v}</span><button class="btn sm ghost" onclick="${fn}">Change</button></div>`;
+  const basis=(o.useAvg?'average':'max')+' watts, '+(o.derate?'80% derate':'full breaker');
+  el.innerHTML=`<div class="es-k">${escp(S.name||'Untitled Project')}</div>
+    <h3>Blank canvas</h3>
+    <div class="hint">Every screen you add starts with these settings.</div>
+    ${row('LED panel',p?`${escp(p.brand+' '+p.model)}<small>${p.pitch} mm · ${p.pw}×${p.ph} px</small>`:'<em>None chosen</em>',"openLib('panel')")}
+    ${row('Processor',pr.id!=='none'?`${escp((pr.brand?pr.brand+' ':'')+pr.model)}<small>${pr.total?pr.ports+' ports · '+(portCap(pr)/1000).toFixed(0)+'k px each at '+bitDepth()+'-bit':'no capacity check'}</small>`:'<em>None chosen</em>',"openLib('proc')")}
+    ${row('Power',`${o.volts} V · ${o.breaker} A breaker<small>${basis}</small>`,"openSettings('power')")}
+    <div class="es-row"><span class="k">Data home runs</span><span class="v"><select onchange="S.defFeed=this.value;save()">
+      ${['auto','top','bottom','left','right'].map(f=>`<option value="${f}" ${(S.defFeed||'auto')===f?'selected':''}>${f[0].toUpperCase()+f.slice(1)}</option>`).join('')}</select></span></div>
+    <button class="btn pri" style="width:100%;margin-top:14px" onclick="openBatch()">+ Add screens</button>`;
 }
 function renderSlots(){
+  if(!sc()) return;
   const bb=document.getElementById('bkBtn'), bn=document.getElementById('bkNote');
   if(bb){
     bb.style.display=mode==='data'?'':'none';
@@ -3181,6 +3332,7 @@ function renderSlots(){
   }).join('');
 }
 function renderSide(){
+  renderEmpty(); if(!sc()) return;
   const s=sc(), t=totals(s), pr=procOf(s);
   { const pn=panelById(s.panelId), n=document.getElementById('inspName'), sub=document.getElementById('inspSub');
     if(n) n.textContent=(s.name||'Screen').trim();
@@ -3226,7 +3378,7 @@ function renderSide(){
     <div class="row"><span>Load max / avg</span><span class="v">${(st.wMax/1000).toFixed(1)} / ${(st.wAvg/1000).toFixed(1)} kW</span></div>`;
 }
 function syncForm(){
-  const s=sc(), p=panelById(s.panelId), o=opt();
+  const s=sc()||startScreen(blankScreen(1)), p=panelById(s.panelId), o=opt();   /* no screens: show what the next one gets */
   const prU=procOf(s), pr=prU.id==='none'?null:prU;
   const canMap=!!p;
   document.getElementById('modeSeg').style.opacity=canMap?'1':'.45';
@@ -3236,6 +3388,14 @@ function syncForm(){
   document.getElementById('scName').value=s.name;
   document.getElementById('scRows').value=s.rows;
   document.getElementById('scCols').value=s.cols;
+  document.getElementById('aoFeed').value=s.feed||'auto';
+  document.getElementById('aoFeedWrap').style.display=mode==='data'?'':'none';
+  document.getElementById('aoDirWrap').style.display=mode==='data'?'none':'';
+  /* data runs always fill their port, so the length box is for power only */
+  document.getElementById('aoLenWrap').style.display=mode==='data'?'none':'';
+  const an=document.getElementById('aoNote'), tp=p?tilesPerPort(s):0;
+  an.style.display=mode==='data'&&tp?'':'none';
+  an.textContent=tp?`Fills each port: up to ${tp} tiles (${Math.round(portPx(s)/1000)}k px at ${bitDepth()}-bit${pr&&portCap(pr)?'':', standard port until a processor is picked'})`:'';
   const pk=document.getElementById('panelPick');
   pk.innerHTML=p
     ? `<span class="t">${escp(p.brand+' '+p.model)}</span><span class="s">${p.pitch} mm · ${p.pw}×${p.ph} px · ${p.lb||'?'} lb</span>`
@@ -3248,7 +3408,7 @@ function syncForm(){
   const us=document.getElementById('scUnit');
   if(us){
     us.innerHTML=units().map(u=>`<option value="${u.id}">${escp(unitLabel(u))}</option>`).join('');
-    const cu=unitOf(sc()); if(cu) us.value=cu.id;
+    const cu=unitOf(s); if(cu) us.value=cu.id;
   }
   renderUnits();
   const uw=document.getElementById('scUnitWrap'); if(uw) uw.style.display=units().length>1?'':'none';
@@ -3306,8 +3466,8 @@ function syncForm(){
 }
 
 /* ========================= LIBRARY DIALOG ========================= */
-function openLib(kind){
-  libKind=kind;
+function openLib(kind,setup){
+  libKind=kind; if(!setup) libDraft=null;
   document.getElementById('libTitle').textContent=kind==='panel'?'Choose LED panel':'Choose processor';
   document.getElementById('libCustom').style.display=kind==='panel'?'':'none';
   document.getElementById('libSearch').value='';
@@ -3316,9 +3476,9 @@ function openLib(kind){
 }
 function closeMask(id){ document.getElementById(id).classList.add('hide'); }
 function libRows(){
-  const sc0=sc();
+  const sc0=libDraft||sc()||{panelId:S.defPanel,procId:unitProc(units()[0]).id}, cust=libDraft?(libDraft.custom?[libDraft.custom]:[]):(S.customPanels||[]);
   return libKind==='panel'
-    ? PANELS.concat(S.customPanels||[]).map(p=>({id:p.id,sel:p.id===sc0.panelId,v:p.v,d:p.d,pop:p.pop,
+    ? PANELS.concat(cust).map(p=>({id:p.id,sel:p.id===sc0.panelId,v:p.v,d:p.d,pop:p.pop,
         n:`${p.brand} ${p.model}`,
         sub:`${p.pitch}mm · ${p.pw}×${p.ph} px · ${IN(p.wmm).toFixed(1)}×${IN(p.hmm).toFixed(1)} in · ${p.lb||'?'} lb · ${p.wmax}W max`,
         hay:`${p.brand} ${p.series||''} ${p.model} ${p.pitch} ${p.pw}x${p.ph} ${p.pw} ${p.ph}`.toLowerCase()}))
@@ -3352,9 +3512,10 @@ function renderLib(){
     : '<div class="empty" style="padding:16px">Nothing matches that. Try a brand, a model, or a pitch like “2.6”.</div>';
 }
 function chooseLib(id){
+  if(libDraft){ libDraft[libKind==='panel'?'panelId':'procId']=id; closeMask('libModal'); nwCheck(); return; }
   pushUndo(libKind==='panel'?'panel change':'processor change');
   const wasPanel=libKind==='panel';
-  if(wasPanel) sc().panelId=id;
+  if(wasPanel){ if(sc()) sc().panelId=id; else S.defPanel=id; }
   else {
     const u=(libUnit&&units().find(x=>x.id===libUnit))||unitOf(sc());
     libUnit=null;
@@ -3380,8 +3541,10 @@ function saveCustomPanel(){
     model:(g('cpModel')||'Panel')+(g('cpLabel')?' ('+g('cpLabel')+')':''),
     pitch:+g('cpPitch')||+(wmm/pw).toFixed(2),wmm,hmm,pw,ph,
     wmax:+g('cpWmax')||0,wavg:+g('cpWavg')||0,v:1};
+  if(libDraft){ libDraft.custom=p; libDraft.panelId=p.id; closeMask('cpModal'); nwCheck(); return; }
   S.customPanels=S.customPanels||[]; S.customPanels.push(p);
-  sc().panelId=p.id; closeMask('cpModal'); syncForm(); renderSide(); redraw(); save();
+  if(sc()) sc().panelId=p.id; else S.defPanel=p.id;
+  closeMask('cpModal'); syncForm(); renderSide(); redraw(); save();
 }
 
 /* ========================= BACKUP DIALOG ========================= */
@@ -3485,6 +3648,55 @@ function applyBackup(){
   setStatus(s.backup.mode==='none'?'Backup cleared':'Backup saved');
 }
 
+/* ========================= NEW PROJECT SETUP ========================= */
+/* Every new project starts here: voltage, panel and processor have to be picked before it
+   exists. The library dialog fills the draft while this is open (see libDraft). */
+let libDraft=null, nwReplace=null;
+function openSetup(forced){
+  libDraft={panelId:'',procId:'',custom:null};
+  nwReplace=forced?projId:null;                 /* first run: the placeholder project is swapped out */
+  ['nwName','nwVenue'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('nwVolts').value='';
+  document.getElementById('nwAmps').value=20;
+  document.getElementById('nwBasis').value='max80';
+  document.getElementById('nwBits').value='8'; document.getElementById('nwFeed').value='auto';
+  document.getElementById('nwCancel').style.display=forced?'none':'';
+  closeMask('pjModal');
+  document.getElementById('nwModal').classList.remove('hide');
+  nwCheck(); setTimeout(()=>document.getElementById('nwName').focus(),30);
+}
+const nwPanel=()=>libDraft&&(libDraft.custom&&libDraft.custom.id===libDraft.panelId?libDraft.custom:panelById(libDraft.panelId));
+function nwCheck(){
+  const p=nwPanel(), pr=libDraft&&procById(libDraft.procId);
+  document.getElementById('nwPanel').innerHTML=p
+    ? `<span class="t">${escp(p.brand+' '+p.model)}</span><span class="s">${p.pitch} mm · ${p.pw}×${p.ph} px · ${p.wmax}W max</span>`
+    : '<span class="t" style="color:var(--ac)">Choose an LED panel…</span>';
+  document.getElementById('nwProc').innerHTML=pr
+    ? `<span class="t">${escp((pr.brand?pr.brand+' ':'')+pr.model)}</span><span class="s">${pr.total?pr.ports+' ports · '+(pr.pp/1000).toFixed(0)+'k px each at 8-bit':'no capacity check'}</span>`
+    : '<span class="t" style="color:var(--ac)">Choose a processor…</span>';
+  const miss=[];
+  if(!document.getElementById('nwName').value.trim()) miss.push('a project name');
+  if(!document.getElementById('nwVolts').value) miss.push('a voltage');
+  if(!(+document.getElementById('nwAmps').value>0)) miss.push('a breaker size');
+  if(!p) miss.push('an LED panel');
+  if(!pr) miss.push('a processor');
+  document.getElementById('nwMsg').textContent=miss.length?'Still needed: '+miss.join(', ')+'.':'Ready to go.';
+  document.getElementById('nwGo').disabled=!!miss.length;
+  return !miss.length;
+}
+async function nwCreate(){
+  if(!nwCheck()) return;
+  const g=id=>document.getElementById(id).value, basis=g('nwBasis'), old=nwReplace, d=libDraft;
+  closeMask('nwModal'); libDraft=null; nwReplace=null;
+  await newProject(g('nwName').trim(),{
+    venue:g('nwVenue').trim(), volts:+g('nwVolts'), breaker:+g('nwAmps'),
+    useAvg:basis.startsWith('avg'), derate:basis.endsWith('80'), bits:+g('nwBits'),
+    panelId:d.panelId, procId:d.procId, custom:d.custom, feed:g('nwFeed')});
+  if(old&&old!==projId){
+    projIndex=projIndex.filter(e=>e.id!==old);
+    await sDel(PKEY(old)); await sSet(IDX,projIndex);
+  }
+}
 /* ========================= EXPORT ========================= */
 function renderToCanvas(measure,paintFn){
   const probe=document.createElement('canvas').getContext('2d');
@@ -3575,7 +3787,7 @@ function download(blob,name){
   setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},2500);
 }
 const fileBase=()=>((((S.exp&&S.exp.show)||S.name||'wall-map').replace(/[^a-z0-9\-_ ]/gi,'_')).trim())||'wall-map';
-function exportPDF(){ openExport(); }
+function exportPDF(){ if(needScreen()) return; openExport(); }
 function openExport(){
   expDraft=Object.assign(defExp(),JSON.parse(JSON.stringify(expOf())));
   const g=id=>document.getElementById(id);
@@ -3639,6 +3851,7 @@ function doExportPDF(){
   finally{ XO=null; focusIdx=wasFocus; b.disabled=false; b.textContent='PDF drawing set…'; redraw(); }
 }
 function exportPNG(){
+  if(needScreen()) return;
   try{
     const c=withPrint(()=>{ XO=Object.assign({},expOf());
       try{ return focusIdx!=null?pairCanvas(S.screens[focusIdx]):setCanvas(null); } finally { XO=null; } });
@@ -4153,7 +4366,7 @@ function labelsCSV(){
     fileBase()+' labels.csv');
   setStatus('Label CSV exported — merge it in P-touch Editor or DYMO Connect');
 }
-function openLabels(){ document.getElementById('lbModal').classList.remove('hide'); syncLabels(); }
+function openLabels(){ if(needScreen()) return; document.getElementById('lbModal').classList.remove('hide'); syncLabels(); }
 function setLab(f,v){ labOf()[f]=v; syncLabels(); save(); }
 function syncLabels(){
   const L=labOf(), g=id=>document.getElementById(id), z=tagSize();
@@ -4469,7 +4682,7 @@ const PM_PRESETS={
 };
 const PM_COLS=['#226ec8','#009678','#d27800','#aa32a0','#c83c3c','#4a8f2f','#7a5bd6','#b89600','#1f93a8','#c0507a','#5f7d1e','#8c5a2b'];
 const PM_MAXTEX=16384;
-const defPM=()=>({mV:10,mH:5,mFps:30,mSecs:10,pattern:'classic',palette:'vivid',labels:'large',outCount:4,compMode:'input',inFit:'fit4k',flip:false,pos:{},preset:'tb6k',outW:6144,outH:3456,outPx:8847360,share:true,assign:{}});
+const defPM=()=>({mV:10,mH:5,mFps:30,mSecs:10,pattern:'classic',palette:'vivid',labels:'large',outCount:4,compMode:'input',flip:false,pos:{},preset:'tb6k',outW:6144,outH:3456,outPx:8847360,share:true,assign:{}});
 function pmOf(){ S.pm=S.pm||{}; const d=defPM(); for(const k in d) if(!(k in S.pm)) S.pm[k]=d[k]; return S.pm; }
 const r8=v=>Math.round(v/8)*8, up8=v=>Math.ceil(v/8)*8;
 const median=a=>{ const b=a.slice().sort((x,y)=>x-y); return b.length?b[Math.floor(b.length/2)]:1; };
@@ -4490,10 +4703,10 @@ function pmMapX(map,k,wx){
   for(const m of map){ const d=wx<m.w0?m.w0-wx:wx-m.w1; if(!best||d<best.d) best={d,m}; }
   const m=best.m; return wx<m.w0?m.p0-(m.w0-wx)*k:m.p1+(wx-m.w1)*k;
 }
+/* the stage arrangement at 1:1, with the gaps between screens and rows closed up so nothing is wasted */
 function pmAutoLayout(L){
   if(!L.length) return;
   const k=median(L.map(o=>o.W/Math.max(1,o.gw)));
-  const TOL=48;                                   /* screens this close in the layout are treated as touching */
   const rows=[];
   L.slice().sort((a,b)=>a.gy-b.gy).forEach(o=>{
     const r=rows.find(r=>r.some(q=>o.gy<q.gy+q.gh*0.9&&o.gy+o.gh>q.gy+q.gh*0.1));
@@ -4505,7 +4718,7 @@ function pmAutoLayout(L){
     if(ri===0){
       let prev=null;
       row.forEach(o=>{
-        o.x=prev?prev.x+prev.W+((o.bx-(prev.bx+prev.bw))<TOL?0:r8((o.bx-(prev.bx+prev.bw))*k)):0;
+        o.x=prev?prev.x+prev.W:0;
         map.push({w0:o.gx,w1:o.gx+o.gw,p0:o.x,p1:o.x+o.W}); prev=o;
       });
       map.sort((a,b)=>a.w0-b.w0);
@@ -4513,10 +4726,7 @@ function pmAutoLayout(L){
       row.forEach(o=>o.y=r8((o.gy-top)*k));
     } else {
       const above=rows.slice(0,ri).flat();
-      const bottomPx=Math.max(...above.map(o=>o.y+o.H));
-      const upperBox=Math.max(...rows[ri-1].map(o=>o.by+o.bh));
-      const g=Math.min(...row.map(o=>o.by))-upperBox;
-      const yBase=bottomPx+(g<TOL?0:r8(g*k));
+      const yBase=Math.max(...above.map(o=>o.y+o.H));
       const gtop=Math.min(...row.map(o=>o.gy));
       /* snap to a centre, seam or edge of the screens above when within a cabinet of it */
       const cands=[];
@@ -4670,15 +4880,21 @@ function pmFix(kind,id){
   const list=kind==='all'?pmAudit().filter(i=>i.kind!=='note'):pmAudit().filter(i=>i.kind===kind&&i.id===id);
   if(!list.length) return;
   pushUndo('pixel map fix');
-  const r=pmApplyFixes(list);
+  const r=pmApplyFixes(list), at=undoStack.length;
   normalize(); cur=Math.min(cur,S.screens.length-1);
   renderTabs(); syncForm(); renderSlots(); renderSide(); redraw(); pmSync(); save();
   const bits=[];
   if(r.split) bits.push(`split ${r.split} screen${r.split===1?'':'s'}`);
   if(r.added) bits.push(`added ${r.added} processor${r.added===1?'':'s'}`);
   if(r.moved) bits.push(`moved ${r.moved} run${r.moved===1?'':'s'} to free ports`);
+  pmLastFix=bits.length?{at,text:bits.join(', ')}:null;
+  pmSync();
   setStatus(bits.length?'Fixed: '+bits.join(', ')+' · ⌘Z to undo':'Nothing needed changing');
 }
+/* the fix just applied, offered back until anything else changes */
+let pmLastFix=null;
+function pmUndoFix(){ if(pmFixLive()) undo(); }
+const pmFixLive=()=>pmLastFix&&undoStack.length===pmLastFix.at&&undoStack[undoStack.length-1].label==='pixel map fix';
 
 /* skyline bin packing: place each block at the lowest, then leftmost, spot that fits */
 function pmSkyline(blocks,W){
@@ -4762,8 +4978,8 @@ function pmBuild(){
     const rowsY=[...new Set(g.items.map(o=>o.y))];
     g.items.sort((a,b)=>(rowsY.indexOf(a.y)-rowsY.indexOf(b.y))||a.x-b.x);
     const pk=pmPackBlocks(g.items.map((o,i)=>({w:o.W,h:o.H,i})),pm.outW,pm.outH);
-    if(pk&&pk.W*pk.H<=pm.outPx){ g.items.forEach((o,i)=>{ o.lx=pk.pos[i].x; o.ly=pk.pos[i].y; }); g.W=pk.W; g.H=pk.H; }
-    else {                                                   /* too big for one output: lay out in rows and flag it */
+    if(pk){ g.items.forEach((o,i)=>{ o.lx=pk.pos[i].x; o.ly=pk.pos[i].y; }); g.W=pk.W; g.H=pk.H; }   /* over the pixel limit still packs tight, and is flagged */
+    else {                                                   /* wider or taller than one output: lay out in rows and flag it */
       let x=0,y=0,rh=0,W=0;
       g.items.forEach(o=>{ if(x>0&&x+o.W>pm.outW){ y+=rh; x=0; rh=0; } o.lx=x; o.ly=y; x+=o.W; rh=Math.max(rh,o.H); W=Math.max(W,x); });
       g.W=W; g.H=y+rh;
@@ -4818,22 +5034,9 @@ function pmBuild(){
       compW=up8(pk.W); compH=up8(pk.H);
     } else warn.push('The outputs are too large to pack into one composition. Raise the output limits or use fewer outputs.');
   }
-  /* input rectangles: native in packed mode, the stage layout scaled to a standard size otherwise */
-  const FITS={fithd:[1920,1080],fit4k:[3840,2160],fit8k:[7680,4320]};
-  let k=1, n=1, exact=true;
-  if(!gpu&&FITS[pm.inFit]){
-    const [fw,fh]=FITS[pm.inFit], need=Math.max(1,stageW/fw,stageH/fh);
-    while(n<need) n*=2;                                   /* smallest power-of-two step that fits */
-    const divides=d=>L.every(o=>o.x%d===0&&o.y%d===0&&o.W%d===0&&o.H%d===0);
-    const want=n;
-    while(n>1&&!divides(n)) n/=2;                          /* step back toward 1:1 until every slice is exact */
-    if(n<want) warn.push(`Your panels don't divide evenly at 1/${want} scale, so the composition uses 1/${n} and is larger than the chosen size. Every slice stays pixel-exact.`);
-    k=1/n;
-  }
-  L.forEach(o=>{
-    o.ix=Math.round(o.x*k); o.iy=Math.round(o.y*k);
-    o.iw=Math.round((o.x+o.W)*k)-o.ix; o.ih=Math.round((o.y+o.H)*k)-o.iy;     /* exact at power-of-two steps */
-  });
+  /* input rectangles are always 1:1 with the LED */
+  const k=1, n=1, exact=true;
+  L.forEach(o=>{ o.ix=o.x; o.iy=o.y; o.iw=o.W; o.ih=o.H; });
 
   if(!gpu){ compW=Math.max(...L.map(o=>o.ix+o.iw)); compH=Math.max(...L.map(o=>o.iy+o.ih)); compW+=compW%2; compH+=compH%2; }
   if(compW>PM_MAXTEX||compH>PM_MAXTEX) warn.push(`The composition is ${compW} × ${compH}. Resolume on Apple Silicon tops out at ${PM_MAXTEX} pixels a side — rearrange or stack screens.`);
@@ -5065,6 +5268,7 @@ function pmOverviewCanvas(M){
 /* ---- Pixel Map workspace ---- */
 let pmOpen=false, pmSel=null, pmDrag=null, pmHits=[], pmLast=null;
 function openPM(){
+  if(needScreen()) return;
   if(!S.screens.some(s=>panelById(s.panelId))){ setStatus('Choose an LED panel for a screen first'); return; }
   pmOpen=true; document.getElementById('pmModal').classList.remove('hide'); pmSync();
 }
@@ -5132,17 +5336,14 @@ function pmRender(){
 function pmSide(){
   const M=pmLast, pm=pmOf(), g=id=>document.getElementById(id);
   g('pmSize').textContent=M.L.length?`${M.compW} × ${M.compH}`:'—';
-  g('pmPx').textContent=M.L.length?`composition · ${(M.lit/1e6).toFixed(2)} M LED pixels${M.n>1?` · scale 1/${M.n}`:''}`:'';
+  g('pmPx').textContent=M.L.length?`composition · ${(M.lit/1e6).toFixed(2)} M LED pixels`:'';
   const sw=g('pmMode'); if(sw) sw.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.v===(M.gpu?'gpu':'input')));
-  if(g('pmFit')) g('pmFit').value=pm.inFit||'fit4k';
   const eff=M.compW?Math.round(M.lit/(M.compW*M.compH)*100):0;
   g('pmOrient').innerHTML=M.gpu
     ?`<b>${(M.compW*M.compH/1e6).toFixed(2)} M px</b> to render, ${eff}% of it lit.`
       +(M.stagePx>M.compW*M.compH?` Matching the stage would be ${(M.stagePx/1e6).toFixed(2)} M px, so this saves ${Math.round((1-M.compW*M.compH/M.stagePx)*100)}% of the GPU work.`:'')
       +` Each output is one solid block of the composition.`
-    :`<b>${(M.compW*M.compH/1e6).toFixed(2)} M px</b> to render, laid out like the stage (${opt().rear?'rear':'front'} view${pm.flip?', flipped':''}). `
-      +(M.k<1?`Each composition pixel covers ${M.n} × ${M.n} LED pixels (scale 1/${M.n}), so content is scaled up ${M.n}× to reach the LED. Choose Native for pixel-perfect playback.`
-             :`Every composition pixel is one LED pixel.`);
+    :`<b>${(M.compW*M.compH/1e6).toFixed(2)} M px</b> to render, ${eff}% of it lit. Laid out like the stage (${opt().rear?'rear':'front'} view${pm.flip?', flipped':''}) with the gaps closed up. Every composition pixel is one LED pixel.`;
   document.querySelectorAll('.pm-stageonly').forEach(el=>el.style.display=M.gpu?'none':'');
   g('pmWarn').innerHTML=M.warn.map(w=>`<div class="pmw">${escp(w)}</div>`).join('');
   const sel=M.L.find(o=>o.id===pmSel);
@@ -5166,13 +5367,14 @@ function pmSide(){
     g('pmMoLen').textContent=L!==want?`Clips will run ${L} s so every line finishes whole passes and loops cleanly.`:`Clips run ${L} s and loop cleanly.`; }
   g('pmShare').checked=!!pm.share; g('pmCount').value=pm.outCount||4;
   const iss=pmAudit();
-  g('pmIssues').innerHTML=iss.length?`<div class="pmiss">
+  const fx=pmFixLive()?`<div class="pmfix"><span>Fixed: ${escp(pmLastFix.text)}.</span><button class="btn sm" onclick="pmUndoFix()">Undo fix</button></div>`:'';
+  g('pmIssues').innerHTML=fx+(iss.length?`<div class="pmiss">
       <div class="pmiss-h"><b>${iss.length} thing${iss.length===1?'':'s'} to sort out</b>
         ${iss.some(i=>i.kind!=='note')?`<button class="btn sm pri" onclick="pmFix('all')">Fix all</button>`:''}</div>
       ${iss.map(i=>`<div class="pmiss-i"><div class="pmiss-t">${escp(i.title)}</div><div class="pmiss-d">${escp(i.detail)}</div>
         ${i.kind==='split'?`<button class="btn sm" onclick="pmFix('split','${i.id}')">Split screen</button>`:''}
         ${i.kind==='rebalance'?`<button class="btn sm" onclick="pmFix('rebalance','${i.id}')">Add processors and rebalance</button>`:''}</div>`).join('')}
-    </div>`:`<div class="pmok">Every processor is within its limits and fits ${M.outs.length} of your ${pm.outCount||4} outputs.</div>`;
+    </div>`:`<div class="pmok">Every processor is within its limits and fits ${M.outs.length} of your ${pm.outCount||4} outputs.</div>`);
   g('pmOuts').innerHTML=M.outs.map(o=>{
     const px=o.W*o.H, over=o.W>pm.outW||o.H>pm.outH||px>pm.outPx;
     return `<div class="pmout ${over?'bad':''}">
@@ -5281,6 +5483,7 @@ function pmResolumeXML(M,presetName){
 `;
 }
 function pmDownloadResolume(){
+  if(needScreen()) return;
   const M=pmBuild(); if(!M.L.length){ setStatus('Choose an LED panel for a screen first'); return; }
   const name=`${fileBase()} pixel map`;
   download(new Blob([pmResolumeXML(M,name)],{type:'application/xml'}),`${name}.xml`);
@@ -5458,6 +5661,7 @@ async function pmDownload(){
 /* ========================= XLSX EXPORT ========================= */
 const XFILL=['C0504D','4F81BD','9BBB59','8064A2','E36C0A','4BACC6','7F7F7F','943634'];
 function xlsxExport(){
+  if(needScreen()) return;
   const btn=document.getElementById('xlsBtn'); btn.disabled=true; btn.textContent='Building…';
   try{
     const P=pullRows(), rows=[], BLANK=3;
@@ -5591,7 +5795,7 @@ function save(){
 }
 async function openProject(id){
   const d=await sGet(PKEY(id));
-  if(!d||!d.screens||!d.screens.length){ setStatus('That project could not be loaded'); return; }
+  if(!d||!Array.isArray(d.screens)){ setStatus('That project could not be loaded'); return; }
   projId=id; S=d; normalize(); cur=0; focusIdx=null; active={power:0,data:0};
   undoStack.length=0; redoStack.length=0; updateUndoUI();
   document.getElementById('focusBar').classList.add('hide');
@@ -5600,16 +5804,22 @@ async function openProject(id){
   setStatus('Opened '+(S.name||'project'));
   await sSet(CURKEY,id);
 }
-async function newProject(name){
+async function newProject(name,cfg){
   S=blankProject();
   if(name) S.name=name;
+  if(cfg){                                      /* from the setup dialog: settings only, screens come later */
+    S.screens=[]; S.venue=cfg.venue;
+    Object.assign(S.opt,{volts:cfg.volts,breaker:cfg.breaker,useAvg:cfg.useAvg,derate:cfg.derate,bits:cfg.bits});
+    if(cfg.custom) S.customPanels.push(cfg.custom);
+    S.defPanel=cfg.panelId; S.defFeed=cfg.feed; addUnit(cfg.procId);
+  }
   projId=uid('p'); normalize(); cur=0; focusIdx=null; active={power:0,data:0};
   undoStack.length=0; redoStack.length=0; updateUndoUI();
   document.getElementById('focusBar').classList.add('hide');
   touchIndex();
   closeMask('pjModal');
   renderTabs(); setMode('layout'); renderSide(); fitView(); renderProjects();
-  setStatus('New project — choose an LED panel in the sidebar');
+  setStatus(cfg?'Project ready — add your first screen':'New project — choose an LED panel in the sidebar');
   await sSet(PKEY(projId),S); await sSet(IDX,projIndex); await sSet(CURKEY,projId);
 }
 async function dupProject(id){
@@ -5639,7 +5849,7 @@ async function deleteProject(id){
   projIndex=projIndex.filter(x=>x.id!==id);
   await sSet(IDX,projIndex);
   if(id===projId){
-    if(projIndex.length) await openProject(projIndex[0].id); else await newProject();
+    if(projIndex.length) await openProject(projIndex[0].id); else { await newProject(); openSetup(true); }
   }
   renderProjects(); setStatus('Deleted');
 }
@@ -5676,7 +5886,7 @@ function openBatch(){
   const g=id=>document.getElementById(id);
   const cur0=sc();
   g('btPanel').innerHTML=PANELS.concat(S.customPanels||[]).map(p=>
-    `<option value="${p.id}" ${p.id===cur0.panelId?'selected':''}>${escp(p.brand+' '+p.model)} · ${p.pitch}mm</option>`).join('');
+    `<option value="${p.id}" ${p.id===(cur0?cur0.panelId:S.defPanel)?'selected':''}>${escp(p.brand+' '+p.model)} · ${p.pitch}mm</option>`).join('');
   const cu=unitOf(cur0);
   if(!batch.length){
     const st=starterScreen();
@@ -5775,6 +5985,7 @@ function batchCreate(){
     q.name=b.name.trim()||batchName(i);
     q.cols=b.cols; q.rows=b.rows; q.panelId=panelId;
     q.procRef=uu?uu.id:''; q.procId=uu?uu.procId:'none';
+    if(!q.feed&&S.defFeed) q.feed=S.defFeed;
     made.push(q);
   });
   S.screens=S.screens.filter(q=>made.includes(q)||!screenBlank(q));
@@ -5956,7 +6167,7 @@ function importJSON(f){
     try{
       if(Array.isArray(d)) d={name:f.name.replace(/\.json$/i,''),screens:d};
       if(d&&d.project&&d.project.screens) d=d.project;              /* tolerate a wrapper */
-      if(!d||typeof d!=='object'||!Array.isArray(d.screens)||!d.screens.length){
+      if(!d||typeof d!=='object'||!Array.isArray(d.screens)||(!d.screens.length&&!d.opt)){
         setStatus('No screens found in that file — is it a Wall Mapper project?');
         if(inp) inp.value=''; return;
       }
@@ -6027,20 +6238,22 @@ window.addEventListener('resize',()=>requestAnimationFrame(segSync));
     }
     if(!S&&want&&projIndex.some(e=>e.id===want)){
       const d=await sGet(PKEY(want));
-      if(d&&d.screens&&d.screens.length){ projId=want; S=d; }
+      if(d&&Array.isArray(d.screens)){ projId=want; S=d; }
     }
     if(!S&&projIndex.length){
       const d=await sGet(PKEY(projIndex[0].id));
-      if(d&&d.screens&&d.screens.length){ projId=projIndex[0].id; S=d; }
+      if(d&&Array.isArray(d.screens)){ projId=projIndex[0].id; S=d; }
     }
   }catch(e){ console.error('project load failed',e); }
 
+  const fresh=!S;                               /* nothing saved yet: ask for the setup first */
   if(!S) S=blankProject();
   if(!projId) projId=uid('p');
   normalize();
 
   renderTabs(); setMode('layout'); renderSide(); fitView(); updateUndoUI();
-  setStatus(sc().panelId?'Ready':'Choose an LED panel in the sidebar to start');
+  setStatus(!sc()||sc().panelId?'Ready':'Choose an LED panel in the sidebar to start');
+  if(fresh&&!(cloudOn()&&signedIn())) openSetup(true);   /* a signed-in browser pulls its projects instead */
 
   /* persist afterwards, and never let it break anything */
   try{
@@ -6053,7 +6266,7 @@ window.addEventListener('resize',()=>requestAnimationFrame(segSync));
   if(cloudOn()&&signedIn()){
     setStatus('Syncing your projects…');
     await sbSyncAll(true);
-    if(!syncErr) setStatus('Synced · '+(sc().panelId?'ready':'choose an LED panel'));
+    if(!syncErr) setStatus('Synced · '+(!sc()||sc().panelId?'ready':'choose an LED panel'));
   }
 })();
 </script>

@@ -923,6 +923,22 @@ aside.r #rsPower h4,aside.r #rsData h4{margin-top:24px}
 .menu-pop button:hover svg{opacity:1}
 .cw-facts dd{font-family:var(--sans);font-weight:550;font-variant-numeric:tabular-nums}
 .cw-k{font:var(--cap);letter-spacing:.1em}
+
+/* export dialog: settings beside a live sheet preview */
+#exModal .modal.wide{width:min(1240px,96vw);max-height:94vh}
+.ex-wrap{display:grid;grid-template-columns:minmax(0,560px) minmax(0,1fr);gap:26px}
+.ex-prev{display:flex;flex-direction:column;gap:10px;min-width:0;position:sticky;top:0;align-self:start;height:min(640px,calc(94vh - 170px))}
+.ex-stage{flex:1;min-height:0;background:var(--inner);border:1px solid var(--line);border-radius:var(--r-md);display:flex;align-items:center;justify-content:center;padding:18px;overflow:hidden}
+.ex-stage canvas{background:#fff;border-radius:2px;box-shadow:0 1px 2px rgba(0,0,0,.18),0 14px 34px -12px rgba(0,0,0,.45)}
+.ex-nav{display:flex;align-items:center;gap:10px}
+.ex-nav .btn{width:32px;padding:0;justify-content:center;font-size:17px;line-height:1}
+#exCap{flex:1;min-width:0;text-align:center;font-size:12px;color:var(--tx2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#exCap b{color:var(--tx);font-weight:600;margin-right:8px}
+.ex-thumbs{display:flex;gap:9px;overflow-x:auto;padding:3px 3px 8px;align-items:flex-end;flex-shrink:0}
+.ex-thumbs canvas{flex:none;cursor:pointer;border-radius:2px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);outline:2px solid transparent;outline-offset:2px;transition:outline-color .15s}
+.ex-thumbs canvas:hover{outline-color:var(--line2)}
+.ex-thumbs canvas.on{outline-color:var(--ac)}
+@media (max-width:1000px){.ex-wrap{grid-template-columns:1fr}.ex-prev{position:static;height:460px}}
 </style>
 </head>
 <body>
@@ -1518,6 +1534,7 @@ aside.r #rsPower h4,aside.r #rsData h4{margin-top:24px}
 <div class="mask hide" id="exModal">
   <div class="modal wide">
     <h3>Export PDF</h3>
+    <div class="ex-wrap">
     <div class="cols">
       <div>
         <div class="grp">Title block</div>
@@ -1552,6 +1569,16 @@ aside.r #rsPower h4,aside.r #rsData h4{margin-top:24px}
         <label class="sw">Load and amperage<input type="checkbox" id="exLoad" /></label>
         <div class="hint" style="margin-top:14px" id="exNote"></div>
       </div>
+    </div>
+    <div class="ex-prev">
+      <div class="ex-stage" id="exStage"><canvas id="exCv"></canvas></div>
+      <div class="ex-nav">
+        <button class="btn sm" id="exPrevB" onclick="exStep(-1)" aria-label="Previous sheet">&lsaquo;</button>
+        <div id="exCap"></div>
+        <button class="btn sm" id="exNextB" onclick="exStep(1)" aria-label="Next sheet">&rsaquo;</button>
+      </div>
+      <div class="ex-thumbs" id="exThumbs"></div>
+    </div>
     </div>
     <div class="acts">
       <button class="btn" onclick="closeMask('exModal')">Cancel</button>
@@ -4501,6 +4528,9 @@ function openExport(){
    ['exBackup','backup'],['exWeight','weight'],['exLoad','load'],['exCover','cover'],['exSplit','split'],['exBW','bw']]
     .forEach(([id,k])=>{ g(id).checked=!!expDraft[k]; g(id).onchange=()=>{expDraft[k]=g(id).checked; exNote();}; });
   [['exPaper','paper'],['exOrient','orient']].forEach(([id,k])=>{ g(id).value=expDraft[k]; g(id).onchange=()=>{expDraft[k]=g(id).value; exNote();}; });
+  [['exShow','show'],['exVenue','venue'],['exAuthor','author'],['exDate','date'],['exRev','rev']]
+    .forEach(([id,k])=>{ g(id).oninput=()=>{ expDraft[k]=g(id).value.trim(); exPreview(); }; });
+  exIdx=0; PM_SHEET=null;
   g('exShow').placeholder=S.name||'Untitled Project';
   g('exVenue').placeholder=S.venue||'—';
   g('exDate').placeholder=new Date().toLocaleDateString();
@@ -4519,6 +4549,7 @@ function exNote(){
   el.textContent=n?`${n} sheet${n===1?'':'s'} on ${PAPERS[expDraft.paper][2]}${sp?`, ${sp} large screen${sp===1?'':'s'} split across sheets`:''}.`
     :'Nothing selected — turn on at least one page group.';
   document.getElementById('exGo').disabled=!n;
+  exPreview();
 }
 function runExport(){
   const g=id=>document.getElementById(id).value.trim();
@@ -4529,7 +4560,7 @@ function runExport(){
     if(last&&last.rev===r.rev) Object.assign(last,r); else revs.push(r);
     if(revs.length>12) revs.splice(0,revs.length-12); }
   S.exp=Object.assign({},expDraft); save();
-  closeMask('exModal');
+  closeMask('exModal'); PM_SHEET=null;
   doExportPDF();
 }
 async function doExportPDF(){
@@ -4777,6 +4808,7 @@ function roundRectPath(ctx,x,y,w,h,r){
 /* ========================= PRINT SHEETS ========================= */
 /* every PDF page is a sheet: a frame, a title strip along the bottom, and one drawing fitted above it */
 const SH={m:18,tb:44,in:12,minTile:22,tile:30};
+let PM_SHEET=null;    /* pixel map raster, kept while the export dialog previews it */
 /* black and white printers: every run gets its own line pattern instead of a colour */
 const BW_INK='#262626';
 const BW_DASH=[[],[7,3],[1.6,2.6],[9,3,1.6,3],[4,3.5],[12,3.5],[1.6,2.4,1.6,5.5],[6,2.5,1.6,2.5,1.6,2.5]];
@@ -4810,7 +4842,7 @@ function pdfSheets(o){
   });
   if(o.pSummary) L.push({t:'System summary',d:drawSummary(document.createElement('canvas').getContext('2d')),top:1,paint:ctx=>drawSummary(ctx)});
   if(o.pCable) L.push({t:'Cable schedule',d:drawSchedule(document.createElement('canvas').getContext('2d')),top:1,paint:ctx=>drawSchedule(ctx)});
-  if(o.pPix&&S.screens.some(x=>panelById(x.panelId))) L.push({t:'Pixel map',prep(){ const c=pmOverviewCanvas(pmBuild());
+  if(o.pPix&&S.screens.some(x=>panelById(x.panelId))) L.push({t:'Pixel map',prep(){ const c=PM_SHEET||pmOverviewCanvas(pmBuild());
     this.d={w:c.width,h:c.height}; this.paint=ctx=>ctx.drawImage(c,0,0); }});
   if(!L.length) return L;
   if(o.cover) L.unshift({t:'Cover sheet',cover:1,d:{w:11,h:8.5}});
@@ -4992,20 +5024,64 @@ function buildSheetsPDF(o){
   const L=pdfSheets(o), doc=new PdfDoc();
   L.forEach(sh=>{ if(sh.prep) sh.prep(); if(!sh.pg) sh.pg=pageFor(sh.d,o); });
   L.forEach((sh,i)=>{
-    const {W,H,A}=sh.pg, ctx=new PdfCtx(doc,W,H);
+    const {W,H}=sh.pg, ctx=new PdfCtx(doc,W,H);
     ctx.base=[1,0,0,-1,0,H];
-    if(sh.cover) drawCover(ctx,A,L);
-    else if(sh.page) sh.paint(ctx,A,L);
-    else {
-      const d=sh.d, k=Math.min(A.w/d.w,A.h/d.h,1.6);
-      ctx.save(); ctx.translate(A.x+(A.w-d.w*k)/2,A.y+(sh.top?0:(A.h-d.h*k)/2)); ctx.scale(k,k);
-      ctx.beginPath(); ctx.rect(0,0,d.w,d.h); ctx.clip();
-      sh.paint(ctx); ctx.restore();
-    }
-    drawTitleBlock(ctx,W,H,i+1,L.length,sh.t);
+    paintSheet(ctx,sh,i,L);
     doc.page(W,H,ctx);
   });
   return {blob:doc.blob(),n:L.length};
+}
+/* one sheet in page points, onto the PDF recorder or a preview canvas */
+function paintSheet(ctx,sh,i,L){
+  const {W,H,A}=sh.pg;
+  ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,W,H);
+  if(sh.cover) drawCover(ctx,A,L);
+  else if(sh.page) sh.paint(ctx,A,L);
+  else {
+    const d=sh.d, k=Math.min(A.w/d.w,A.h/d.h,1.6);
+    ctx.save(); ctx.translate(A.x+(A.w-d.w*k)/2,A.y+(sh.top?0:(A.h-d.h*k)/2)); ctx.scale(k,k);
+    ctx.beginPath(); ctx.rect(0,0,d.w,d.h); ctx.clip();
+    sh.paint(ctx); ctx.restore();
+  }
+  drawTitleBlock(ctx,W,H,i+1,L.length,sh.t);
+}
+
+/* ---- live preview in the export dialog ---- */
+let exIdx=0, exTimer=null;
+function exPreview(){ clearTimeout(exTimer); exTimer=setTimeout(exPaint,80); }
+function exStep(d){ exIdx=Math.max(0,exIdx+d); exPaint(); }
+function exPick(i){ exIdx=i; exPaint(); }
+function sheetCanvas(c,sh,i,L,bw,bh){
+  const {W,H}=sh.pg, z=Math.min(bw/W,bh/H), r=window.devicePixelRatio||1;
+  c.width=Math.max(1,Math.round(W*z*r)); c.height=Math.max(1,Math.round(H*z*r));
+  c.style.width=Math.round(W*z)+'px'; c.style.height=Math.round(H*z)+'px';
+  const x=c.getContext('2d'); x.setTransform(z*r,0,0,z*r,0,0); paintSheet(x,sh,i,L);
+}
+function exPaint(){
+  const g=id=>document.getElementById(id), stage=g('exStage');
+  if(!stage||g('exModal').classList.contains('hide')) return;
+  const wasFocus=focusIdx, kx=XO;
+  try{ focusIdx=null; withPrint(()=>{
+    XO=Object.assign({},expDraft,{sheet:true});
+    const L=pdfSheets(XO), cv=g('exCv'), th=g('exThumbs');
+    if(!L.length){ cv.style.display='none'; th.innerHTML=''; g('exCap').textContent='Nothing to print'; return; }
+    cv.style.display='';
+    L.forEach(sh=>{ if(sh.prep){ if(!PM_SHEET) PM_SHEET=pmOverviewCanvas(pmBuild()); sh.prep(); } if(!sh.pg) sh.pg=pageFor(sh.d,XO); });
+    exIdx=Math.min(exIdx,L.length-1);
+    const sh=L[exIdx], cs=getComputedStyle(stage);
+    sheetCanvas(cv,sh,exIdx,L,stage.clientWidth-parseFloat(cs.paddingLeft)*2,stage.clientHeight-parseFloat(cs.paddingTop)*2);
+    const pp=PAPERS[XO.paper]||PAPERS.letter;
+    const cap=g('exCap'); cap.innerHTML='<b></b><span></span>';
+    cap.firstChild.textContent=`Sheet ${exIdx+1} of ${L.length}`;
+    cap.lastChild.textContent=`${sh.t}  ·  ${pp[2]} ${sh.pg.W>sh.pg.H?'landscape':'portrait'}`;
+    g('exPrevB').disabled=exIdx===0; g('exNextB').disabled=exIdx===L.length-1;
+    th.innerHTML='';
+    L.forEach((s2,i)=>{ const c=document.createElement('canvas'); sheetCanvas(c,s2,i,L,96,62);
+      c.title=`${i+1}. ${s2.t}`; if(i===exIdx) c.className='on'; c.onclick=()=>exPick(i); th.appendChild(c); });
+    const on=th.children[exIdx]; if(on) on.scrollIntoView({block:'nearest',inline:'nearest'});
+  }); }
+  catch(e){ console.error(e); }
+  finally{ XO=kx; focusIdx=wasFocus; }
 }
 /* ===================== minimal xlsx writer (stored zip, no deps) ===================== */
 const CRCT=(()=>{const t=new Uint32Array(256);

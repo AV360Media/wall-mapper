@@ -75,6 +75,9 @@ function openExport(){
    ['exBackup','backup'],['exWeight','weight'],['exLoad','load'],['exCover','cover'],['exSplit','split'],['exBW','bw']]
     .forEach(([id,k])=>{ g(id).checked=!!expDraft[k]; g(id).onchange=()=>{expDraft[k]=g(id).checked; exNote();}; });
   [['exPaper','paper'],['exOrient','orient']].forEach(([id,k])=>{ g(id).value=expDraft[k]; g(id).onchange=()=>{expDraft[k]=g(id).value; exNote();}; });
+  [['exShow','show'],['exVenue','venue'],['exAuthor','author'],['exDate','date'],['exRev','rev']]
+    .forEach(([id,k])=>{ g(id).oninput=()=>{ expDraft[k]=g(id).value.trim(); exPreview(); }; });
+  exIdx=0; PM_SHEET=null;
   g('exShow').placeholder=S.name||'Untitled Project';
   g('exVenue').placeholder=S.venue||'—';
   g('exDate').placeholder=new Date().toLocaleDateString();
@@ -93,6 +96,7 @@ function exNote(){
   el.textContent=n?`${n} sheet${n===1?'':'s'} on ${PAPERS[expDraft.paper][2]}${sp?`, ${sp} large screen${sp===1?'':'s'} split across sheets`:''}.`
     :'Nothing selected — turn on at least one page group.';
   document.getElementById('exGo').disabled=!n;
+  exPreview();
 }
 function runExport(){
   const g=id=>document.getElementById(id).value.trim();
@@ -103,7 +107,7 @@ function runExport(){
     if(last&&last.rev===r.rev) Object.assign(last,r); else revs.push(r);
     if(revs.length>12) revs.splice(0,revs.length-12); }
   S.exp=Object.assign({},expDraft); save();
-  closeMask('exModal');
+  closeMask('exModal'); PM_SHEET=null;
   doExportPDF();
 }
 async function doExportPDF(){

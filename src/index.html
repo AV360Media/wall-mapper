@@ -607,6 +607,7 @@
 <div class="mask hide" id="exModal">
   <div class="modal wide">
     <h3>Export PDF</h3>
+    <div class="ex-wrap">
     <div class="cols">
       <div>
         <div class="grp">Title block</div>
@@ -641,6 +642,16 @@
         <label class="sw">Load and amperage<input type="checkbox" id="exLoad" /></label>
         <div class="hint" style="margin-top:14px" id="exNote"></div>
       </div>
+    </div>
+    <div class="ex-prev">
+      <div class="ex-stage" id="exStage"><canvas id="exCv"></canvas></div>
+      <div class="ex-nav">
+        <button class="btn sm" id="exPrevB" onclick="exStep(-1)" aria-label="Previous sheet">&lsaquo;</button>
+        <div id="exCap"></div>
+        <button class="btn sm" id="exNextB" onclick="exStep(1)" aria-label="Next sheet">&rsaquo;</button>
+      </div>
+      <div class="ex-thumbs" id="exThumbs"></div>
+    </div>
     </div>
     <div class="acts">
       <button class="btn" onclick="closeMask('exModal')">Cancel</button>

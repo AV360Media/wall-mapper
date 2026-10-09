@@ -1,6 +1,7 @@
 /* ========================= PRINT SHEETS ========================= */
 /* every PDF page is a sheet: a frame, a title strip along the bottom, and one drawing fitted above it */
 const SH={m:18,tb:44,in:12,minTile:22,tile:30};
+let PM_SHEET=null;    /* pixel map raster, kept while the export dialog previews it */
 /* black and white printers: every run gets its own line pattern instead of a colour */
 const BW_INK='#262626';
 const BW_DASH=[[],[7,3],[1.6,2.6],[9,3,1.6,3],[4,3.5],[12,3.5],[1.6,2.4,1.6,5.5],[6,2.5,1.6,2.5,1.6,2.5]];
@@ -34,7 +35,7 @@ function pdfSheets(o){
   });
   if(o.pSummary) L.push({t:'System summary',d:drawSummary(document.createElement('canvas').getContext('2d')),top:1,paint:ctx=>drawSummary(ctx)});
   if(o.pCable) L.push({t:'Cable schedule',d:drawSchedule(document.createElement('canvas').getContext('2d')),top:1,paint:ctx=>drawSchedule(ctx)});
-  if(o.pPix&&S.screens.some(x=>panelById(x.panelId))) L.push({t:'Pixel map',prep(){ const c=pmOverviewCanvas(pmBuild());
+  if(o.pPix&&S.screens.some(x=>panelById(x.panelId))) L.push({t:'Pixel map',prep(){ const c=PM_SHEET||pmOverviewCanvas(pmBuild());
     this.d={w:c.width,h:c.height}; this.paint=ctx=>ctx.drawImage(c,0,0); }});
   if(!L.length) return L;
   if(o.cover) L.unshift({t:'Cover sheet',cover:1,d:{w:11,h:8.5}});
@@ -216,18 +217,62 @@ function buildSheetsPDF(o){
   const L=pdfSheets(o), doc=new PdfDoc();
   L.forEach(sh=>{ if(sh.prep) sh.prep(); if(!sh.pg) sh.pg=pageFor(sh.d,o); });
   L.forEach((sh,i)=>{
-    const {W,H,A}=sh.pg, ctx=new PdfCtx(doc,W,H);
+    const {W,H}=sh.pg, ctx=new PdfCtx(doc,W,H);
     ctx.base=[1,0,0,-1,0,H];
-    if(sh.cover) drawCover(ctx,A,L);
-    else if(sh.page) sh.paint(ctx,A,L);
-    else {
-      const d=sh.d, k=Math.min(A.w/d.w,A.h/d.h,1.6);
-      ctx.save(); ctx.translate(A.x+(A.w-d.w*k)/2,A.y+(sh.top?0:(A.h-d.h*k)/2)); ctx.scale(k,k);
-      ctx.beginPath(); ctx.rect(0,0,d.w,d.h); ctx.clip();
-      sh.paint(ctx); ctx.restore();
-    }
-    drawTitleBlock(ctx,W,H,i+1,L.length,sh.t);
+    paintSheet(ctx,sh,i,L);
     doc.page(W,H,ctx);
   });
   return {blob:doc.blob(),n:L.length};
+}
+/* one sheet in page points, onto the PDF recorder or a preview canvas */
+function paintSheet(ctx,sh,i,L){
+  const {W,H,A}=sh.pg;
+  ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,W,H);
+  if(sh.cover) drawCover(ctx,A,L);
+  else if(sh.page) sh.paint(ctx,A,L);
+  else {
+    const d=sh.d, k=Math.min(A.w/d.w,A.h/d.h,1.6);
+    ctx.save(); ctx.translate(A.x+(A.w-d.w*k)/2,A.y+(sh.top?0:(A.h-d.h*k)/2)); ctx.scale(k,k);
+    ctx.beginPath(); ctx.rect(0,0,d.w,d.h); ctx.clip();
+    sh.paint(ctx); ctx.restore();
+  }
+  drawTitleBlock(ctx,W,H,i+1,L.length,sh.t);
+}
+
+/* ---- live preview in the export dialog ---- */
+let exIdx=0, exTimer=null;
+function exPreview(){ clearTimeout(exTimer); exTimer=setTimeout(exPaint,80); }
+function exStep(d){ exIdx=Math.max(0,exIdx+d); exPaint(); }
+function exPick(i){ exIdx=i; exPaint(); }
+function sheetCanvas(c,sh,i,L,bw,bh){
+  const {W,H}=sh.pg, z=Math.min(bw/W,bh/H), r=window.devicePixelRatio||1;
+  c.width=Math.max(1,Math.round(W*z*r)); c.height=Math.max(1,Math.round(H*z*r));
+  c.style.width=Math.round(W*z)+'px'; c.style.height=Math.round(H*z)+'px';
+  const x=c.getContext('2d'); x.setTransform(z*r,0,0,z*r,0,0); paintSheet(x,sh,i,L);
+}
+function exPaint(){
+  const g=id=>document.getElementById(id), stage=g('exStage');
+  if(!stage||g('exModal').classList.contains('hide')) return;
+  const wasFocus=focusIdx, kx=XO;
+  try{ focusIdx=null; withPrint(()=>{
+    XO=Object.assign({},expDraft,{sheet:true});
+    const L=pdfSheets(XO), cv=g('exCv'), th=g('exThumbs');
+    if(!L.length){ cv.style.display='none'; th.innerHTML=''; g('exCap').textContent='Nothing to print'; return; }
+    cv.style.display='';
+    L.forEach(sh=>{ if(sh.prep){ if(!PM_SHEET) PM_SHEET=pmOverviewCanvas(pmBuild()); sh.prep(); } if(!sh.pg) sh.pg=pageFor(sh.d,XO); });
+    exIdx=Math.min(exIdx,L.length-1);
+    const sh=L[exIdx], cs=getComputedStyle(stage);
+    sheetCanvas(cv,sh,exIdx,L,stage.clientWidth-parseFloat(cs.paddingLeft)*2,stage.clientHeight-parseFloat(cs.paddingTop)*2);
+    const pp=PAPERS[XO.paper]||PAPERS.letter;
+    const cap=g('exCap'); cap.innerHTML='<b></b><span></span>';
+    cap.firstChild.textContent=`Sheet ${exIdx+1} of ${L.length}`;
+    cap.lastChild.textContent=`${sh.t}  ·  ${pp[2]} ${sh.pg.W>sh.pg.H?'landscape':'portrait'}`;
+    g('exPrevB').disabled=exIdx===0; g('exNextB').disabled=exIdx===L.length-1;
+    th.innerHTML='';
+    L.forEach((s2,i)=>{ const c=document.createElement('canvas'); sheetCanvas(c,s2,i,L,96,62);
+      c.title=`${i+1}. ${s2.t}`; if(i===exIdx) c.className='on'; c.onclick=()=>exPick(i); th.appendChild(c); });
+    const on=th.children[exIdx]; if(on) on.scrollIntoView({block:'nearest',inline:'nearest'});
+  }); }
+  catch(e){ console.error(e); }
+  finally{ XO=kx; focusIdx=wasFocus; }
 }

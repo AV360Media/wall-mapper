@@ -586,3 +586,19 @@ aside.r #rsPower h4,aside.r #rsData h4{margin-top:24px}
 .menu-pop button:hover svg{opacity:1}
 .cw-facts dd{font-family:var(--sans);font-weight:550;font-variant-numeric:tabular-nums}
 .cw-k{font:var(--cap);letter-spacing:.1em}
+
+/* export dialog: settings beside a live sheet preview */
+#exModal .modal.wide{width:min(1240px,96vw);max-height:94vh}
+.ex-wrap{display:grid;grid-template-columns:minmax(0,560px) minmax(0,1fr);gap:26px}
+.ex-prev{display:flex;flex-direction:column;gap:10px;min-width:0;position:sticky;top:0;align-self:start;height:min(640px,calc(94vh - 170px))}
+.ex-stage{flex:1;min-height:0;background:var(--inner);border:1px solid var(--line);border-radius:var(--r-md);display:flex;align-items:center;justify-content:center;padding:18px;overflow:hidden}
+.ex-stage canvas{background:#fff;border-radius:2px;box-shadow:0 1px 2px rgba(0,0,0,.18),0 14px 34px -12px rgba(0,0,0,.45)}
+.ex-nav{display:flex;align-items:center;gap:10px}
+.ex-nav .btn{width:32px;padding:0;justify-content:center;font-size:17px;line-height:1}
+#exCap{flex:1;min-width:0;text-align:center;font-size:12px;color:var(--tx2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#exCap b{color:var(--tx);font-weight:600;margin-right:8px}
+.ex-thumbs{display:flex;gap:9px;overflow-x:auto;padding:3px 3px 8px;align-items:flex-end;flex-shrink:0}
+.ex-thumbs canvas{flex:none;cursor:pointer;border-radius:2px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);outline:2px solid transparent;outline-offset:2px;transition:outline-color .15s}
+.ex-thumbs canvas:hover{outline-color:var(--line2)}
+.ex-thumbs canvas.on{outline-color:var(--ac)}
+@media (max-width:1000px){.ex-wrap{grid-template-columns:1fr}.ex-prev{position:static;height:460px}}

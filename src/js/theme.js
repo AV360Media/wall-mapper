@@ -55,6 +55,7 @@ function rgbOf(col){
   const m=col.match(/\d+/g); return m?m.slice(0,3).map(Number):[128,128,128];
 }
 function ink(hex){
+  if(PRINT&&XO&&XO.bw&&typeof hex==='string') return BW_INK;
   if(!(PRINT||UITHEME==='light')||typeof hex!=='string') return hex;
   const [r,g,b]=rgbOf(hex);
   const L=(0.299*r+0.587*g+0.114*b)/255;

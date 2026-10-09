@@ -4,14 +4,14 @@ function legendGroups(s,sp,sd){
   const g=[];
   if(sp){
     const it=used(s,'power').map(ch=>{ const k=circuitCalc(s,ch);
-      return {c:ch.color,dash:0,over:k.pct>=100,
+      return {c:ch.color,dash:0,bw:runIdx(s,ch,true),over:k.pct>=100,
         short:`${ch.name}  ${LT(s,ch).length}t`+(wantLoad()?`  ${k.amps.toFixed(1)}A`:''),
         t:`${ch.name}   ${LT(s,ch).length} tiles`+(wantLoad()?`   ${k.w}W   ${k.amps.toFixed(1)}A`:'')}; });
     if(it.length) g.push({title:'POWER CIRCUITS',short:'POWER',items:it});
   }
   if(sd){
     const it=used(s,'data').filter(ch=>!isBackupRun(s,ch)).map(ch=>{ const k=runCalc(s,ch);
-      return {c:ch.color,dash:1,over:k.pct>=100,
+      return {c:ch.color,dash:1,bw:runIdx(s,ch,false),over:k.pct>=100,
         short:`${ch.name}  ${LT(s,ch).length}t  ${(k.px/1000).toFixed(0)}k`,
         t:`${ch.name}   ${portShort(s,ch)}   ${LT(s,ch).length} tiles   ${(k.px/1000).toFixed(0)}k px`}; });
     if(it.length) g.push({title:units().length>1
@@ -39,7 +39,7 @@ function legendGroups(s,sp,sd){
 function legendSize(groups,perRow){
   if(!groups.length) return 0;
   let h=8;
-  groups.forEach((grp,i)=>{ h+=13+Math.ceil(grp.items.length/perRow)*13; if(i<groups.length-1) h+=9; });
+  groups.forEach((grp,i)=>{ h+=14+Math.ceil(grp.items.length/perRow)*13; if(i<groups.length-1) h+=9; });
   return h+8;
 }
 function sbox(s){

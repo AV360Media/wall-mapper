@@ -83,6 +83,7 @@ function titleH(){
 
 /* author / date / revision strip shared by every sheet */
 function drawStamp(ctx,x1,x2,y){
+  if(XO&&XO.sheet) return;            /* the PDF title strip carries these */
   const bits=[];
   if(XO&&XO.author) bits.push('Drawn by '+XO.author);
   bits.push(titleDate());
@@ -141,7 +142,7 @@ function drawScreen(ctx,s,b,sp,sd,isActive){
   for(let r=0;r<s.rows;r++) for(let c=0;c<s.cols;c++){
     const t=key(r,c), q=tileXY(s,b,r,c), dead=isOff(s,r,c);
     const pc=sp?chainOf(s,'power',t):null, dc=sd?chainOf(s,'data',t):null;
-    const acc=pc?pc.color:(dc?dc.color:null);
+    const acc=pc?pc.color:(dc?dc.color:null), ix=pc?runIdx(s,pc,true):dc?runIdx(s,dc,false):-1;
     roundRect(ctx,q.x,q.y,b.tw,b.th,rr);
     if(dead){ ctx.fillStyle=C.dead; ctx.fill(); ctx.save(); ctx.setLineDash([2,3]); ctx.strokeStyle=C.deadEdge; ctx.lineWidth=1; ctx.stroke(); ctx.restore();
       if(b.tw>=20){ ctx.save(); ctx.strokeStyle=C.deadEdge; ctx.lineWidth=1; ctx.beginPath();   /* a soft cross marks a cutout */
@@ -149,7 +150,7 @@ function drawScreen(ctx,s,b,sp,sd,isActive){
         ctx.moveTo(q.x+b.tw/2+m,q.y+b.th/2-m); ctx.lineTo(q.x+b.tw/2-m,q.y+b.th/2+m); ctx.stroke(); ctx.restore(); }
       continue; }
     ctx.fillStyle=C.tile; ctx.fill();
-    if(acc){ const ia=ink(acc); ctx.save(); ctx.globalAlpha=tint; ctx.fillStyle=ia; ctx.fill();
+    if(acc){ const ia=ink(acc); ctx.save(); ctx.globalAlpha=isBW()?BW_TINT[ix%BW_TINT.length]:tint; ctx.fillStyle=ia; ctx.fill();
       ctx.globalAlpha=PRINT?.55:.5; ctx.strokeStyle=ia; ctx.lineWidth=1; ctx.stroke(); ctx.restore(); }
     else { ctx.strokeStyle=C.line; ctx.lineWidth=1; ctx.stroke(); }
 
@@ -298,7 +299,7 @@ function flow(ctx,s,b,ch,isPower,dual,hops,label){
   const path=()=>{ ctx.beginPath(); P.forEach((q,i)=>i?ctx.lineTo(q.x,q.y):ctx.moveTo(q.x,q.y)); };
   if(P.length>1){
     path(); ctx.strokeStyle=C.frame; ctx.globalAlpha=PRINT?.9:.65; ctx.lineWidth=lw+3; ctx.stroke(); ctx.globalAlpha=1;
-    path(); ctx.strokeStyle=CO; ctx.lineWidth=lw; ctx.setLineDash(!isPower&&dual?[5,4]:[]); ctx.stroke(); ctx.setLineDash([]);
+    path(); ctx.strokeStyle=CO; ctx.lineWidth=lw; ctx.setLineDash(isBW()?bwDash(runIdx(s,ch,isPower)):!isPower&&dual?[5,4]:[]); ctx.stroke(); ctx.setLineDash([]);
   }
   const z=Math.max(2.8,Math.min(4.2,Math.min(b.tw,b.th)*.085))*(dual?.85:1);
   for(let i=0;i<P.length-1;i++){
@@ -359,7 +360,7 @@ function drawLegend(ctx,s,b,sp,sd){
       const x=x0+(i%per)*cw, ly=y+Math.floor(i/per)*13+2;
       if(it.lock) lockBadge(ctx,x+6,ly,it.lock,5);
       else { ctx.save(); ctx.strokeStyle=ink(it.c); ctx.lineWidth=2.4; ctx.lineCap='round';
-        ctx.setLineDash(it.dash===2?[.5,3.5]:it.dash?[4,3]:[]);
+        ctx.setLineDash(it.dash===2?[.5,3.5]:isBW()&&it.bw!=null?bwDash(it.bw):it.dash?[4,3]:[]);
         ctx.beginPath(); ctx.moveTo(x+1,ly); ctx.lineTo(x+12,ly); ctx.stroke(); ctx.restore(); }
       let label=it.t+(it.over?'   OVER':'');
       ctx.save(); ctx.font=`500 8.5px ${FS}`;

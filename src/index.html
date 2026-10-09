@@ -623,7 +623,15 @@
         <label class="sw">Pixel map sheet<input type="checkbox" id="exPPix" /></label>
       </div>
       <div>
-        <div class="grp">Show on the drawings</div>
+        <div class="grp">Paper</div>
+        <div class="g2">
+          <div class="f"><label>Size</label><select id="exPaper"><option value="letter">Letter 8.5 × 11</option><option value="tabloid">Tabloid 11 × 17</option><option value="a4">A4</option><option value="a3">A3</option></select></div>
+          <div class="f"><label>Orientation</label><select id="exOrient"><option value="auto">Best fit</option><option value="landscape">Landscape</option><option value="portrait">Portrait</option></select></div>
+        </div>
+        <label class="sw">Cover sheet and index<input type="checkbox" id="exCover" /></label>
+        <label class="sw">Split large screens across sheets<input type="checkbox" id="exSplit" /></label>
+        <label class="sw">Black and white printer<input type="checkbox" id="exBW" /></label>
+        <div class="grp" style="margin-top:14px">Show on the drawings</div>
         <label class="sw">Chain order numbers<input type="checkbox" id="exNums" /></label>
         <label class="sw">Tile references (R1C1)<input type="checkbox" id="exRefs" /></label>
         <label class="sw">Legend under each screen<input type="checkbox" id="exLegend" /></label>
@@ -755,6 +763,9 @@
 <!--#include js/dialogs/backup.js-->
 <!--#include js/dialogs/setup.js-->
 <!--#include js/export/drawings.js-->
+<!--#include js/export/pdf-fonts.js-->
+<!--#include js/export/pdf.js-->
+<!--#include js/export/sheets.js-->
 <!--#include js/export/xlsx-writer.js-->
 <!--#include js/cloud/sync.js-->
 <!--#include js/labels/cable-labels.js-->

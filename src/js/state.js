@@ -6,7 +6,8 @@ let focusIdx=null, prevView=null, dragGuides=[];
 let XO=null, expDraft=null;      /* XO = export overrides, only set while rendering a PDF */
 const defExp=()=>({show:'',venue:'',author:'',date:'',rev:'',
   pSet:true,pScreens:true,pSummary:true,pCable:true,
-  nums:true,refs:true,legend:true,hops:false,backup:true,weight:true,load:true});
+  nums:true,refs:true,legend:true,hops:false,backup:true,weight:true,load:true,
+  paper:'letter',orient:'auto',cover:true,split:true,bw:false});
 const expOf=()=>(S.exp=Object.assign(defExp(),S.exp||{}));
 /* published port figures are 8-bit; higher depths cost bandwidth proportionally */
 const BITF={8:1,10:0.8,12:2/3};

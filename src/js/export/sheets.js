@@ -162,31 +162,10 @@ function paintWindow(ctx,A,L,s,b,ly,w,W,k,HB,groups){
   /* header: what this is and where it sits */
   const cn=c=>op.rear?s.cols-c:c+1, ca=cn(w.c0), cb=cn(w.c1);
   capTxt(ctx,sp?'Power map':'Data map',A.x,A.y+8,7.5,ink(acc));
-  fitTxt(ctx,s.name,A.x,A.y+28,A.w-180,`600 17px ${FD}`,C.head);
+  fitTxt(ctx,s.name,A.x,A.y+28,A.w,`600 17px ${FD}`,C.head);
   const sub=[`Columns C${Math.min(ca,cb)}–C${Math.max(ca,cb)} of ${s.cols}`,`Rows R${w.r0+1}–R${w.r1+1} of ${s.rows}`,
     `Part ${W.indexOf(w)+1} of ${W.length}`,op.rear?'Rear view':'Front view'];
-  fitTxt(ctx,sub.join('   ·   '),A.x,A.y+42,A.w-180,`500 9px ${FS}`,C.sub);
-  /* key plan: the whole wall in miniature, every part numbered, this sheet's part shaded */
-  const kw=Math.min(170,A.w*.28), kk=Math.min(kw/b.gw,34/b.gh), kx=A.x+A.w-b.gw*kk, ky=A.y+12;
-  const ia=isBW()?BW_INK:ink(acc), tw=b.tw*kk, th=b.th*kk;
-  capTxt(ctx,'Key plan  ·  this sheet shaded',kx+b.gw*kk,ky-4,5.8,C.faint,'right');
-  ctx.save();
-  for(let r=0;r<s.rows;r++) for(let c=0;c<s.cols;c++){
-    const vc=op.rear?s.cols-1-c:c, inW=vc>=w.c0&&vc<=w.c1&&r>=w.r0&&r<=w.r1;
-    if(isOff(s,r,c)) continue;
-    ctx.fillStyle=inW?ia:C.line; ctx.globalAlpha=inW?.8:1;
-    ctx.fillRect(kx+(gx(vc)-x0)*kk,ky+(gy(r)-y0)*kk,Math.max(.4,tw),Math.max(.4,th));
-  }
-  ctx.globalAlpha=1; ctx.lineWidth=.7;
-  W.forEach((v,i)=>{ const vx=kx+(gx(v.c0)-x0)*kk, vy=ky+(gy(v.r0)-y0)*kk;
-    const vw=((v.c1-v.c0+1)*pitchX-GAP)*kk, vh=((v.r1-v.r0+1)*pitchY-GAP)*kk;
-    ctx.strokeStyle=v===w?ia:C.sub; ctx.setLineDash(v===w?[]:[1.5,1.2]); ctx.strokeRect(vx-.6,vy-.6,vw+1.2,vh+1.2);
-    const n=String(i+1), fs=Math.min(8,Math.max(5,vh*.55));
-    ctx.font=`700 ${fs}px ${FS}`; const nw=ctx.measureText(n).width+4;
-    ctx.fillStyle=v===w?ia:C.bg; ctx.fillRect(vx+vw/2-nw/2,vy+vh/2-fs*.62,nw,fs*1.24);
-    ctx.fillStyle=v===w?onColor(ia):C.head; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(n,vx+vw/2,vy+vh/2+.3); });
-  ctx.restore();
-
+  fitTxt(ctx,sub.join('   ·   '),A.x,A.y+42,A.w,`500 9px ${FS}`,C.sub);
   /* the window itself */
   ctx.save(); ctx.translate(ox,oy); ctx.scale(k,k); ctx.translate(-gx(w.c0),-gy(w.r0));
   ctx.beginPath(); ctx.rect(gx(w.c0)-GAP/2,gy(w.r0)-GAP/2,ww+GAP,wh+GAP); ctx.clip();

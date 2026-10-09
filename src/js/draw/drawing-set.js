@@ -5,20 +5,17 @@ function drawSet(ctx,o2){
   const sp=o2.layer?o2.layer==='power':o.showPower;
   const sd=o2.layer?o2.layer==='data':o.showData;
   const B=setBounds();
-  const T=titleH(), W=B.w+SETGAP*2, H=B.h+T+SETGAP;
+  const T=titleH(o2.layer), TW=setW(B), W=TW+SETGAP*2, H=B.h+T+SETGAP;
   ctx.save();
   ctx.fillStyle=C.bg; ctx.fillRect(0,0,W,H);
   ctx.translate(SETGAP-B.x1,T-B.y1);
 
-  const lname=sp&&sd?'Power + Data Map':sp?'Power Map':sd?'Data Map':'Tile Layout';
-  const scope=focusIdx!=null?S.screens[focusIdx].name+' — ':'';
-  const title=`${titleShow()} — ${scope}${lname}`;
-  const st=setTotalsCalc();
-  txt(ctx,clipText(ctx,title,B.w,`600 24px ${FD}`),B.x1,B.y1-T+22,`600 24px ${FD}`,C.head);
-  drawFacts(ctx,B.x1,B.y1-T+48,B.w,setFacts());
-  drawStamp(ctx,B.x1,B.x2,B.y1-13);
+  const tl=wrapLines(setTitle(o2.layer),TW,SET_TF()), ex=(tl.length-1)*28;
+  tl.forEach((l,i)=>fitTxt(ctx,l,B.x1,B.y1-T+22+i*28,TW,SET_TF(),C.head));
+  drawFacts(ctx,B.x1,B.y1-T+48+ex,TW,setFacts());
+  drawStamp(ctx,B.x1,B.x1+TW,B.y1-13);
   ctx.strokeStyle=C.line; ctx.lineWidth=1;
-  ctx.beginPath(); ctx.moveTo(B.x1,B.y1-7); ctx.lineTo(B.x2,B.y1-7); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(B.x1,B.y1-7); ctx.lineTo(B.x1+TW,B.y1-7); ctx.stroke();
 
   visible().forEach(s=>{
     const b=sbox(s), p=posOf(s,B);
@@ -45,7 +42,7 @@ function drawFacts(ctx,x,y,maxW,facts){
   facts.forEach((f,i)=>{
     const fx=x+(i%cols)*colW, fy=y+Math.floor(i/cols)*FACT_ROW-6;
     capTxt(ctx,f[0],fx,fy,7,C.faint);
-    txt(ctx,clipText(ctx,String(f[1]),colW-14,`500 10.5px ${FS}`),fx,fy+13,`500 10.5px ${FS}`,C.head);
+    fitTxt(ctx,String(f[1]),fx,fy+13,colW-14,`500 10.5px ${FS}`,C.head);
   });
   return factRows(facts.length,maxW)*FACT_ROW;
 }
@@ -76,9 +73,15 @@ function setFacts(){
   f.push(['Colour depth',`${bitDepth()}-bit`]);
   return f;
 }
-function titleH(){
-  const B=setBounds();
-  return 40+factRows(setFacts().length,B.w)*FACT_ROW+22;
+function setTitle(layer){
+  const o=opt(), sp=layer?layer==='power':o.showPower, sd=layer?layer==='data':o.showData;
+  const lname=sp&&sd?'Power + Data Map':sp?'Power Map':sd?'Data Map':'Tile Layout';
+  const scope=focusIdx!=null?S.screens[focusIdx].name+' — ':'';
+  return `${titleShow()} — ${scope}${lname}`;
+}
+function titleH(layer){
+  const B=setBounds(), TW=setW(B);
+  return 40+(wrapLines(setTitle(layer),TW,SET_TF()).length-1)*28+factRows(setFacts().length,TW)*FACT_ROW+22;
 }
 
 /* author / date / revision strip shared by every sheet */
@@ -88,7 +91,7 @@ function drawStamp(ctx,x1,x2,y){
   if(XO&&XO.author) bits.push('Drawn by '+XO.author);
   bits.push(titleDate());
   if(XO&&XO.rev) bits.push('Dwg '+XO.rev);
-  txt(ctx,clipText(ctx,bits.join('   \u00b7   '),(x2-x1)*0.7,`500 9px ${FS}`),x1,y,`500 9px ${FS}`,C.faint);
+  fitTxt(ctx,bits.join('   \u00b7   '),x1,y,(x2-x1)*0.7,`500 9px ${FS}`,C.faint);
   const right=`${S.screens.length} screen${S.screens.length===1?'':'s'}`;
   txt(ctx,right,x2,y,`500 9px ${FS}`,C.faint,'right');
 }
@@ -113,7 +116,7 @@ function drawScreen(ctx,s,b,sp,sd,isActive){
   ctx.fillStyle=C.bar; ctx.fillRect(0,0,b.w,HEADH);
   ctx.fillStyle=C.edge; ctx.fillRect(0,HEADH,b.w,1); ctx.restore();
   const barW=b.w-PAD*2-16;              /* leave room for the grip dots */
-  txt(ctx,clipText(ctx,s.name,barW,`600 12px ${FS}`),PAD,14.5,`600 12px ${FS}`,isActive?C.head:C.sub);
+  fitTxt(ctx,s.name,PAD,14.5,barW,`600 12px ${FS}`,isActive?C.head:C.sub);
   if(p){
     const t=totals(s);
     const segs=[`${p.brand} ${p.model}`,`${p.pitch}mm`,`${s.cols*p.pw}\u00d7${s.rows*p.ph} px`,
@@ -121,7 +124,7 @@ function drawScreen(ctx,s,b,sp,sd,isActive){
     if(wantWeight()) segs.push(lbFmt(t.lb));
     if(opt().showData&&units().length>1) segs.splice(1,0,unitLabel(unitOf(s)));
     const fit=fitMeta(ctx,segs,barW);
-    txt(ctx,fit.t,PAD,25,fit.f,C.faint);
+    fitTxt(ctx,fit.t,PAD,25,barW,fit.f,C.faint);
   } else {
     txt(ctx,'No panel selected',PAD,25,`500 8.5px ${FS}`,C.warn);
   }
@@ -366,8 +369,7 @@ function drawLegend(ctx,s,b,sp,sd){
       ctx.save(); ctx.font=`500 8.5px ${FS}`;
       if(it.short&&ctx.measureText(label).width>cw-22) label=it.short+(it.over?'  OVER':'');
       ctx.restore();
-      label=clipText(ctx,label,cw-22,`500 8.5px ${FS}`);
-      txt(ctx,label,x+18,ly+3,`500 8.5px ${FS}`,it.over?C.bad:C.sub);
+      fitTxt(ctx,label,x+18,ly+3,cw-22,`500 8.5px ${FS}`,it.over?C.bad:C.sub);
     });
     y+=Math.ceil(grp.items.length/per)*13;
     if(gi<groups.length-1) y+=9;
@@ -397,11 +399,11 @@ function drawSummary(ctx){
     f:`${st.circ} circuits · ${st.runs} runs`});
   const H=Math.max(520,120+rows.length*20+60);
   ctx.fillStyle=C.bg; ctx.fillRect(0,0,W,H);
-  txt(ctx,clipText(ctx,`${titleShow()} — System Summary`,W-72,`600 27px ${FD}`),36,42,`600 27px ${FD}`,C.head);
+  fitTxt(ctx,`${titleShow()} — System Summary`,36,42,W-72,`600 27px ${FD}`,C.head);
   const hb=[titleVenue(),titleDate()];
   if(XO&&XO.author) hb.push('Drawn by '+XO.author);
   if(XO&&XO.rev) hb.push('Dwg '+XO.rev);
-  txt(ctx,clipText(ctx,hb.filter(Boolean).join('   ·   '),W-72,`500 10px ${FS}`),36,60,`500 10px ${FS}`,C.sub);
+  fitTxt(ctx,hb.filter(Boolean).join('   ·   '),36,60,W-72,`500 10px ${FS}`,C.sub);
   ctx.strokeStyle=C.line; ctx.beginPath(); ctx.moveTo(36,74); ctx.lineTo(W-36,74); ctx.stroke();
   const cols=[56,240,430,570,760,1090], hd=['Item','Detail','Resolution','Size','Rating','Device'];
   const wid=cols.map((c,i)=>(i<cols.length-1?cols[i+1]:W-36)-c-12);
@@ -409,12 +411,12 @@ function drawSummary(ctx){
   let y=114, zi=0;
   rows.forEach(r=>{
     if(r.h){ zi=0; roundRect(ctx,36,y-14,W-72,22,7); ctx.fillStyle=C.band; ctx.fill();
-      txt(ctx,clipText(ctx,r.a,wid[0],`700 11px ${FS}`),44,y,`700 11px ${FS}`,C.head); }
+      fitTxt(ctx,r.a,44,y,wid[0],`700 11px ${FS}`,C.head); }
     else { if(zi++%2){ roundRect(ctx,36,y-13,W-72,20,6); ctx.save(); ctx.globalAlpha=.5; ctx.fillStyle=C.band; ctx.fill(); ctx.restore(); }
       if(r.col){ ctx.beginPath(); ctx.arc(45,y-3,3.5,0,Math.PI*2); ctx.fillStyle=ink(r.col); ctx.fill(); }
-      txt(ctx,clipText(ctx,r.a,wid[0],`500 10px ${FS}`),cols[0],y,`500 10px ${FS}`,C.sub); }
+      fitTxt(ctx,r.a,cols[0],y,wid[0],`500 10px ${FS}`,C.sub); }
     [r.b,r.c,r.d,r.e,r.f].forEach((v,i)=>{ if(v==null) return;
-      txt(ctx,clipText(ctx,String(v),wid[i+1],`500 10px ${FS}`),cols[i+1],y,`500 10px ${FS}`,
+      fitTxt(ctx,String(v),cols[i+1],y,wid[i+1],`500 10px ${FS}`,
         r.h?C.sub:(r.over&&i===4?C.bad:C.cell)); });
     y+=20;
   });
@@ -427,11 +429,11 @@ function drawSchedule(ctx){
   const rows=cableRows(), W=1340;
   const H=Math.max(520,120+(rows.length+S.screens.length)*22+70);
   ctx.fillStyle=C.bg; ctx.fillRect(0,0,W,H);
-  txt(ctx,clipText(ctx,`${titleShow()} — Cable Schedule`,W-72,`600 27px ${FD}`),36,42,`600 27px ${FD}`,C.head);
+  fitTxt(ctx,`${titleShow()} — Cable Schedule`,36,42,W-72,`600 27px ${FD}`,C.head);
   const hb=[titleVenue(),titleDate()];
   if(XO&&XO.author) hb.push('Drawn by '+XO.author);
   if(XO&&XO.rev) hb.push('Dwg '+XO.rev);
-  txt(ctx,clipText(ctx,hb.filter(Boolean).join('   ·   '),W-72,`500 10px ${FS}`),36,60,`500 10px ${FS}`,C.sub);
+  fitTxt(ctx,hb.filter(Boolean).join('   ·   '),36,60,W-72,`500 10px ${FS}`,C.sub);
   ctx.strokeStyle=C.line; ctx.beginPath(); ctx.moveTo(36,74); ctx.lineTo(W-36,74); ctx.stroke();
   const cols=[56,116,200,470,720,830,960,1120], wid=cols.map((c,i)=>(i<cols.length-1?cols[i+1]:W-36)-c-10);
   ['Type','ID','From','To','Tiles','Load','Est. run','Spec'].forEach((t,i)=>capTxt(ctx,t,cols[i],94,7.5,C.faint));
@@ -440,13 +442,13 @@ function drawSchedule(ctx){
     if(r.sid!==cur){
       cur=r.sid; zi=0;
       roundRect(ctx,36,y-14,W-72,22,7); ctx.fillStyle=C.band; ctx.fill();
-      txt(ctx,clipText(ctx,r.screen,W-90,`700 11px ${FS}`),44,y,`700 11px ${FS}`,C.head);
+      fitTxt(ctx,r.screen,44,y,W-90,`700 11px ${FS}`,C.head);
       y+=22;
     }
     if(zi++%2){ roundRect(ctx,36,y-13,W-72,20,6); ctx.save(); ctx.globalAlpha=.5; ctx.fillStyle=C.band; ctx.fill(); ctx.restore(); }
     ctx.beginPath(); ctx.arc(45,y-3,3.5,0,Math.PI*2); ctx.fillStyle=ink(r.color); ctx.fill();
     const vals=[r.kind,r.id,r.from,r.to,String(r.tiles),r.load,r.est+' ft',r.spec+' ft'];
-    vals.forEach((v,i)=>txt(ctx,clipText(ctx,v,wid[i],`500 10px ${FS}`),cols[i],y,`500 10px ${FS}`,i<2?C.sub:C.cell));
+    vals.forEach((v,i)=>fitTxt(ctx,v,cols[i],y,wid[i],`500 10px ${FS}`,i<2?C.sub:C.cell));
     y+=20;
   });
   txt(ctx,'Run lengths are estimated from tile-to-tile geometry plus a drop to deck and 10 ft of slack. Verify on site before cutting or ordering.',

@@ -25,7 +25,7 @@ function pdfSheets(o){
   const L=[];
   if(o.pSet&&S.screens.length>1) ['data','power'].forEach(ly=>{
     const B=setBounds();
-    L.push({t:`Set overview — ${ly==='data'?'Data':'Power'}`,d:{w:B.w+SETGAP*2,h:B.h+titleH()+SETGAP},paint:ctx=>drawSet(ctx,{layer:ly})});
+    L.push({t:`Set overview — ${ly==='data'?'Data':'Power'}`,d:{w:setW(B)+SETGAP*2,h:B.h+titleH(ly)+SETGAP},paint:ctx=>drawSet(ctx,{layer:ly})});
   });
   if(o.pSet&&S.screens.some(bent)) L.push({t:'Plan view',d:drawPlan(null,true),paint:ctx=>drawPlan(ctx,false)});
   if(o.pScreens) S.screens.forEach(s=>{
@@ -63,8 +63,10 @@ function drawTitleBlock(ctx,W,H,n,N,title){
       txt(ctx,String(n),x+8,y0+34,`700 17px ${FS}`,C.head);
       txt(ctx,`of ${N}`,x+12+nw,y0+34,`500 9px ${FS}`,C.sub);
     } else {
-      const f=`${c.f||500} ${c.f?10.5:9.5}px ${FS}`;
-      txt(ctx,clipText(ctx,String(c.v),w-14,f),x+8,y0+31,f,C.head);
+      const f=`${c.f||500} ${c.f?10.5:9.5}px ${FS}`, v=String(c.v);
+      if(textW(v,f)<=w-14) fitTxt(ctx,v,x+8,y0+31,w-14,f,C.head);
+      else { const f2=`${c.f||500} 8.5px ${FS}`;                 /* long names take two lines */
+        wrapLines(v,w-14,f2,2).forEach((l,j)=>fitTxt(ctx,l,x+8,y0+25+j*10.5,w-14,f2,C.head)); }
     }
     x+=w;
   });
@@ -76,8 +78,8 @@ function drawCover(ctx,A,L){
   const o=opt(), st=setTotalsCalc();
   let y=A.y;
   capTxt(ctx,'LED video wall  ·  drawing set',A.x,y+8,7.5,C.faint);
-  txt(ctx,clipText(ctx,titleShow(),A.w,`600 28px ${FD}`),A.x,y+38,`600 28px ${FD}`,C.head);
-  if(titleVenue()) txt(ctx,clipText(ctx,titleVenue(),A.w,`500 12px ${FS}`),A.x,y+57,`500 12px ${FS}`,C.sub);
+  fitTxt(ctx,titleShow(),A.x,y+38,A.w,`600 28px ${FD}`,C.head);
+  if(titleVenue()) fitTxt(ctx,titleVenue(),A.x,y+57,A.w,`500 12px ${FS}`,C.sub);
   const facts=[['Date',titleDate()],['Drawn by',XO.author||'—'],['Revision',XO.rev||'—'],
     ['Screens',String(S.screens.length)],['Tiles',String(st.tiles)]];
   if(wantWeight()) facts.push(['Weight',lbFmt(st.lb)]);
@@ -103,12 +105,12 @@ function drawCover(ctx,A,L){
   const fs=Math.min(9.5,rowH*.7), f=`500 ${fs.toFixed(2)}px ${FS}`;
   L.forEach((sh,i)=>{ const ry=by+24+i*rowH;
     txt(ctx,String(i+1).padStart(2,'0'),A.x,ry,`600 ${fs.toFixed(2)}px ${FS}`,C.faint);
-    txt(ctx,clipText(ctx,sh.t,iw-34,f),A.x+26,ry,f,C.head);
+    fitTxt(ctx,sh.t,A.x+26,ry,iw-34,f,C.head);
   });
   const rc=[0,.2,.52], rows=revs.length?revs:[{rev:XO.rev||'—',date:titleDate(),by:XO.author||''}];
   ['Rev','Date','Drawn by'].forEach((h,i)=>capTxt(ctx,h,rx+rw*rc[i],by+19,6,C.faint));
   rows.forEach((r,i)=>{ const ry=by+24+(i+1)*rowH-2;
-    [r.rev,r.date,r.by||'—'].forEach((v,j)=>txt(ctx,clipText(ctx,String(v),rw*((rc[j+1]||1)-rc[j])-8,f),rx+rw*rc[j],ry,f,j?C.sub:C.head)); });
+    [r.rev,r.date,r.by||'—'].forEach((v,j)=>fitTxt(ctx,String(v),rx+rw*rc[j],ry,rw*((rc[j+1]||1)-rc[j])-8,f,j?C.sub:C.head)); });
 }
 function coverOverview(ctx,R){
   const B=setBounds(), list=visible(); if(!list.length) return;
@@ -160,10 +162,10 @@ function paintWindow(ctx,A,L,s,b,ly,w,W,k,HB,groups){
   /* header: what this is and where it sits */
   const cn=c=>op.rear?s.cols-c:c+1, ca=cn(w.c0), cb=cn(w.c1);
   capTxt(ctx,sp?'Power map':'Data map',A.x,A.y+8,7.5,ink(acc));
-  txt(ctx,clipText(ctx,s.name,A.w-180,`600 17px ${FD}`),A.x,A.y+28,`600 17px ${FD}`,C.head);
+  fitTxt(ctx,s.name,A.x,A.y+28,A.w-180,`600 17px ${FD}`,C.head);
   const sub=[`Columns C${Math.min(ca,cb)}–C${Math.max(ca,cb)} of ${s.cols}`,`Rows R${w.r0+1}–R${w.r1+1} of ${s.rows}`,
     `Part ${W.indexOf(w)+1} of ${W.length}`,op.rear?'Rear view':'Front view'];
-  txt(ctx,clipText(ctx,sub.join('   ·   '),A.w-180,`500 9px ${FS}`),A.x,A.y+42,`500 9px ${FS}`,C.sub);
+  fitTxt(ctx,sub.join('   ·   '),A.x,A.y+42,A.w-180,`500 9px ${FS}`,C.sub);
   /* key plan */
   const kw=Math.min(150,A.w*.25), kk=Math.min(kw/b.gw,36/b.gh), kx=A.x+A.w-b.gw*kk, ky=A.y+6;
   capTxt(ctx,'Key plan',kx-8,ky+8,6.2,C.faint,'right');

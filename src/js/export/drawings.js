@@ -18,16 +18,17 @@ function drawPair(ctx,s,measureOnly){
   const G=30, CAP=15;
   const stack=bd.w>560;
   const W=stack?Math.max(bp.w,bd.w)+G*2 : bd.w+bp.w+G*3;
-  const TIT=66+factRows(screenFacts(s).length,W-G*2)*FACT_ROW+22;
+  const PTF=`600 23px ${FD}`, tl=wrapLines(`${titleShow()} — ${s.name}`,W-G*2,PTF), ex=(tl.length-1)*27;
+  const TIT=66+ex+factRows(screenFacts(s).length,W-G*2)*FACT_ROW+22;
   const H=TIT+(stack ? bd.h+CAP+G+bp.h+CAP+G : Math.max(bp.h,bd.h)+CAP+G);
   if(measureOnly){ o.showPower=keep.p; o.showData=keep.d; return {w:W,h:H}; }
 
   ctx.fillStyle=C.bg; ctx.fillRect(0,0,W,H);
   const t=totals(s), pr=procOf(s), p=panelById(s.panelId);
   const headW=W-G*2;
-  txt(ctx,clipText(ctx,`${titleShow()} — ${s.name}`,headW,`600 23px ${FD}`),G,28,`600 23px ${FD}`,C.head);
-  if(titleVenue()) txt(ctx,clipText(ctx,titleVenue(),headW,`500 10.5px ${FS}`),G,46,`500 10.5px ${FS}`,C.sub);
-  drawFacts(ctx,G,titleVenue()?72:58,headW,screenFacts(s));
+  tl.forEach((l,i)=>fitTxt(ctx,l,G,28+i*27,headW,PTF,C.head));
+  if(titleVenue()) fitTxt(ctx,titleVenue(),G,46+ex,headW,`500 10.5px ${FS}`,C.sub);
+  drawFacts(ctx,G,(titleVenue()?72:58)+ex,headW,screenFacts(s));
   drawStamp(ctx,G,W-G,TIT-16);
   ctx.strokeStyle=C.line; ctx.lineWidth=1;
   ctx.beginPath(); ctx.moveTo(G,TIT-12); ctx.lineTo(W-G,TIT-12); ctx.stroke();
@@ -49,7 +50,7 @@ function pairCanvas(s){
   return renderToCanvas(ctx=>drawPair(ctx,s,true),ctx=>drawPair(ctx,s,false));
 }
 function setCanvas(layer){
-  const B=setBounds(), d={w:B.w+SETGAP*2,h:B.h+titleH()+SETGAP};
+  const B=setBounds(), d={w:setW(B)+SETGAP*2,h:B.h+titleH(layer)+SETGAP};
   return renderToCanvas(()=>d,ctx=>drawSet(ctx,{layer}));
 }
 function summaryCanvas(){ return renderToCanvas(p=>drawSummary(p),ctx=>drawSummary(ctx)); }

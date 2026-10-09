@@ -21,6 +21,33 @@ function clipText(ctx,t,maxW,font){
     if(ctx.measureText(t.slice(0,m)+'\u2026').width<=maxW) lo=m; else hi=m-1; }
   ctx.restore(); return t.slice(0,lo)+'\u2026';
 }
+/* a scratch context for measuring before anything is drawn */
+let MCTX=null;
+const mctx=()=>MCTX||(MCTX=document.createElement('canvas').getContext('2d'));
+function textW(t,font){ const x=mctx(); x.font=font; return x.measureText(String(t)).width; }
+/* break a title into lines at spaces, never more than max lines (the last one shrinks to fit) */
+function wrapLines(t,maxW,font,max){
+  const words=String(t).split(' '), out=[]; let ln='';
+  words.forEach(w=>{ const c=ln?ln+' '+w:w;
+    if(ln&&textW(c,font)>maxW&&out.length<(max||3)-1){ out.push(ln); ln=w; } else ln=c; });
+  out.push(ln); return out;
+}
+/* text is never cut off: step the size down (to 60% by default), then narrow the letters to fit */
+function fitFont(ctx,t,maxW,font,min){
+  const m=font.match(/([\d.]+)px/); if(!m||!(maxW>0)) return font;
+  ctx.save(); ctx.font=font; const w=ctx.measureText(t).width; ctx.restore();
+  if(w<=maxW) return font;
+  const sz=+m[1], s=Math.max(sz*(min||.6),Math.floor(sz*maxW/w*100)/100);
+  return font.replace(m[0],s.toFixed(2)+'px');
+}
+function fitTxt(ctx,t,x,y,maxW,font,color,align,alpha){
+  t=String(t); const f=fitFont(ctx,t,maxW,font);
+  ctx.save(); ctx.font=f; ctx.fillStyle=color;
+  ctx.textAlign=align||'left'; ctx.textBaseline='alphabetic';
+  if(alpha!=null) ctx.globalAlpha=alpha;
+  if(maxW>0&&ctx.measureText(t).width>maxW) ctx.fillText(t,x,y,maxW); else ctx.fillText(t,x,y);
+  ctx.restore();
+}
 /* shrink, then drop trailing detail, so the header line always fits its bar */
 function fitMeta(ctx,segs,maxW){
   for(let fs=8.5;fs>=6.25;fs-=0.25){
@@ -33,7 +60,7 @@ function fitMeta(ctx,segs,maxW){
     ctx.restore();
   }
   const f='500 6.25px '+FS;
-  return {t:clipText(ctx,segs.join(' \u00b7 '),maxW,f),f};
+  return {t:segs.join(' \u00b7 '),f};
 }
 function chipDraw(ctx,x,y,label,color,corner,fs){
   fs=fs||7.5;

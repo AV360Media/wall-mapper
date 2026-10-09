@@ -518,7 +518,7 @@ html[data-theme=light] .seg::before{background:var(--surface);box-shadow:0 1px 3
 
 /* inspector */
 .insp-h{margin:0 0 16px}
-#inspName{font-size:20px!important;font-weight:650!important;margin-top:4px}
+#inspName{font-size:20px!important;font-weight:650!important;margin-top:4px;white-space:normal!important;overflow-wrap:anywhere;line-height:1.15!important}
 #inspSub{font-size:12px;color:var(--tx2);margin-top:4px;line-height:1.45}
 #totals,#setTotals{background:none;border-radius:0;padding:0}
 #totals .row,#setTotals .row{padding:9px 0;font-size:12.5px;color:var(--tx2);border-bottom:1px solid var(--line)}

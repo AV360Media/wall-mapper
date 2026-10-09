@@ -855,7 +855,7 @@ html[data-theme=light] .seg::before{background:var(--surface);box-shadow:0 1px 3
 
 /* inspector */
 .insp-h{margin:0 0 16px}
-#inspName{font-size:20px!important;font-weight:650!important;margin-top:4px}
+#inspName{font-size:20px!important;font-weight:650!important;margin-top:4px;white-space:normal!important;overflow-wrap:anywhere;line-height:1.15!important}
 #inspSub{font-size:12px;color:var(--tx2);margin-top:4px;line-height:1.45}
 #totals,#setTotals{background:none;border-radius:0;padding:0}
 #totals .row,#setTotals .row{padding:9px 0;font-size:12.5px;color:var(--tx2);border-bottom:1px solid var(--line)}
@@ -2234,13 +2234,17 @@ function sbox(s){
   const tw=Math.max(14,Math.round(p.wmm*MM)), th=Math.max(10,Math.round(p.hmm*MM));
   const gw=s.cols*tw+(s.cols-1)*GAP, gh=s.rows*th+(s.rows-1)*GAP;
   const o=opt();
-  const w=Math.max(gw+PAD*2,132);
+  const nameW=Math.min(420,textW(s.name||'',`600 12px ${FS}`)*.9+PAD*2+18);   /* the card grows so its name fits */
+  const w=Math.max(gw+PAD*2,132,nameW);
   const perRow=Math.max(1,Math.floor((w-PAD*2)/168));
   const wantLeg=XO?XO.legend:o.detail!=='clean';
   const groups=wantLeg?legendGroups(s,o.showPower,o.showData):[];
   const leg=legendSize(groups,perRow);
   return {p,tw,th,gw,gh,leg,perRow,w,h:HEADH+PAD+gh+PAD+leg};
 }
+/* set title: wraps onto up to three lines over a column at least 420 wide */
+const SET_TF=()=>`600 24px ${FD}`;
+const setW=B=>Math.max(B.w,420);
 function setBounds(){
   let x1=1e9,y1=1e9,x2=-1e9,y2=-1e9;
   visible().forEach(s=>{ const b=sbox(s);
@@ -2440,7 +2444,7 @@ function drawPlan(ctx,measureOnly,Wd){
   if(measureOnly) return {w:W,h:H};
   const X=v=>G+(v-D.x1)*k, Y=v=>T+(v-D.y1)*k;
   ctx.fillStyle=C.bg; ctx.fillRect(0,0,W,H);
-  txt(ctx,clipText(ctx,`${titleShow()} — Plan View`,inner,`600 23px ${FD}`),G,30,`600 23px ${FD}`,C.head);
+  fitTxt(ctx,`${titleShow()} — Plan View`,G,30,inner,`600 23px ${FD}`,C.head);
   txt(ctx,'Seen from above, audience at the bottom. Shaded band: closer than the comfortable viewing distance for the pitch.',G,50,`9.5px ${FS}`,C.faint);
   drawStamp(ctx,G,W-G,68);
   ctx.strokeStyle=C.line; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(G,T-8); ctx.lineTo(W-G,T-8); ctx.stroke();
@@ -2672,6 +2676,33 @@ function clipText(ctx,t,maxW,font){
     if(ctx.measureText(t.slice(0,m)+'\u2026').width<=maxW) lo=m; else hi=m-1; }
   ctx.restore(); return t.slice(0,lo)+'\u2026';
 }
+/* a scratch context for measuring before anything is drawn */
+let MCTX=null;
+const mctx=()=>MCTX||(MCTX=document.createElement('canvas').getContext('2d'));
+function textW(t,font){ const x=mctx(); x.font=font; return x.measureText(String(t)).width; }
+/* break a title into lines at spaces, never more than max lines (the last one shrinks to fit) */
+function wrapLines(t,maxW,font,max){
+  const words=String(t).split(' '), out=[]; let ln='';
+  words.forEach(w=>{ const c=ln?ln+' '+w:w;
+    if(ln&&textW(c,font)>maxW&&out.length<(max||3)-1){ out.push(ln); ln=w; } else ln=c; });
+  out.push(ln); return out;
+}
+/* text is never cut off: step the size down (to 60% by default), then narrow the letters to fit */
+function fitFont(ctx,t,maxW,font,min){
+  const m=font.match(/([\d.]+)px/); if(!m||!(maxW>0)) return font;
+  ctx.save(); ctx.font=font; const w=ctx.measureText(t).width; ctx.restore();
+  if(w<=maxW) return font;
+  const sz=+m[1], s=Math.max(sz*(min||.6),Math.floor(sz*maxW/w*100)/100);
+  return font.replace(m[0],s.toFixed(2)+'px');
+}
+function fitTxt(ctx,t,x,y,maxW,font,color,align,alpha){
+  t=String(t); const f=fitFont(ctx,t,maxW,font);
+  ctx.save(); ctx.font=f; ctx.fillStyle=color;
+  ctx.textAlign=align||'left'; ctx.textBaseline='alphabetic';
+  if(alpha!=null) ctx.globalAlpha=alpha;
+  if(maxW>0&&ctx.measureText(t).width>maxW) ctx.fillText(t,x,y,maxW); else ctx.fillText(t,x,y);
+  ctx.restore();
+}
 /* shrink, then drop trailing detail, so the header line always fits its bar */
 function fitMeta(ctx,segs,maxW){
   for(let fs=8.5;fs>=6.25;fs-=0.25){
@@ -2684,7 +2715,7 @@ function fitMeta(ctx,segs,maxW){
     ctx.restore();
   }
   const f='500 6.25px '+FS;
-  return {t:clipText(ctx,segs.join(' \u00b7 '),maxW,f),f};
+  return {t:segs.join(' \u00b7 '),f};
 }
 function chipDraw(ctx,x,y,label,color,corner,fs){
   fs=fs||7.5;
@@ -2704,20 +2735,17 @@ function drawSet(ctx,o2){
   const sp=o2.layer?o2.layer==='power':o.showPower;
   const sd=o2.layer?o2.layer==='data':o.showData;
   const B=setBounds();
-  const T=titleH(), W=B.w+SETGAP*2, H=B.h+T+SETGAP;
+  const T=titleH(o2.layer), TW=setW(B), W=TW+SETGAP*2, H=B.h+T+SETGAP;
   ctx.save();
   ctx.fillStyle=C.bg; ctx.fillRect(0,0,W,H);
   ctx.translate(SETGAP-B.x1,T-B.y1);
 
-  const lname=sp&&sd?'Power + Data Map':sp?'Power Map':sd?'Data Map':'Tile Layout';
-  const scope=focusIdx!=null?S.screens[focusIdx].name+' — ':'';
-  const title=`${titleShow()} — ${scope}${lname}`;
-  const st=setTotalsCalc();
-  txt(ctx,clipText(ctx,title,B.w,`600 24px ${FD}`),B.x1,B.y1-T+22,`600 24px ${FD}`,C.head);
-  drawFacts(ctx,B.x1,B.y1-T+48,B.w,setFacts());
-  drawStamp(ctx,B.x1,B.x2,B.y1-13);
+  const tl=wrapLines(setTitle(o2.layer),TW,SET_TF()), ex=(tl.length-1)*28;
+  tl.forEach((l,i)=>fitTxt(ctx,l,B.x1,B.y1-T+22+i*28,TW,SET_TF(),C.head));
+  drawFacts(ctx,B.x1,B.y1-T+48+ex,TW,setFacts());
+  drawStamp(ctx,B.x1,B.x1+TW,B.y1-13);
   ctx.strokeStyle=C.line; ctx.lineWidth=1;
-  ctx.beginPath(); ctx.moveTo(B.x1,B.y1-7); ctx.lineTo(B.x2,B.y1-7); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(B.x1,B.y1-7); ctx.lineTo(B.x1+TW,B.y1-7); ctx.stroke();
 
   visible().forEach(s=>{
     const b=sbox(s), p=posOf(s,B);
@@ -2744,7 +2772,7 @@ function drawFacts(ctx,x,y,maxW,facts){
   facts.forEach((f,i)=>{
     const fx=x+(i%cols)*colW, fy=y+Math.floor(i/cols)*FACT_ROW-6;
     capTxt(ctx,f[0],fx,fy,7,C.faint);
-    txt(ctx,clipText(ctx,String(f[1]),colW-14,`500 10.5px ${FS}`),fx,fy+13,`500 10.5px ${FS}`,C.head);
+    fitTxt(ctx,String(f[1]),fx,fy+13,colW-14,`500 10.5px ${FS}`,C.head);
   });
   return factRows(facts.length,maxW)*FACT_ROW;
 }
@@ -2775,9 +2803,15 @@ function setFacts(){
   f.push(['Colour depth',`${bitDepth()}-bit`]);
   return f;
 }
-function titleH(){
-  const B=setBounds();
-  return 40+factRows(setFacts().length,B.w)*FACT_ROW+22;
+function setTitle(layer){
+  const o=opt(), sp=layer?layer==='power':o.showPower, sd=layer?layer==='data':o.showData;
+  const lname=sp&&sd?'Power + Data Map':sp?'Power Map':sd?'Data Map':'Tile Layout';
+  const scope=focusIdx!=null?S.screens[focusIdx].name+' — ':'';
+  return `${titleShow()} — ${scope}${lname}`;
+}
+function titleH(layer){
+  const B=setBounds(), TW=setW(B);
+  return 40+(wrapLines(setTitle(layer),TW,SET_TF()).length-1)*28+factRows(setFacts().length,TW)*FACT_ROW+22;
 }
 
 /* author / date / revision strip shared by every sheet */
@@ -2787,7 +2821,7 @@ function drawStamp(ctx,x1,x2,y){
   if(XO&&XO.author) bits.push('Drawn by '+XO.author);
   bits.push(titleDate());
   if(XO&&XO.rev) bits.push('Dwg '+XO.rev);
-  txt(ctx,clipText(ctx,bits.join('   \u00b7   '),(x2-x1)*0.7,`500 9px ${FS}`),x1,y,`500 9px ${FS}`,C.faint);
+  fitTxt(ctx,bits.join('   \u00b7   '),x1,y,(x2-x1)*0.7,`500 9px ${FS}`,C.faint);
   const right=`${S.screens.length} screen${S.screens.length===1?'':'s'}`;
   txt(ctx,right,x2,y,`500 9px ${FS}`,C.faint,'right');
 }
@@ -2812,7 +2846,7 @@ function drawScreen(ctx,s,b,sp,sd,isActive){
   ctx.fillStyle=C.bar; ctx.fillRect(0,0,b.w,HEADH);
   ctx.fillStyle=C.edge; ctx.fillRect(0,HEADH,b.w,1); ctx.restore();
   const barW=b.w-PAD*2-16;              /* leave room for the grip dots */
-  txt(ctx,clipText(ctx,s.name,barW,`600 12px ${FS}`),PAD,14.5,`600 12px ${FS}`,isActive?C.head:C.sub);
+  fitTxt(ctx,s.name,PAD,14.5,barW,`600 12px ${FS}`,isActive?C.head:C.sub);
   if(p){
     const t=totals(s);
     const segs=[`${p.brand} ${p.model}`,`${p.pitch}mm`,`${s.cols*p.pw}\u00d7${s.rows*p.ph} px`,
@@ -2820,7 +2854,7 @@ function drawScreen(ctx,s,b,sp,sd,isActive){
     if(wantWeight()) segs.push(lbFmt(t.lb));
     if(opt().showData&&units().length>1) segs.splice(1,0,unitLabel(unitOf(s)));
     const fit=fitMeta(ctx,segs,barW);
-    txt(ctx,fit.t,PAD,25,fit.f,C.faint);
+    fitTxt(ctx,fit.t,PAD,25,barW,fit.f,C.faint);
   } else {
     txt(ctx,'No panel selected',PAD,25,`500 8.5px ${FS}`,C.warn);
   }
@@ -3065,8 +3099,7 @@ function drawLegend(ctx,s,b,sp,sd){
       ctx.save(); ctx.font=`500 8.5px ${FS}`;
       if(it.short&&ctx.measureText(label).width>cw-22) label=it.short+(it.over?'  OVER':'');
       ctx.restore();
-      label=clipText(ctx,label,cw-22,`500 8.5px ${FS}`);
-      txt(ctx,label,x+18,ly+3,`500 8.5px ${FS}`,it.over?C.bad:C.sub);
+      fitTxt(ctx,label,x+18,ly+3,cw-22,`500 8.5px ${FS}`,it.over?C.bad:C.sub);
     });
     y+=Math.ceil(grp.items.length/per)*13;
     if(gi<groups.length-1) y+=9;
@@ -3096,11 +3129,11 @@ function drawSummary(ctx){
     f:`${st.circ} circuits · ${st.runs} runs`});
   const H=Math.max(520,120+rows.length*20+60);
   ctx.fillStyle=C.bg; ctx.fillRect(0,0,W,H);
-  txt(ctx,clipText(ctx,`${titleShow()} — System Summary`,W-72,`600 27px ${FD}`),36,42,`600 27px ${FD}`,C.head);
+  fitTxt(ctx,`${titleShow()} — System Summary`,36,42,W-72,`600 27px ${FD}`,C.head);
   const hb=[titleVenue(),titleDate()];
   if(XO&&XO.author) hb.push('Drawn by '+XO.author);
   if(XO&&XO.rev) hb.push('Dwg '+XO.rev);
-  txt(ctx,clipText(ctx,hb.filter(Boolean).join('   ·   '),W-72,`500 10px ${FS}`),36,60,`500 10px ${FS}`,C.sub);
+  fitTxt(ctx,hb.filter(Boolean).join('   ·   '),36,60,W-72,`500 10px ${FS}`,C.sub);
   ctx.strokeStyle=C.line; ctx.beginPath(); ctx.moveTo(36,74); ctx.lineTo(W-36,74); ctx.stroke();
   const cols=[56,240,430,570,760,1090], hd=['Item','Detail','Resolution','Size','Rating','Device'];
   const wid=cols.map((c,i)=>(i<cols.length-1?cols[i+1]:W-36)-c-12);
@@ -3108,12 +3141,12 @@ function drawSummary(ctx){
   let y=114, zi=0;
   rows.forEach(r=>{
     if(r.h){ zi=0; roundRect(ctx,36,y-14,W-72,22,7); ctx.fillStyle=C.band; ctx.fill();
-      txt(ctx,clipText(ctx,r.a,wid[0],`700 11px ${FS}`),44,y,`700 11px ${FS}`,C.head); }
+      fitTxt(ctx,r.a,44,y,wid[0],`700 11px ${FS}`,C.head); }
     else { if(zi++%2){ roundRect(ctx,36,y-13,W-72,20,6); ctx.save(); ctx.globalAlpha=.5; ctx.fillStyle=C.band; ctx.fill(); ctx.restore(); }
       if(r.col){ ctx.beginPath(); ctx.arc(45,y-3,3.5,0,Math.PI*2); ctx.fillStyle=ink(r.col); ctx.fill(); }
-      txt(ctx,clipText(ctx,r.a,wid[0],`500 10px ${FS}`),cols[0],y,`500 10px ${FS}`,C.sub); }
+      fitTxt(ctx,r.a,cols[0],y,wid[0],`500 10px ${FS}`,C.sub); }
     [r.b,r.c,r.d,r.e,r.f].forEach((v,i)=>{ if(v==null) return;
-      txt(ctx,clipText(ctx,String(v),wid[i+1],`500 10px ${FS}`),cols[i+1],y,`500 10px ${FS}`,
+      fitTxt(ctx,String(v),cols[i+1],y,wid[i+1],`500 10px ${FS}`,
         r.h?C.sub:(r.over&&i===4?C.bad:C.cell)); });
     y+=20;
   });
@@ -3126,11 +3159,11 @@ function drawSchedule(ctx){
   const rows=cableRows(), W=1340;
   const H=Math.max(520,120+(rows.length+S.screens.length)*22+70);
   ctx.fillStyle=C.bg; ctx.fillRect(0,0,W,H);
-  txt(ctx,clipText(ctx,`${titleShow()} — Cable Schedule`,W-72,`600 27px ${FD}`),36,42,`600 27px ${FD}`,C.head);
+  fitTxt(ctx,`${titleShow()} — Cable Schedule`,36,42,W-72,`600 27px ${FD}`,C.head);
   const hb=[titleVenue(),titleDate()];
   if(XO&&XO.author) hb.push('Drawn by '+XO.author);
   if(XO&&XO.rev) hb.push('Dwg '+XO.rev);
-  txt(ctx,clipText(ctx,hb.filter(Boolean).join('   ·   '),W-72,`500 10px ${FS}`),36,60,`500 10px ${FS}`,C.sub);
+  fitTxt(ctx,hb.filter(Boolean).join('   ·   '),36,60,W-72,`500 10px ${FS}`,C.sub);
   ctx.strokeStyle=C.line; ctx.beginPath(); ctx.moveTo(36,74); ctx.lineTo(W-36,74); ctx.stroke();
   const cols=[56,116,200,470,720,830,960,1120], wid=cols.map((c,i)=>(i<cols.length-1?cols[i+1]:W-36)-c-10);
   ['Type','ID','From','To','Tiles','Load','Est. run','Spec'].forEach((t,i)=>capTxt(ctx,t,cols[i],94,7.5,C.faint));
@@ -3139,13 +3172,13 @@ function drawSchedule(ctx){
     if(r.sid!==cur){
       cur=r.sid; zi=0;
       roundRect(ctx,36,y-14,W-72,22,7); ctx.fillStyle=C.band; ctx.fill();
-      txt(ctx,clipText(ctx,r.screen,W-90,`700 11px ${FS}`),44,y,`700 11px ${FS}`,C.head);
+      fitTxt(ctx,r.screen,44,y,W-90,`700 11px ${FS}`,C.head);
       y+=22;
     }
     if(zi++%2){ roundRect(ctx,36,y-13,W-72,20,6); ctx.save(); ctx.globalAlpha=.5; ctx.fillStyle=C.band; ctx.fill(); ctx.restore(); }
     ctx.beginPath(); ctx.arc(45,y-3,3.5,0,Math.PI*2); ctx.fillStyle=ink(r.color); ctx.fill();
     const vals=[r.kind,r.id,r.from,r.to,String(r.tiles),r.load,r.est+' ft',r.spec+' ft'];
-    vals.forEach((v,i)=>txt(ctx,clipText(ctx,v,wid[i],`500 10px ${FS}`),cols[i],y,`500 10px ${FS}`,i<2?C.sub:C.cell));
+    vals.forEach((v,i)=>fitTxt(ctx,v,cols[i],y,wid[i],`500 10px ${FS}`,i<2?C.sub:C.cell));
     y+=20;
   });
   txt(ctx,'Run lengths are estimated from tile-to-tile geometry plus a drop to deck and 10 ft of slack. Verify on site before cutting or ordering.',
@@ -3228,7 +3261,7 @@ function drawGuides(ctx,B,w,h){
 }
 function fitView(){
   const B=setBounds(), w=stage.clientWidth, h=stage.clientHeight;
-  const T=titleH(), W=B.w+SETGAP*2, H=B.h+T+SETGAP;
+  const T=titleH(), W=setW(B)+SETGAP*2, H=B.h+T+SETGAP;
   view.k=Math.max(0.03,Math.min(Math.min(w/W,h/H)*0.94,6));
   view.x=(w-W*view.k)/2+(SETGAP-B.x1)*view.k;
   view.y=(h-H*view.k)/2+(T-B.y1)*view.k;
@@ -4471,16 +4504,17 @@ function drawPair(ctx,s,measureOnly){
   const G=30, CAP=15;
   const stack=bd.w>560;
   const W=stack?Math.max(bp.w,bd.w)+G*2 : bd.w+bp.w+G*3;
-  const TIT=66+factRows(screenFacts(s).length,W-G*2)*FACT_ROW+22;
+  const PTF=`600 23px ${FD}`, tl=wrapLines(`${titleShow()} — ${s.name}`,W-G*2,PTF), ex=(tl.length-1)*27;
+  const TIT=66+ex+factRows(screenFacts(s).length,W-G*2)*FACT_ROW+22;
   const H=TIT+(stack ? bd.h+CAP+G+bp.h+CAP+G : Math.max(bp.h,bd.h)+CAP+G);
   if(measureOnly){ o.showPower=keep.p; o.showData=keep.d; return {w:W,h:H}; }
 
   ctx.fillStyle=C.bg; ctx.fillRect(0,0,W,H);
   const t=totals(s), pr=procOf(s), p=panelById(s.panelId);
   const headW=W-G*2;
-  txt(ctx,clipText(ctx,`${titleShow()} — ${s.name}`,headW,`600 23px ${FD}`),G,28,`600 23px ${FD}`,C.head);
-  if(titleVenue()) txt(ctx,clipText(ctx,titleVenue(),headW,`500 10.5px ${FS}`),G,46,`500 10.5px ${FS}`,C.sub);
-  drawFacts(ctx,G,titleVenue()?72:58,headW,screenFacts(s));
+  tl.forEach((l,i)=>fitTxt(ctx,l,G,28+i*27,headW,PTF,C.head));
+  if(titleVenue()) fitTxt(ctx,titleVenue(),G,46+ex,headW,`500 10.5px ${FS}`,C.sub);
+  drawFacts(ctx,G,(titleVenue()?72:58)+ex,headW,screenFacts(s));
   drawStamp(ctx,G,W-G,TIT-16);
   ctx.strokeStyle=C.line; ctx.lineWidth=1;
   ctx.beginPath(); ctx.moveTo(G,TIT-12); ctx.lineTo(W-G,TIT-12); ctx.stroke();
@@ -4502,7 +4536,7 @@ function pairCanvas(s){
   return renderToCanvas(ctx=>drawPair(ctx,s,true),ctx=>drawPair(ctx,s,false));
 }
 function setCanvas(layer){
-  const B=setBounds(), d={w:B.w+SETGAP*2,h:B.h+titleH()+SETGAP};
+  const B=setBounds(), d={w:setW(B)+SETGAP*2,h:B.h+titleH(layer)+SETGAP};
   return renderToCanvas(()=>d,ctx=>drawSet(ctx,{layer}));
 }
 function summaryCanvas(){ return renderToCanvas(p=>drawSummary(p),ctx=>drawSummary(ctx)); }
@@ -4832,7 +4866,7 @@ function pdfSheets(o){
   const L=[];
   if(o.pSet&&S.screens.length>1) ['data','power'].forEach(ly=>{
     const B=setBounds();
-    L.push({t:`Set overview — ${ly==='data'?'Data':'Power'}`,d:{w:B.w+SETGAP*2,h:B.h+titleH()+SETGAP},paint:ctx=>drawSet(ctx,{layer:ly})});
+    L.push({t:`Set overview — ${ly==='data'?'Data':'Power'}`,d:{w:setW(B)+SETGAP*2,h:B.h+titleH(ly)+SETGAP},paint:ctx=>drawSet(ctx,{layer:ly})});
   });
   if(o.pSet&&S.screens.some(bent)) L.push({t:'Plan view',d:drawPlan(null,true),paint:ctx=>drawPlan(ctx,false)});
   if(o.pScreens) S.screens.forEach(s=>{
@@ -4870,8 +4904,10 @@ function drawTitleBlock(ctx,W,H,n,N,title){
       txt(ctx,String(n),x+8,y0+34,`700 17px ${FS}`,C.head);
       txt(ctx,`of ${N}`,x+12+nw,y0+34,`500 9px ${FS}`,C.sub);
     } else {
-      const f=`${c.f||500} ${c.f?10.5:9.5}px ${FS}`;
-      txt(ctx,clipText(ctx,String(c.v),w-14,f),x+8,y0+31,f,C.head);
+      const f=`${c.f||500} ${c.f?10.5:9.5}px ${FS}`, v=String(c.v);
+      if(textW(v,f)<=w-14) fitTxt(ctx,v,x+8,y0+31,w-14,f,C.head);
+      else { const f2=`${c.f||500} 8.5px ${FS}`;                 /* long names take two lines */
+        wrapLines(v,w-14,f2,2).forEach((l,j)=>fitTxt(ctx,l,x+8,y0+25+j*10.5,w-14,f2,C.head)); }
     }
     x+=w;
   });
@@ -4883,8 +4919,8 @@ function drawCover(ctx,A,L){
   const o=opt(), st=setTotalsCalc();
   let y=A.y;
   capTxt(ctx,'LED video wall  ·  drawing set',A.x,y+8,7.5,C.faint);
-  txt(ctx,clipText(ctx,titleShow(),A.w,`600 28px ${FD}`),A.x,y+38,`600 28px ${FD}`,C.head);
-  if(titleVenue()) txt(ctx,clipText(ctx,titleVenue(),A.w,`500 12px ${FS}`),A.x,y+57,`500 12px ${FS}`,C.sub);
+  fitTxt(ctx,titleShow(),A.x,y+38,A.w,`600 28px ${FD}`,C.head);
+  if(titleVenue()) fitTxt(ctx,titleVenue(),A.x,y+57,A.w,`500 12px ${FS}`,C.sub);
   const facts=[['Date',titleDate()],['Drawn by',XO.author||'—'],['Revision',XO.rev||'—'],
     ['Screens',String(S.screens.length)],['Tiles',String(st.tiles)]];
   if(wantWeight()) facts.push(['Weight',lbFmt(st.lb)]);
@@ -4910,12 +4946,12 @@ function drawCover(ctx,A,L){
   const fs=Math.min(9.5,rowH*.7), f=`500 ${fs.toFixed(2)}px ${FS}`;
   L.forEach((sh,i)=>{ const ry=by+24+i*rowH;
     txt(ctx,String(i+1).padStart(2,'0'),A.x,ry,`600 ${fs.toFixed(2)}px ${FS}`,C.faint);
-    txt(ctx,clipText(ctx,sh.t,iw-34,f),A.x+26,ry,f,C.head);
+    fitTxt(ctx,sh.t,A.x+26,ry,iw-34,f,C.head);
   });
   const rc=[0,.2,.52], rows=revs.length?revs:[{rev:XO.rev||'—',date:titleDate(),by:XO.author||''}];
   ['Rev','Date','Drawn by'].forEach((h,i)=>capTxt(ctx,h,rx+rw*rc[i],by+19,6,C.faint));
   rows.forEach((r,i)=>{ const ry=by+24+(i+1)*rowH-2;
-    [r.rev,r.date,r.by||'—'].forEach((v,j)=>txt(ctx,clipText(ctx,String(v),rw*((rc[j+1]||1)-rc[j])-8,f),rx+rw*rc[j],ry,f,j?C.sub:C.head)); });
+    [r.rev,r.date,r.by||'—'].forEach((v,j)=>fitTxt(ctx,String(v),rx+rw*rc[j],ry,rw*((rc[j+1]||1)-rc[j])-8,f,j?C.sub:C.head)); });
 }
 function coverOverview(ctx,R){
   const B=setBounds(), list=visible(); if(!list.length) return;
@@ -4967,10 +5003,10 @@ function paintWindow(ctx,A,L,s,b,ly,w,W,k,HB,groups){
   /* header: what this is and where it sits */
   const cn=c=>op.rear?s.cols-c:c+1, ca=cn(w.c0), cb=cn(w.c1);
   capTxt(ctx,sp?'Power map':'Data map',A.x,A.y+8,7.5,ink(acc));
-  txt(ctx,clipText(ctx,s.name,A.w-180,`600 17px ${FD}`),A.x,A.y+28,`600 17px ${FD}`,C.head);
+  fitTxt(ctx,s.name,A.x,A.y+28,A.w-180,`600 17px ${FD}`,C.head);
   const sub=[`Columns C${Math.min(ca,cb)}–C${Math.max(ca,cb)} of ${s.cols}`,`Rows R${w.r0+1}–R${w.r1+1} of ${s.rows}`,
     `Part ${W.indexOf(w)+1} of ${W.length}`,op.rear?'Rear view':'Front view'];
-  txt(ctx,clipText(ctx,sub.join('   ·   '),A.w-180,`500 9px ${FS}`),A.x,A.y+42,`500 9px ${FS}`,C.sub);
+  fitTxt(ctx,sub.join('   ·   '),A.x,A.y+42,A.w-180,`500 9px ${FS}`,C.sub);
   /* key plan */
   const kw=Math.min(150,A.w*.25), kk=Math.min(kw/b.gw,36/b.gh), kx=A.x+A.w-b.gw*kk, ky=A.y+6;
   capTxt(ctx,'Key plan',kx-8,ky+8,6.2,C.faint,'right');
@@ -6611,8 +6647,8 @@ function pmRender(){
   M.outs.forEach(o=>{
     const over=o.W>pmOf().outW||o.H>pmOf().outH||o.W*o.H>pmOf().outPx;
     const room=o.W*os+gap-6;                   /* name over size, so narrow outputs never collide */
-    x.font=`700 12px ${FS}`; x.fillStyle=over?C.bad:C.head; x.fillText(clipText(x,`OUTPUT ${o.n}`,room,`700 12px ${FS}`),ox,oy);
-    x.font=`10.5px ${FM}`; x.fillStyle=C.faint; x.fillText(clipText(x,`${o.W} × ${o.H}`,room,`10.5px ${FM}`),ox,oy+15);
+    x.font=fitFont(x,`OUTPUT ${o.n}`,room,`700 12px ${FS}`); x.fillStyle=over?C.bad:C.head; x.fillText(`OUTPUT ${o.n}`,ox,oy,room);
+    x.font=fitFont(x,`${o.W} × ${o.H}`,room,`10.5px ${FM}`); x.fillStyle=C.faint; x.fillText(`${o.W} × ${o.H}`,ox,oy+15,room);
     x.save(); x.translate(ox,oy+31); x.scale(os,os); pmDead(x,o.W,o.H);
     M.L.filter(q=>q.out===o.n).forEach(q=>pmDrawSurface(x,q,q.ox,q.oy,pmWhereOut(q),false)); x.restore();
     x.strokeStyle=over?'#ff6b6b':'#39435599'; x.strokeRect(ox,oy+31,o.W*os,o.H*os);

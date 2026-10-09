@@ -125,7 +125,7 @@ function drawPlan(ctx,measureOnly,Wd){
   if(measureOnly) return {w:W,h:H};
   const X=v=>G+(v-D.x1)*k, Y=v=>T+(v-D.y1)*k;
   ctx.fillStyle=C.bg; ctx.fillRect(0,0,W,H);
-  txt(ctx,clipText(ctx,`${titleShow()} — Plan View`,inner,`600 23px ${FD}`),G,30,`600 23px ${FD}`,C.head);
+  fitTxt(ctx,`${titleShow()} — Plan View`,G,30,inner,`600 23px ${FD}`,C.head);
   txt(ctx,'Seen from above, audience at the bottom. Shaded band: closer than the comfortable viewing distance for the pitch.',G,50,`9.5px ${FS}`,C.faint);
   drawStamp(ctx,G,W-G,68);
   ctx.strokeStyle=C.line; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(G,T-8); ctx.lineTo(W-G,T-8); ctx.stroke();

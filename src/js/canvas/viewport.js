@@ -72,7 +72,7 @@ function drawGuides(ctx,B,w,h){
 }
 function fitView(){
   const B=setBounds(), w=stage.clientWidth, h=stage.clientHeight;
-  const T=titleH(), W=B.w+SETGAP*2, H=B.h+T+SETGAP;
+  const T=titleH(), W=setW(B)+SETGAP*2, H=B.h+T+SETGAP;
   view.k=Math.max(0.03,Math.min(Math.min(w/W,h/H)*0.94,6));
   view.x=(w-W*view.k)/2+(SETGAP-B.x1)*view.k;
   view.y=(h-H*view.k)/2+(T-B.y1)*view.k;

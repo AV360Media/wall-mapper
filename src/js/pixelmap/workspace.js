@@ -60,8 +60,8 @@ function pmRender(){
   M.outs.forEach(o=>{
     const over=o.W>pmOf().outW||o.H>pmOf().outH||o.W*o.H>pmOf().outPx;
     const room=o.W*os+gap-6;                   /* name over size, so narrow outputs never collide */
-    x.font=`700 12px ${FS}`; x.fillStyle=over?C.bad:C.head; x.fillText(clipText(x,`OUTPUT ${o.n}`,room,`700 12px ${FS}`),ox,oy);
-    x.font=`10.5px ${FM}`; x.fillStyle=C.faint; x.fillText(clipText(x,`${o.W} × ${o.H}`,room,`10.5px ${FM}`),ox,oy+15);
+    x.font=fitFont(x,`OUTPUT ${o.n}`,room,`700 12px ${FS}`); x.fillStyle=over?C.bad:C.head; x.fillText(`OUTPUT ${o.n}`,ox,oy,room);
+    x.font=fitFont(x,`${o.W} × ${o.H}`,room,`10.5px ${FM}`); x.fillStyle=C.faint; x.fillText(`${o.W} × ${o.H}`,ox,oy+15,room);
     x.save(); x.translate(ox,oy+31); x.scale(os,os); pmDead(x,o.W,o.H);
     M.L.filter(q=>q.out===o.n).forEach(q=>pmDrawSurface(x,q,q.ox,q.oy,pmWhereOut(q),false)); x.restore();
     x.strokeStyle=over?'#ff6b6b':'#39435599'; x.strokeRect(ox,oy+31,o.W*os,o.H*os);

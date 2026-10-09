@@ -48,13 +48,17 @@ function sbox(s){
   const tw=Math.max(14,Math.round(p.wmm*MM)), th=Math.max(10,Math.round(p.hmm*MM));
   const gw=s.cols*tw+(s.cols-1)*GAP, gh=s.rows*th+(s.rows-1)*GAP;
   const o=opt();
-  const w=Math.max(gw+PAD*2,132);
+  const nameW=Math.min(420,textW(s.name||'',`600 12px ${FS}`)*.9+PAD*2+18);   /* the card grows so its name fits */
+  const w=Math.max(gw+PAD*2,132,nameW);
   const perRow=Math.max(1,Math.floor((w-PAD*2)/168));
   const wantLeg=XO?XO.legend:o.detail!=='clean';
   const groups=wantLeg?legendGroups(s,o.showPower,o.showData):[];
   const leg=legendSize(groups,perRow);
   return {p,tw,th,gw,gh,leg,perRow,w,h:HEADH+PAD+gh+PAD+leg};
 }
+/* set title: wraps onto up to three lines over a column at least 420 wide */
+const SET_TF=()=>`600 24px ${FD}`;
+const setW=B=>Math.max(B.w,420);
 function setBounds(){
   let x1=1e9,y1=1e9,x2=-1e9,y2=-1e9;
   visible().forEach(s=>{ const b=sbox(s);

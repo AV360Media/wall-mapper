@@ -17,11 +17,11 @@ function libRows(){
         hay:`${p.brand} ${p.series||''} ${p.model} ${p.pitch} ${p.pw}x${p.ph} ${p.pw} ${p.ph}`.toLowerCase()}))
     : PROCS.map(p=>({id:p.id,sel:p.id===sc0.procId,v:p.v,pop:p.pop,
         n:p.brand?`${p.brand} ${p.model}`:p.model,
-        sub:p.total?`${(procCap(p)/1e6).toFixed(1)}M px · ${p.ports}× ${p.pt} · ${(portCap(p)/1000).toFixed(0)}k px per port @ ${bitDepth()}-bit`:'skip capacity checking',
+        sub:p.total?`${(procCap(p)/1e6).toFixed(1)}M px · ${p.ports}× ${p.pt} · ${pxN(portCap(p))} px per port @ ${bitDepth()}-bit`:'skip capacity checking',
         hay:`${p.brand} ${p.model} ${p.pt}`.toLowerCase()}));
 }
 function libItem(r){
-  const flags=(r.v===0?`<div class="flag">${r.d==='avg'?'avg derived':'verify'}</div>`:'')
+  const flags=(r.v===0?`<div class="flag">${r.d==='avg'?'avg derived':r.d==='nf'?'not on spec sheets':'verify'}</div>`:'')
     +(r.sel?'<div class="flag" style="color:var(--ok)">current</div>':'');
   return `<div class="item ${r.sel?'sel':''}" onclick="chooseLib('${r.id}')">
     <div class="main"><div class="n">${escp(r.n)}</div><div class="d">${escp(r.sub)}</div></div>${flags}</div>`;

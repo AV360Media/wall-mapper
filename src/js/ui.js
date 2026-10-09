@@ -52,7 +52,7 @@ function renderEmpty(){
     <h3>Blank canvas</h3>
     <div class="hint">Every screen you add starts with these settings.</div>
     ${row('LED panel',p?`${escp(p.brand+' '+p.model)}<small>${p.pitch} mm · ${p.pw}×${p.ph} px</small>`:'<em>None chosen</em>',"openLib('panel')")}
-    ${row('Processor',pr.id!=='none'?`${escp((pr.brand?pr.brand+' ':'')+pr.model)}<small>${pr.total?pr.ports+' ports · '+(portCap(pr)/1000).toFixed(0)+'k px each at '+bitDepth()+'-bit':'no capacity check'}</small>`:'<em>None chosen</em>',"openLib('proc')")}
+    ${row('Processor',pr.id!=='none'?`${escp((pr.brand?pr.brand+' ':'')+pr.model)}<small>${pr.total?pr.ports+' ports · '+pxN(portCap(pr))+' px each at '+bitDepth()+'-bit':'no capacity check'}</small>`:'<em>None chosen</em>',"openLib('proc')")}
     ${row('Power',`${o.volts} V · ${o.breaker} A breaker<small>${basis}</small>`,"openSettings('power')")}
     <div class="es-row"><span class="k">Data home runs</span><span class="v"><select onchange="S.defFeed=this.value;save()">
       ${['auto','top','bottom','left','right'].map(f=>`<option value="${f}" ${(S.defFeed||'auto')===f?'selected':''}>${f[0].toUpperCase()+f.slice(1)}</option>`).join('')}</select></span></div>
@@ -120,7 +120,7 @@ function renderSide(){
     <div class="row"><span>Processor use</span><span class="v ${cap>100?'w':''}">${ptot?cap.toFixed(0)+'%':'—'}</span></div>
     <div class="row"><span>Processor</span><span class="v">${escp(unitLabel(unitOf(s)))}</span></div>
     <div class="row"><span>Ports used</span><span class="v ${unitLoad(unitOf(s)).over?'w':''}">${unitLoad(unitOf(s)).used} / ${unitLoad(unitOf(s)).ports||'—'}</span></div>
-    <div class="row"><span>Port capacity</span><span class="v">${pr.pp?(portCap(pr)/1000).toFixed(0)+'k @ '+bitDepth()+'-bit':'—'}</span></div>
+    <div class="row"><span>Port capacity</span><span class="v">${pr.pp?pxN(portCap(pr))+' @ '+bitDepth()+'-bit':'—'}</span></div>
     <div class="row"><span>Load max / avg</span><span class="v">${(t.wMax/1000).toFixed(2)} / ${(t.wAvg/1000).toFixed(2)} kW</span></div>
     <div class="row"><span>No power</span><span class="v ${t.noPwr?'w':''}">${t.noPwr} tiles</span></div>
     <div class="row"><span>No data</span><span class="v ${t.noDat?'w':''}">${t.noDat} tiles</span></div>`;
@@ -153,7 +153,7 @@ function syncForm(){
   document.getElementById('aoLenWrap').style.display=mode==='data'?'none':'';
   const an=document.getElementById('aoNote'), tp=p?tilesPerPort(s):0;
   an.style.display=mode==='data'&&tp?'':'none';
-  an.textContent=tp?`Fills each port: up to ${tp} tiles (${Math.round(portPx(s)/1000)}k px at ${bitDepth()}-bit${pr&&portCap(pr)?'':', standard port until a processor is picked'})`:'';
+  an.textContent=tp?`Fills each port: up to ${tp} tiles (${pxN(portPx(s))} px at ${bitDepth()}-bit${pr&&portCap(pr)?'':', standard port until a processor is picked'})`:'';
   const pk=document.getElementById('panelPick');
   pk.innerHTML=p
     ? `<span class="t">${escp(p.brand+' '+p.model)}</span><span class="s">${p.pitch} mm · ${p.pw}×${p.ph} px · ${p.lb||'?'} lb</span>`
@@ -162,6 +162,7 @@ function syncForm(){
   document.getElementById('panelWarn').textContent=!p?'':
     (p.d==='avg'?'⚠ Average watts derived at 45% of max — confirm before sizing off it.'
       :p.d==='half'?'⚠ Half-panel figures scaled from the full cabinet — confirm on the spec sheet.'
+      :p.d==='nf'?'⚠ This model isn\'t in the manufacturer\'s published line-up — check the name and figures.'
       :p.v===0?'⚠ Some figures are estimates — confirm on the spec sheet.':'');
   const us=document.getElementById('scUnit');
   if(us){
@@ -172,7 +173,7 @@ function syncForm(){
   const uw=document.getElementById('scUnitWrap'); if(uw) uw.style.display=units().length>1?'':'none';
   const rk=document.getElementById('procPick');
   rk.innerHTML=pr
-    ? `<span class="t">${escp((pr.brand?pr.brand+' ':'')+pr.model)}</span><span class="s">${pr.total?(pr.ports+' ports · '+(portCap(pr)/1000).toFixed(0)+'k px each · '+bitDepth()+'-bit'):'no capacity check'}</span>`
+    ? `<span class="t">${escp((pr.brand?pr.brand+' ':'')+pr.model)}</span><span class="s">${pr.total?(pr.ports+' ports · '+pxN(portCap(pr))+' px each · '+bitDepth()+'-bit'):'no capacity check'}</span>`
     : `<span class="t" style="color:var(--ac)">Choose a processor model…</span><span class="s">enables port capacity checks</span>`;
   rk.style.borderColor=pr?'':'var(--ac)';
   document.getElementById('procWarn').textContent=(pr&&pr.v===0)?'⚠ Port count or capacity unconfirmed.':'';

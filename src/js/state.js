@@ -14,6 +14,7 @@ const BITF={8:1,10:0.8,12:2/3};
 const bitDepth=()=>((S.opt&&S.opt.bits)||8);
 const bitFactor=()=>BITF[bitDepth()]||1;
 const portCap=pr=>Math.round((pr.pp||0)*bitFactor());
+const pxN=n=>Math.round(n).toLocaleString('en-US');   /* exact pixel counts, as the spec sheets print them */
 const procCap=pr=>Math.round((pr.total||0)*bitFactor());
 const wantWeight=()=>!XO||XO.weight;
 const wantLoad=()=>!XO||XO.load;

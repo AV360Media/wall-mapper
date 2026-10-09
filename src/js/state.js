@@ -164,7 +164,9 @@ function normalize(){
   if(S.opt.showPower&&S.opt.showData) S.opt.showData=false;
   if(!S.opt.showPower&&!S.opt.showData) S.opt.showPower=true;
   let nx=0;
+  if(PANEL_MOVED[S.defPanel]) S.defPanel=PANEL_MOVED[S.defPanel];
   S.screens.forEach(s=>{
+    if(PANEL_MOVED[s.panelId]) s.panelId=PANEL_MOVED[s.panelId];
     s.off=s.off||[];
     ['volts','breaker','derate','useAvg','rear','showPower','showData','detail'].forEach(f=>{ if(s[f]!==undefined) delete s[f]; });
     ['circuits','runs'].forEach(f=>{

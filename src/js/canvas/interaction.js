@@ -127,7 +127,7 @@ window.addEventListener('keydown',e=>{
   }
 });
 let nudgeAt=0;
-const MASKS=['nwModal','libModal','sbModal','siModal','stModal','btModal','lbModal','pjModal','exModal','bkModal','cpModal'];   /* page order: later ones sit on top */
+const MASKS=['nwModal','libModal','sbModal','siModal','stModal','btModal','lbModal','pjModal','exModal','bkModal','cpModal','shModal','planModal'];   /* page order: later ones sit on top */
 window.addEventListener('keyup',e=>{ if(e.code==='Space'){ spaceDown=false; cv.classList.remove('pan'); } });
 window.addEventListener('resize',redraw);
 

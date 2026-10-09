@@ -14,9 +14,22 @@ function setScreen(f,v){
     syncForm(); redraw(); renderSide(); renderSlots(); save();
     return;
   }
+  if(f==='curve'||f==='yaw'||f==='depth'){              /* plan geometry: blank means 0, one undo per burst of typing */
+    v=+v||0; const lim={curve:30,yaw:180}[f];
+    if(lim) v=Math.max(-lim,Math.min(lim,v));
+    if(f==='depth') v=Math.round(v*304.8);
+    if(v===(+s[f]||0)) return;
+    if(Date.now()-geoAt>800||geoKey!==s.id+f) pushUndo('screen geometry'); geoAt=Date.now(); geoKey=s.id+f;
+    s[f]=v; renderSide(); syncGeo(); save(); return;
+  }
   s[f]=v;
   if(f==='name'){ renderTabs(); if(focusIdx!=null) document.getElementById('focusName').textContent=v; }
   syncForm(); redraw(); renderSide(); renderSlots(); save();
+}
+let geoAt=0, geoKey='';
+function syncGeo(){
+  const s=sc(), el=document.getElementById('scGeo'); if(!el) return;
+  el.textContent=s&&panelById(s.panelId)&&bent(s)?`${ftR(geo(s).chord)} wide in plan · ${curveText(s)}`:'';
 }
 function setOpt(f,v){
   if((f==='volts'||f==='breaker')&&!(v>0)) return;   /* blank or zero while typing: keep the last good value */

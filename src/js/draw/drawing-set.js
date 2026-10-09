@@ -51,6 +51,8 @@ function screenFacts(s){
   f.push(['View',o.rear?'Rear':'Front']);
   f.push(['Panel',p?`${p.brand} ${p.model}`:'not selected']);
   if(p) f.push(['Pitch',`${p.pitch} mm`]);
+  if(p&&bent(s)) f.push(['Curve',curveText(s)]);
+  if(viewDist(s)) f.push(['Closest view',ftR(viewDist(s).min)]);
   f.push(['Resolution',`${t.resW} × ${t.resH} px`]);
   if(t.wmm) f.push(['Dimensions',`${ftIn(t.wmm)} × ${ftIn(t.hmm)}`]);
   f.push(['Tiles',String(t.tiles)]);

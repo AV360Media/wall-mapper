@@ -81,6 +81,7 @@ h4:first-child{margin-top:0}
 .f input,.f select{width:100%;background:var(--elev);border:1px solid var(--line2);color:var(--tx);padding:6px 7px;border-radius:4px;font-family:'DM Mono',monospace;font-size:12px}
 .f input:focus,.f select:focus{outline:none;border-color:var(--ac)}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
 .hint{font-size:10.5px;color:var(--tx3);line-height:1.55;margin-top:6px}
 .warn{font-size:10.5px;color:var(--warn);line-height:1.45;margin-top:4px}
 .picker{width:100%;text-align:left;background:var(--elev);border:1px solid var(--line2);border-radius:5px;padding:8px 9px;cursor:pointer;color:var(--tx)}
@@ -664,6 +665,34 @@ body{font-size:13.5px;letter-spacing:.005em}
 .pmpal button.on{background:var(--surface);color:var(--tx);box-shadow:0 0 0 2px var(--ac)}
 .pmmo-trk{height:5px;border-radius:99px;background:var(--trk);overflow:hidden;margin:10px 0 6px}
 #pmMoBar{height:100%;width:0;border-radius:99px;background:var(--ac);transition:width .3s var(--ease)}
+
+/* ---- crew link: phone-first, view only ---- */
+html:has(body.crewmode),body.crewmode{overflow:auto;height:auto}
+body.crewmode>:not(#crew){display:none!important}
+#crew{max-width:980px;margin:0 auto;padding:0 16px 48px;font-size:14px;display:block}
+#crew header,#crew main{display:block;height:auto;padding-left:0;padding-right:0;border:0;background:none;gap:0;overflow:visible}
+.cw-h{padding:22px 0 14px!important}
+.cw-k{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--tx3);font-weight:600}
+.cw-h h1{font-size:26px;line-height:1.15;margin:6px 0 4px;font-weight:700;letter-spacing:-.01em}
+.cw-v{color:var(--tx2);font-size:13px;margin-bottom:12px}
+.cw-tabs{position:sticky;top:0;z-index:5;display:flex;gap:6px;overflow-x:auto;padding:10px 0;background:var(--bg);scrollbar-width:none}
+.cw-tabs::-webkit-scrollbar{display:none}
+.cw-tabs button{flex-shrink:0;border:0;border-radius:999px;padding:8px 14px;font:inherit;font-size:13px;font-weight:600;background:var(--surface);color:var(--tx2);cursor:pointer;white-space:nowrap}
+.cw-tabs button.on{background:var(--tx);color:var(--bg)}
+#cwBody figure{margin:14px 0 0;background:var(--surface);border-radius:14px;padding:10px;overflow:hidden}
+#cwBody figcaption{display:flex;justify-content:space-between;align-items:center;font-weight:600;font-size:13px;padding:2px 4px 10px}
+#cwBody figcaption a{color:var(--ac);font-weight:500;text-decoration:none;font-size:12.5px}
+#cwBody img{display:block;width:100%;height:auto;border-radius:8px;background:#fff}
+.cw-facts{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;margin:8px 0 0;padding:14px 16px;background:var(--surface);border-radius:14px}
+.cw-facts dt{color:var(--tx3)}
+.cw-facts dd{margin:0;text-align:right;min-width:0;overflow-wrap:anywhere;font-family:var(--mono,monospace);font-size:13px}
+#cwBody h3{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--tx3);margin:18px 0 6px}
+.cw-list{list-style:none;margin:0;padding:6px 16px;background:var(--surface);border-radius:14px}
+.cw-list li{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
+.cw-list li:last-child{border-bottom:0}
+.cw-list i{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+.cw-list span{margin-left:auto;color:var(--tx2);font-size:12.5px;text-align:right}
+.cw-wait{padding:40px 0;text-align:center;color:var(--tx3)}
 </style>
 </head>
 <body>
@@ -705,6 +734,7 @@ body{font-size:13.5px;letter-spacing:.005em}
         <button id="xlsBtn" onclick="closeMenus();xlsxExport()">Pull list (Excel)</button>
         <button onclick="closeMenus();openLabels()">Cable labels…</button>
         <button onclick="closeMenus();pmDownloadResolume()">Resolume preset (.xml)</button>
+        <button onclick="closeMenus();openShare()">Crew link (view only)…</button>
       </div>
     </div>
       </div>
@@ -717,6 +747,7 @@ body{font-size:13.5px;letter-spacing:.005em}
       <button class="btn ghost sm" onclick="openBatch()">+ Add screens</button>
       <button class="btn ghost sm" onclick="dupScreen()">Duplicate</button>
       <button class="btn ghost sm" onclick="tidySet()">Tidy set</button>
+      <button class="btn ghost sm" onclick="openPlan()">Plan view</button>
       <div class="menu" id="scMenu">
         <button class="btn ghost sm ico" onclick="toggleMenu('scMenu',event)" title="More">⋯</button>
         <div class="menu-pop right">
@@ -762,6 +793,12 @@ body{font-size:13.5px;letter-spacing:.005em}
         </div>
         <button class="picker" id="panelPick" onclick="openLib('panel')"></button>
         <div class="warn" id="panelWarn"></div>
+        <div class="g3" style="margin-top:8px">
+          <div class="f"><label title="Angle at every column joint. + wraps toward the audience, − bows away">Curve °</label><input type="number" step="0.5" min="-30" max="30" id="scCurve" oninput="setScreen('curve',this.value)" /></div>
+          <div class="f"><label title="Turns the whole screen in the plan view">Turn °</label><input type="number" step="1" min="-90" max="90" id="scYaw" oninput="setScreen('yaw',this.value)" /></div>
+          <div class="f"><label title="How far upstage this screen sits, for the plan view">Upstage ft</label><input type="number" step="0.5" id="scDepth" oninput="setScreen('depth',this.value)" /></div>
+        </div>
+        <div class="hint" id="scGeo"></div>
       </details>
 
       <details class="sec" open>
@@ -1316,6 +1353,33 @@ body{font-size:13.5px;letter-spacing:.005em}
     <div class="acts" style="justify-content:flex-end">
       <button class="btn" onclick="closeMask('cpModal')">Cancel</button>
       <button class="btn pri" onclick="saveCustomPanel()">Save panel</button>
+    </div>
+  </div>
+</div>
+
+<div class="mask hide" id="shModal">
+  <div class="modal form" style="width:520px">
+    <h3>Crew link</h3>
+    <p class="hint" style="margin:-4px 0 12px">Anyone with this link can open the drawings, schedules and pixel map on their phone. They can look, not edit. The project travels inside the link, so nothing is uploaded.</p>
+    <div class="f"><input id="shLink" readonly onclick="this.select()" /></div>
+    <div class="hint" id="shNote"></div>
+    <div class="acts">
+      <a class="btn ghost" id="shOpen" target="_blank" rel="noopener" style="text-decoration:none">Preview</a>
+      <span style="flex:1"></span>
+      <button class="btn" onclick="closeMask('shModal')">Close</button>
+      <button class="btn pri" onclick="copyShare()">Copy link</button>
+    </div>
+  </div>
+</div>
+
+<div class="mask hide" id="planModal">
+  <div class="modal wide" style="width:min(1180px,calc(100vw - 32px))">
+    <h3>Plan view</h3>
+    <p class="hint" style="margin:-4px 0 12px">Set each screen's curve, turn and upstage distance in the Screen section of the sidebar.</p>
+    <div id="planBody"></div>
+    <div class="acts">
+      <button class="btn" onclick="planPDF()">Download PDF</button>
+      <button class="btn pri" onclick="closeMask('planModal')">Done</button>
     </div>
   </div>
 </div>
@@ -1950,6 +2014,105 @@ function setTotalsCalc(){
   return {tiles,wMax,wAvg,px,circ,runs,lb};
 }
 
+/* ========================= GEOMETRY: CURVES, ANGLES, VIEWING ========================= */
+/* s.curve is the angle at every column joint (+ wraps toward the audience, - bows away);
+   s.yaw turns the whole screen in plan (+ is clockwise seen from above) */
+const rad=d=>d*Math.PI/180;
+const curveOf=s=>+s.curve||0, yawOf=s=>+s.yaw||0;
+const bent=s=>!!(curveOf(s)||yawOf(s));
+const ftR=mm=>ftIn(Math.round(mm/25.4)*25.4);   /* to the nearest inch */
+/* plan polyline of the panel edges in mm, centred on the chord, before any yaw */
+function geo(s){
+  const p=panelById(s.panelId), w=p?p.wmm:500, n=Math.max(1,s.cols), a=rad(curveOf(s));
+  let th=-a*(n-1)/2, x=0, y=0; const pts=[{x,y}];
+  for(let k=0;k<n;k++){ x+=w*Math.cos(th); y+=w*Math.sin(th); pts.push({x,y}); th+=a; }
+  const A=pts[0], Z=pts[n], mx=(A.x+Z.x)/2, my=(A.y+Z.y)/2;
+  pts.forEach(q=>{ q.x-=mx; q.y-=my; });
+  const chord=Math.hypot(Z.x-A.x,Z.y-A.y);
+  let depth=0; pts.forEach(q=>{ depth=Math.max(depth,Math.abs(q.y)); });
+  return {pts,chord,depth,arc:n*w,total:Math.abs(curveOf(s))*(n-1),radius:a?w/(2*Math.sin(Math.abs(a)/2)):0};
+}
+/* rule of thumb: closest comfortable distance ≈ 1 m per mm of pitch, best from about 3× that */
+function viewDist(s){
+  const p=panelById(s.panelId); if(!p||!p.pitch) return null;
+  return {min:p.pitch*1000,best:p.pitch*3000};
+}
+function curveText(s){
+  const g=geo(s), bits=[];
+  if(curveOf(s)) bits.push(`${(+g.total.toFixed(1))}° ${curveOf(s)>0?'concave':'convex'}`,`R ${ftR(g.radius)}`);
+  if(yawOf(s)) bits.push(`turned ${yawOf(s)>0?'+':'−'}${Math.abs(yawOf(s))}°`);
+  return bits.join(' · ');
+}
+/* ---- plan view: every screen from above, audience at the bottom ---- */
+function planLayout(){
+  const L=S.screens.filter(s=>panelById(s.panelId)).map((s,i)=>{
+    const g=geo(s), b=sbox(s), cx=(s.x+b.w/2)/MM, cy=-(+s.depth||0), t=rad(yawOf(s)), c=Math.cos(t), sn=Math.sin(t);
+    const P=g.pts.map(q=>({x:cx+q.x*c-q.y*sn,y:cy+q.x*sn+q.y*c}));
+    const v=viewDist(s), off=[];
+    if(v) for(let k=0;k<P.length;k++){   /* each panel edge pushed out toward the audience by the closest viewing distance */
+      const a=P[Math.max(0,k-1)], z=P[Math.min(P.length-1,k+1)], dx=z.x-a.x, dy=z.y-a.y, l=Math.hypot(dx,dy)||1;
+      off.push({x:P[k].x-dy/l*v.min,y:P[k].y+dx/l*v.min}); }
+    return {s,g,P,off,v,col:pmCol(i)};
+  });
+  let x1=1e9,y1=1e9,x2=-1e9,y2=-1e9;
+  L.forEach(o=>o.P.concat(o.off).forEach(q=>{ x1=Math.min(x1,q.x); y1=Math.min(y1,q.y); x2=Math.max(x2,q.x); y2=Math.max(y2,q.y); }));
+  if(x1>x2){ x1=y1=0; x2=y2=1000; }
+  const m=Math.max(600,(x2-x1)*.06); x1-=m; x2+=m; y1-=m*1.6; y2+=m*1.2;
+  return {L,x1,y1,x2,y2};
+}
+function drawPlan(ctx,measureOnly,Wd){
+  const D=planLayout(), W=Wd||1200, G=30, inner=W-G*2, k=inner/(D.x2-D.x1);
+  const T=84, H=Math.round(T+(D.y2-D.y1)*k+G+28);
+  if(measureOnly) return {w:W,h:H};
+  const X=v=>G+(v-D.x1)*k, Y=v=>T+(v-D.y1)*k;
+  ctx.fillStyle=C.bg; ctx.fillRect(0,0,W,H);
+  txt(ctx,clipText(ctx,`${titleShow()} — Plan View`,inner,`600 23px ${FD}`),G,30,`600 23px ${FD}`,C.head);
+  txt(ctx,'Seen from above, audience at the bottom. Shaded band: closer than the comfortable viewing distance for the pitch.',G,50,`9.5px ${FS}`,C.faint);
+  drawStamp(ctx,G,W-G,68);
+  ctx.strokeStyle=C.line; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(G,T-8); ctx.lineTo(W-G,T-8); ctx.stroke();
+  /* 5 ft grid, or 10 ft on big sets */
+  const step=(D.x2-D.x1)>30000?3048:1524; ctx.strokeStyle=C.dot||C.line; ctx.lineWidth=1;
+  for(let v=Math.ceil(D.x1/step)*step;v<D.x2;v+=step){ ctx.beginPath(); ctx.moveTo(X(v),T); ctx.lineTo(X(v),H-G-20); ctx.stroke(); }
+  for(let v=Math.ceil(D.y1/step)*step;v<D.y2;v+=step){ ctx.beginPath(); ctx.moveTo(G,Y(v)); ctx.lineTo(W-G,Y(v)); ctx.stroke(); }
+  txt(ctx,'UPSTAGE',W/2,T+14,`700 9px ${FM}`,C.faint,'center');
+  txt(ctx,'AUDIENCE',W/2,H-G-6,`700 9px ${FM}`,C.faint,'center');
+  D.L.forEach(o=>{
+    if(o.off.length){   /* too-close band */
+      ctx.beginPath(); o.P.forEach((q,i)=>i?ctx.lineTo(X(q.x),Y(q.y)):ctx.moveTo(X(q.x),Y(q.y)));
+      for(let i=o.off.length-1;i>=0;i--) ctx.lineTo(X(o.off[i].x),Y(o.off[i].y));
+      ctx.closePath(); ctx.fillStyle=pmRGBA(o.col,.12); ctx.fill();
+      ctx.setLineDash([5,4]); ctx.strokeStyle=pmRGBA(o.col,.8); ctx.lineWidth=1.2; ctx.beginPath();
+      o.off.forEach((q,i)=>i?ctx.lineTo(X(q.x),Y(q.y)):ctx.moveTo(X(q.x),Y(q.y))); ctx.stroke(); ctx.setLineDash([]);
+      const e=o.off[o.off.length-1]; txt(ctx,ftR(o.v.min),X(e.x)+4,Y(e.y)+3,`9px ${FM}`,o.col);
+    }
+    ctx.strokeStyle=o.col; ctx.lineWidth=5; ctx.lineCap='round'; ctx.lineJoin='round';
+    ctx.beginPath(); o.P.forEach((q,i)=>i?ctx.lineTo(X(q.x),Y(q.y)):ctx.moveTo(X(q.x),Y(q.y))); ctx.stroke(); ctx.lineCap='butt';
+    ctx.fillStyle=C.bg; o.P.forEach(q=>{ ctx.beginPath(); ctx.arc(X(q.x),Y(q.y),1.6,0,Math.PI*2); ctx.fill(); });   /* panel joints */
+    const ux=(o.P[0].x+o.P[o.P.length-1].x)/2;
+    const top=Math.min(...o.P.map(q=>Y(q.y)));
+    txt(ctx,o.s.name,X(ux),top-20,`600 11px ${FS}`,C.head,'center');
+    const info=[`${ftR(o.g.chord)} wide`].concat(o.g.depth>1?[`${ftR(o.g.depth)} deep`]:[]).concat(curveText(o.s)?[curveText(o.s)]:[]);
+    txt(ctx,info.join(' · '),X(ux),top-8,`9px ${FM}`,C.sub,'center');
+  });
+  /* scale bar */
+  const sb=step*2, sx=W-G-sb*k, sy=H-G-6;
+  ctx.fillStyle=C.sub; ctx.fillRect(sx,sy-3,sb*k,2);
+  txt(ctx,ftIn(sb),sx-6,sy,`9px ${FM}`,C.sub,'right');
+  return {w:W,h:H};
+}
+function planCanvas(){ return renderToCanvas(()=>drawPlan(null,true),ctx=>drawPlan(ctx,false)); }
+function openPlan(){
+  if(needScreen()) return;
+  const host=document.getElementById('planBody'), c=withPrint(()=>planCanvas());
+  host.innerHTML=''; c.style.width='100%'; c.style.height='auto'; c.style.borderRadius='10px'; host.appendChild(c);
+  document.getElementById('planModal').classList.remove('hide');
+}
+function planPDF(){
+  closeMask('planModal');
+  const c=withPrint(()=>planCanvas());
+  download(buildPDF([{jpg:b64ToBytes(c.toDataURL('image/jpeg',0.95).split(',')[1]),pw:c.width,ph:c.height,w:c.width,h:c.height}]),fileBase()+' plan.pdf');
+  setStatus('Plan view downloaded');
+}
 /* ========================= CABLING ========================= */
 const CVTS={
   'cvt10pro':{name:'NovaStar CVT10 Pro',ports:10,fibers:2,mode:'single-mode',note:'10 ports with MX40 Pro, 8 with others'},
@@ -2213,6 +2376,8 @@ function screenFacts(s){
   f.push(['View',o.rear?'Rear':'Front']);
   f.push(['Panel',p?`${p.brand} ${p.model}`:'not selected']);
   if(p) f.push(['Pitch',`${p.pitch} mm`]);
+  if(p&&bent(s)) f.push(['Curve',curveText(s)]);
+  if(viewDist(s)) f.push(['Closest view',ftR(viewDist(s).min)]);
   f.push(['Resolution',`${t.resW} × ${t.resH} px`]);
   if(t.wmm) f.push(['Dimensions',`${ftIn(t.wmm)} × ${ftIn(t.hmm)}`]);
   f.push(['Tiles',String(t.tiles)]);
@@ -2930,7 +3095,7 @@ window.addEventListener('keydown',e=>{
   }
 });
 let nudgeAt=0;
-const MASKS=['nwModal','libModal','sbModal','siModal','stModal','btModal','lbModal','pjModal','exModal','bkModal','cpModal'];   /* page order: later ones sit on top */
+const MASKS=['nwModal','libModal','sbModal','siModal','stModal','btModal','lbModal','pjModal','exModal','bkModal','cpModal','shModal','planModal'];   /* page order: later ones sit on top */
 window.addEventListener('keyup',e=>{ if(e.code==='Space'){ spaceDown=false; cv.classList.remove('pan'); } });
 window.addEventListener('resize',redraw);
 
@@ -2950,9 +3115,22 @@ function setScreen(f,v){
     syncForm(); redraw(); renderSide(); renderSlots(); save();
     return;
   }
+  if(f==='curve'||f==='yaw'||f==='depth'){              /* plan geometry: blank means 0, one undo per burst of typing */
+    v=+v||0; const lim={curve:30,yaw:180}[f];
+    if(lim) v=Math.max(-lim,Math.min(lim,v));
+    if(f==='depth') v=Math.round(v*304.8);
+    if(v===(+s[f]||0)) return;
+    if(Date.now()-geoAt>800||geoKey!==s.id+f) pushUndo('screen geometry'); geoAt=Date.now(); geoKey=s.id+f;
+    s[f]=v; renderSide(); syncGeo(); save(); return;
+  }
   s[f]=v;
   if(f==='name'){ renderTabs(); if(focusIdx!=null) document.getElementById('focusName').textContent=v; }
   syncForm(); redraw(); renderSide(); renderSlots(); save();
+}
+let geoAt=0, geoKey='';
+function syncGeo(){
+  const s=sc(), el=document.getElementById('scGeo'); if(!el) return;
+  el.textContent=s&&panelById(s.panelId)&&bent(s)?`${ftR(geo(s).chord)} wide in plan · ${curveText(s)}`:'';
 }
 function setOpt(f,v){
   if((f==='volts'||f==='breaker')&&!(v>0)) return;   /* blank or zero while typing: keep the last good value */
@@ -3392,6 +3570,10 @@ function renderSide(){
     <div class="row"><span>Resolution</span><span class="v">${t.resW} × ${t.resH}</span></div>
     <div class="row"><span>Per panel</span><span class="v">${(()=>{ const pn=panelById(s.panelId); return pn?`${pn.pw} × ${pn.ph} px`:'—'; })()}</span></div>
     <div class="row"><span>Size</span><span class="v">${t.wmm?ftIn(t.wmm)+' × '+ftIn(t.hmm):'—'}</span></div>
+    ${t.wmm&&curveOf(s)?`<div class="row"><span>Plan width</span><span class="v">${ftR(geo(s).chord)}</span></div>
+    <div class="row"><span>Curve</span><span class="v">${+geo(s).total.toFixed(1)}° · ${ftR(geo(s).depth)} deep</span></div>`:''}
+    ${viewDist(s)?`<div class="row"><span>Closest view</span><span class="v">${ftR(viewDist(s).min)}</span></div>
+    <div class="row"><span>Best view from</span><span class="v">${ftR(viewDist(s).best)}</span></div>`:''}
     <div class="row"><span>Tiles</span><span class="v">${t.tiles}</span></div>
     <div class="row"><span>Weight</span><span class="v">${t.lb?lbFmt(t.lb):'—'}</span></div>
     <div class="row"><span>Processor use</span><span class="v ${cap>100?'w':''}">${ptot?cap.toFixed(0)+'%':'—'}</span></div>
@@ -3421,6 +3603,8 @@ function syncForm(){
   document.getElementById('scName').value=s.name;
   document.getElementById('scRows').value=s.rows;
   document.getElementById('scCols').value=s.cols;
+  const fv=(id,v)=>{ const el=document.getElementById(id); if(document.activeElement!==el) el.value=v?String(+v.toFixed(2)):''; el.placeholder='0'; };
+  fv('scCurve',curveOf(s)); fv('scYaw',yawOf(s)); fv('scDepth',(+s.depth||0)/304.8); syncGeo();
   document.getElementById('aoFeed').value=s.feed||'auto';
   document.getElementById('aoFeedWrap').style.display=mode==='data'?'':'none';
   document.getElementById('aoDirWrap').style.display=mode==='data'?'none':'';
@@ -3846,6 +4030,7 @@ function openExport(){
 function exNote(){
   let n=0;
   if(expDraft.pSet&&S.screens.length>1) n+=2;
+  if(expDraft.pSet&&S.screens.some(bent)) n+=1;
   if(expDraft.pScreens) n+=S.screens.length;
   if(expDraft.pSummary) n+=1;
   if(expDraft.pCable) n+=1;
@@ -3872,6 +4057,7 @@ function doExportPDF(){
       const out=[];
       focusIdx=null;
       if(opts.pSet&&S.screens.length>1){ out.push(setCanvas('data')); out.push(setCanvas('power')); }
+      if(opts.pSet&&S.screens.some(bent)) out.push(planCanvas());
       if(opts.pScreens) S.screens.forEach(sn=>out.push(pairCanvas(sn)));
       if(opts.pSummary) out.push(summaryCanvas());
       if(opts.pCable) out.push(scheduleCanvas());
@@ -6311,6 +6497,131 @@ function importJSON(f){
 document.getElementById('projName').addEventListener('input',e=>{S.name=e.target.value;redraw();save();});
 document.getElementById('projVenue').addEventListener('input',e=>{S.venue=e.target.value;redraw();save();});
 
+/* ========================= CREW LINK ========================= */
+/* The whole project rides in the link itself (compressed, after #), so no server or sign-in is
+   needed and nothing is uploaded anywhere. Opening it shows a phone-friendly, view-only page. */
+let VIEWONLY=false;
+const b64u=a=>{ let s=''; for(let i=0;i<a.length;i+=0x8000) s+=String.fromCharCode.apply(null,a.subarray(i,i+0x8000));
+  return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); };
+const unb64u=t=>{ const b=atob(t.replace(/-/g,'+').replace(/_/g,'/')), a=new Uint8Array(b.length); for(let i=0;i<b.length;i++) a[i]=b.charCodeAt(i); return a; };
+async function zpipe(bytes,T){ return new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(new T('deflate-raw'))).arrayBuffer()); }
+async function packProject(d){
+  const raw=new TextEncoder().encode(JSON.stringify(d));
+  if(window.CompressionStream) return 'z'+b64u(await zpipe(raw,CompressionStream));
+  return 'j'+b64u(raw);
+}
+async function unpackProject(t){
+  const raw=t[0]==='z'?await zpipe(unb64u(t.slice(1)),DecompressionStream):unb64u(t.slice(1));
+  return JSON.parse(new TextDecoder().decode(raw));
+}
+async function openShare(){
+  if(needScreen()) return;
+  closeMenus();
+  const d=JSON.parse(JSON.stringify(S)); d.shared=Date.now();
+  const link=location.origin+location.pathname+'#v='+await packProject(d);
+  const g=id=>document.getElementById(id);
+  g('shLink').value=link;
+  g('shOpen').href=link;
+  g('shNote').textContent=`A snapshot of “${S.name||'this project'}” as it is now (${(link.length/1024).toFixed(0)} KB link). Send a new link after you make changes.`
+    +(link.length>60000?' This is a long link: if a messaging app cuts it off, email it instead.':'');
+  g('shModal').classList.remove('hide');
+  setTimeout(()=>{ g('shLink').focus(); g('shLink').select(); },40);
+}
+async function copyShare(){
+  const el=document.getElementById('shLink');
+  try{ await navigator.clipboard.writeText(el.value); setStatus('Crew link copied'); }
+  catch(e){ el.select(); document.execCommand('copy'); setStatus('Crew link copied'); }
+}
+/* ---- the crew page ---- */
+let crewTab='overview', crewImgs={};
+async function crewBoot(){
+  const m=/^#v=(.+)$/.exec(location.hash); if(!m) return false;
+  let d;
+  try{ d=await unpackProject(m[1]); }catch(e){ console.error(e); }
+  if(!d||!Array.isArray(d.screens)){
+    document.body.innerHTML='<div style="font:15px Outfit,sans-serif;padding:40px 20px;color:#888;text-align:center">This crew link is damaged or incomplete. Ask for it to be sent again.</div>';
+    return true;
+  }
+  VIEWONLY=true; S=d; projId=null; normalize(); cur=0; focusIdx=null;
+  window.addEventListener('keydown',e=>e.stopImmediatePropagation(),true);   /* nothing in the editor reacts here */
+  document.title=(S.name||'Project')+' · Crew view';
+  const el=document.createElement('div'); el.id='crew'; document.body.appendChild(el);
+  document.body.classList.add('crewmode');
+  crewRender();
+  return true;
+}
+function crewTabs(){
+  const t=[['overview','Overview']];
+  S.screens.forEach((s,i)=>t.push(['s'+i,s.name||'Screen '+(i+1)]));
+  t.push(['cables','Cables']);
+  if(S.screens.some(x=>panelById(x.panelId))) t.push(['pixels','Pixel map']);
+  return t;
+}
+async function crewPics(k){
+  if(crewImgs[k]) return crewImgs[k];
+  const out=[];
+  withPrint(()=>{ XO=Object.assign({},expOf());
+    try{
+      if(k==='overview'){
+        if(S.screens.length>1){ out.push(['Data',setCanvas('data')]); out.push(['Power',setCanvas('power')]); }
+        if(S.screens.some(bent)) out.push(['Plan view',planCanvas()]);
+        out.push(['Summary',summaryCanvas()]);
+      } else if(k==='cables') out.push(['Cable schedule',scheduleCanvas()]);
+      else if(k==='pixels') out.push(['Pixel map',pmOverviewCanvas(pmBuild())]);
+      else { const s=S.screens[+k.slice(1)]; if(s) out.push([s.name,pairCanvas(s)]); }
+    } finally { XO=null; } });
+  const urls=await Promise.all(out.map(([t,c])=>new Promise(ok=>c.toBlob(b=>ok([t,URL.createObjectURL(b)]),'image/png'))));
+  return crewImgs[k]=urls;
+}
+function crewFacts(s){
+  const t=totals(s), p=panelById(s.panelId), v=viewDist(s), rows=[];
+  rows.push(['Panel',p?`${p.brand} ${p.model}`:'—'],['Grid',`${s.cols} × ${s.rows} · ${t.tiles} tiles`],
+    ['Size',t.wmm?`${ftIn(t.wmm)} × ${ftIn(t.hmm)}`:'—'],['Resolution',`${t.resW} × ${t.resH}`],
+    ['Processor',unitLabel(unitOf(s))],['Weight',t.lb?lbFmt(t.lb):'—']);
+  if(bent(s)) rows.push(['Curve',curveText(s)]);
+  if(v) rows.push(['Closest view',ftR(v.min)]);
+  const pw=used(s,'power').map(ch=>`<li><i style="background:${ch.color}"></i><b>${escp(ch.name)}</b><span>${LT(s,ch).length} tiles · ${circuitCalc(s,ch).amps.toFixed(1)} A</span></li>`).join('');
+  const dt=used(s,'data').map(ch=>`<li><i style="background:${ch.color}"></i><b>${escp(ch.name)}</b><span>${escp(portShort(s,ch))} · ${LT(s,ch).length} tiles</span></li>`).join('');
+  return `<dl class="cw-facts">${rows.map(([a,b])=>`<dt>${a}</dt><dd>${escp(b)}</dd>`).join('')}</dl>`
+    +(pw?`<h3>Power circuits</h3><ul class="cw-list">${pw}</ul>`:'')+(dt?`<h3>Data runs</h3><ul class="cw-list">${dt}</ul>`:'');
+}
+function crewRender(){
+  const el=document.getElementById('crew'), tabs=crewTabs();
+  if(!tabs.some(t=>t[0]===crewTab)) crewTab='overview';
+  const when=S.shared?new Date(S.shared).toLocaleString([], {dateStyle:'medium',timeStyle:'short'}):'';
+  el.innerHTML=`<header class="cw-h">
+      <div class="cw-k">Wall Mapper · crew view</div>
+      <h1>${escp(S.name||'Untitled Project')}</h1>
+      <div class="cw-v">${escp([S.venue,when&&'shared '+when].filter(Boolean).join(' · '))}</div>
+      <button class="btn sm" onclick="crewSave()">Save a copy to edit</button>
+    </header>
+    <nav class="cw-tabs">${tabs.map(([k,l])=>`<button class="${k===crewTab?'on':''}" onclick="crewGo('${k}')">${escp(l)}</button>`).join('')}</nav>
+    <main id="cwBody"><div class="cw-wait">Drawing…</div></main>`;
+  const on=el.querySelector('.cw-tabs .on'); if(on) on.scrollIntoView({block:'nearest',inline:'center'});
+  setTimeout(async()=>{
+    const body=document.getElementById('cwBody'), want=crewTab; if(!body) return;
+    let html='';
+    if(crewTab[0]==='s'){ const s=S.screens[+crewTab.slice(1)]; if(s) html+=crewFacts(s); }
+    else if(crewTab==='overview'){ const st=setTotalsCalc();
+      html+=`<dl class="cw-facts"><dt>Screens</dt><dd>${S.screens.length}</dd><dt>Tiles</dt><dd>${st.tiles}</dd>
+        <dt>Weight</dt><dd>${st.lb?lbFmt(st.lb):'—'}</dd><dt>Load</dt><dd>${(st.wMax/1000).toFixed(1)} kW max</dd>
+        <dt>Circuits / runs</dt><dd>${st.circ} / ${st.runs}</dd></dl>`; }
+    const pics=await crewPics(want); if(want!==crewTab) return;
+    pics.forEach(([t,u])=>{ html+=`<figure><figcaption>${escp(t)}<a href="${u}" target="_blank" rel="noopener">Full size</a></figcaption><img src="${u}" alt="${escp(t)}" /></figure>`; });
+    body.innerHTML=html||'<div class="cw-wait">Nothing to show yet.</div>';
+  },30);
+}
+function crewGo(k){ crewTab=k; crewRender(); window.scrollTo({top:0}); }
+async function crewSave(){
+  try{
+    const nid=uid('p'), d=JSON.parse(JSON.stringify(S)); delete d.shared;
+    const idx=(await sGet(IDX))||[];
+    idx.unshift({id:nid,name:d.name||'Shared project',venue:d.venue||'',updated:Date.now(),screens:d.screens.length,tiles:rawTiles(d)});
+    if(!await sSet(PKEY(nid),d)||!await sSet(IDX,idx)) throw new Error('storage unavailable');
+    await sSet(CURKEY,nid);
+    location.href=location.pathname;
+  }catch(e){ alert('Could not save a copy in this browser: '+e.message); }
+}
 /* ---- the sliding pill behind the active segment ---- */
 function segSync(){
   document.querySelectorAll('.seg').forEach(seg=>{
@@ -6334,6 +6645,7 @@ window.addEventListener('resize',()=>requestAnimationFrame(segSync));
     document.querySelector('.eyebrow b').insertAdjacentHTML('afterend','<span class="testtag">TEST BUILD</span>'); }
   if(document.fonts) document.fonts.ready.then(()=>{ try{ redraw(); segSync(); }catch(e){} });
   setTimeout(segSync,60); setTimeout(segSync,700);
+  if(await crewBoot()) return;                   /* a crew link opens the view-only page instead */
   /* nothing in here may stop the interface from rendering */
   try{
     await loadCloud();

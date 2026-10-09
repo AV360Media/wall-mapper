@@ -6,6 +6,7 @@
     document.querySelector('.eyebrow b').insertAdjacentHTML('afterend','<span class="testtag">TEST BUILD</span>'); }
   if(document.fonts) document.fonts.ready.then(()=>{ try{ redraw(); segSync(); }catch(e){} });
   setTimeout(segSync,60); setTimeout(segSync,700);
+  if(await crewBoot()) return;                   /* a crew link opens the view-only page instead */
   /* nothing in here may stop the interface from rendering */
   try{
     await loadCloud();

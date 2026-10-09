@@ -111,6 +111,7 @@ function openExport(){
 function exNote(){
   let n=0;
   if(expDraft.pSet&&S.screens.length>1) n+=2;
+  if(expDraft.pSet&&S.screens.some(bent)) n+=1;
   if(expDraft.pScreens) n+=S.screens.length;
   if(expDraft.pSummary) n+=1;
   if(expDraft.pCable) n+=1;
@@ -137,6 +138,7 @@ function doExportPDF(){
       const out=[];
       focusIdx=null;
       if(opts.pSet&&S.screens.length>1){ out.push(setCanvas('data')); out.push(setCanvas('power')); }
+      if(opts.pSet&&S.screens.some(bent)) out.push(planCanvas());
       if(opts.pScreens) S.screens.forEach(sn=>out.push(pairCanvas(sn)));
       if(opts.pSummary) out.push(summaryCanvas());
       if(opts.pCable) out.push(scheduleCanvas());

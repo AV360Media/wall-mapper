@@ -53,6 +53,7 @@
         <button id="xlsBtn" onclick="closeMenus();xlsxExport()">Pull list (Excel)</button>
         <button onclick="closeMenus();openLabels()">Cable labels…</button>
         <button onclick="closeMenus();pmDownloadResolume()">Resolume preset (.xml)</button>
+        <button onclick="closeMenus();openShare()">Crew link (view only)…</button>
       </div>
     </div>
       </div>
@@ -65,6 +66,7 @@
       <button class="btn ghost sm" onclick="openBatch()">+ Add screens</button>
       <button class="btn ghost sm" onclick="dupScreen()">Duplicate</button>
       <button class="btn ghost sm" onclick="tidySet()">Tidy set</button>
+      <button class="btn ghost sm" onclick="openPlan()">Plan view</button>
       <div class="menu" id="scMenu">
         <button class="btn ghost sm ico" onclick="toggleMenu('scMenu',event)" title="More">⋯</button>
         <div class="menu-pop right">
@@ -110,6 +112,12 @@
         </div>
         <button class="picker" id="panelPick" onclick="openLib('panel')"></button>
         <div class="warn" id="panelWarn"></div>
+        <div class="g3" style="margin-top:8px">
+          <div class="f"><label title="Angle at every column joint. + wraps toward the audience, − bows away">Curve °</label><input type="number" step="0.5" min="-30" max="30" id="scCurve" oninput="setScreen('curve',this.value)" /></div>
+          <div class="f"><label title="Turns the whole screen in the plan view">Turn °</label><input type="number" step="1" min="-90" max="90" id="scYaw" oninput="setScreen('yaw',this.value)" /></div>
+          <div class="f"><label title="How far upstage this screen sits, for the plan view">Upstage ft</label><input type="number" step="0.5" id="scDepth" oninput="setScreen('depth',this.value)" /></div>
+        </div>
+        <div class="hint" id="scGeo"></div>
       </details>
 
       <details class="sec" open>
@@ -668,6 +676,33 @@
   </div>
 </div>
 
+<div class="mask hide" id="shModal">
+  <div class="modal form" style="width:520px">
+    <h3>Crew link</h3>
+    <p class="hint" style="margin:-4px 0 12px">Anyone with this link can open the drawings, schedules and pixel map on their phone. They can look, not edit. The project travels inside the link, so nothing is uploaded.</p>
+    <div class="f"><input id="shLink" readonly onclick="this.select()" /></div>
+    <div class="hint" id="shNote"></div>
+    <div class="acts">
+      <a class="btn ghost" id="shOpen" target="_blank" rel="noopener" style="text-decoration:none">Preview</a>
+      <span style="flex:1"></span>
+      <button class="btn" onclick="closeMask('shModal')">Close</button>
+      <button class="btn pri" onclick="copyShare()">Copy link</button>
+    </div>
+  </div>
+</div>
+
+<div class="mask hide" id="planModal">
+  <div class="modal wide" style="width:min(1180px,calc(100vw - 32px))">
+    <h3>Plan view</h3>
+    <p class="hint" style="margin:-4px 0 12px">Set each screen's curve, turn and upstage distance in the Screen section of the sidebar.</p>
+    <div id="planBody"></div>
+    <div class="acts">
+      <button class="btn" onclick="planPDF()">Download PDF</button>
+      <button class="btn pri" onclick="closeMask('planModal')">Done</button>
+    </div>
+  </div>
+</div>
+
 <script><!--#include vendor/mp4-muxer.js-->
 </script>
 <script>
@@ -678,6 +713,7 @@
 <!--#include js/storage.js-->
 <!--#include js/layout.js-->
 <!--#include js/calcs.js-->
+<!--#include js/geometry.js-->
 <!--#include js/cabling.js-->
 <!--#include js/schedules.js-->
 <!--#include js/draw/helpers.js-->
@@ -708,6 +744,7 @@
 <!--#include js/projects/library.js-->
 <!--#include js/projects/batch.js-->
 <!--#include js/cloud/ui.js-->
+<!--#include js/share.js-->
 <!--#include js/segments.js-->
 <!--#include js/init.js-->
 </script>

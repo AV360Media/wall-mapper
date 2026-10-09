@@ -111,6 +111,10 @@ function renderSide(){
     <div class="row"><span>Resolution</span><span class="v">${t.resW} × ${t.resH}</span></div>
     <div class="row"><span>Per panel</span><span class="v">${(()=>{ const pn=panelById(s.panelId); return pn?`${pn.pw} × ${pn.ph} px`:'—'; })()}</span></div>
     <div class="row"><span>Size</span><span class="v">${t.wmm?ftIn(t.wmm)+' × '+ftIn(t.hmm):'—'}</span></div>
+    ${t.wmm&&curveOf(s)?`<div class="row"><span>Plan width</span><span class="v">${ftR(geo(s).chord)}</span></div>
+    <div class="row"><span>Curve</span><span class="v">${+geo(s).total.toFixed(1)}° · ${ftR(geo(s).depth)} deep</span></div>`:''}
+    ${viewDist(s)?`<div class="row"><span>Closest view</span><span class="v">${ftR(viewDist(s).min)}</span></div>
+    <div class="row"><span>Best view from</span><span class="v">${ftR(viewDist(s).best)}</span></div>`:''}
     <div class="row"><span>Tiles</span><span class="v">${t.tiles}</span></div>
     <div class="row"><span>Weight</span><span class="v">${t.lb?lbFmt(t.lb):'—'}</span></div>
     <div class="row"><span>Processor use</span><span class="v ${cap>100?'w':''}">${ptot?cap.toFixed(0)+'%':'—'}</span></div>
@@ -140,6 +144,8 @@ function syncForm(){
   document.getElementById('scName').value=s.name;
   document.getElementById('scRows').value=s.rows;
   document.getElementById('scCols').value=s.cols;
+  const fv=(id,v)=>{ const el=document.getElementById(id); if(document.activeElement!==el) el.value=v?String(+v.toFixed(2)):''; el.placeholder='0'; };
+  fv('scCurve',curveOf(s)); fv('scYaw',yawOf(s)); fv('scDepth',(+s.depth||0)/304.8); syncGeo();
   document.getElementById('aoFeed').value=s.feed||'auto';
   document.getElementById('aoFeedWrap').style.display=mode==='data'?'':'none';
   document.getElementById('aoDirWrap').style.display=mode==='data'?'none':'';

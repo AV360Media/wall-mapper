@@ -18,7 +18,7 @@ function drawPair(ctx,s,measureOnly){
   const G=30, CAP=15;
   const stack=bd.w>560;
   const W=stack?Math.max(bp.w,bd.w)+G*2 : bd.w+bp.w+G*3;
-  const TIT=52+factRows(screenFacts(s).length,W-G*2)*FACT_ROW+26;
+  const TIT=66+factRows(screenFacts(s).length,W-G*2)*FACT_ROW+22;
   const H=TIT+(stack ? bd.h+CAP+G+bp.h+CAP+G : Math.max(bp.h,bd.h)+CAP+G);
   if(measureOnly){ o.showPower=keep.p; o.showData=keep.d; return {w:W,h:H}; }
 
@@ -26,8 +26,8 @@ function drawPair(ctx,s,measureOnly){
   const t=totals(s), pr=procOf(s), p=panelById(s.panelId);
   const headW=W-G*2;
   txt(ctx,clipText(ctx,`${titleShow()} — ${s.name}`,headW,`600 23px ${FD}`),G,28,`600 23px ${FD}`,C.head);
-  if(titleVenue()) txt(ctx,clipText(ctx,titleVenue(),headW,`10px ${FM}`),G,40,`10px ${FM}`,C.faint);
-  drawFacts(ctx,G,titleVenue()?56:50,headW,screenFacts(s));
+  if(titleVenue()) txt(ctx,clipText(ctx,titleVenue(),headW,`500 10.5px ${FS}`),G,46,`500 10.5px ${FS}`,C.sub);
+  drawFacts(ctx,G,titleVenue()?72:58,headW,screenFacts(s));
   drawStamp(ctx,G,W-G,TIT-16);
   ctx.strokeStyle=C.line; ctx.lineWidth=1;
   ctx.beginPath(); ctx.moveTo(G,TIT-12); ctx.lineTo(W-G,TIT-12); ctx.stroke();
@@ -35,10 +35,10 @@ function drawPair(ctx,s,measureOnly){
   /* data reads first — left to right, or top to bottom when stacked */
   const dx0=G, dy0=TIT;
   const px0=stack?G:G*2+bd.w, py0=stack?TIT+CAP+bd.h+G:TIT;
-  txt(ctx,'DATA',dx0,dy0+10,`700 10px ${FM}`,C.dataAcc);
+  capTxt(ctx,'Data',dx0,dy0+10,9,C.dataAcc);
   o.showPower=false; o.showData=true;
   ctx.save(); ctx.translate(dx0,dy0+CAP); drawScreen(ctx,s,bd,false,true,false); ctx.restore();
-  txt(ctx,'POWER',px0,py0+10,`700 10px ${FM}`,C.warn);
+  capTxt(ctx,'Power',px0,py0+10,9,C.warn);
   o.showPower=true; o.showData=false;
   ctx.save(); ctx.translate(px0,py0+CAP); drawScreen(ctx,s,bp,true,false,false); ctx.restore();
 

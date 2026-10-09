@@ -24,7 +24,7 @@ function clipText(ctx,t,maxW,font){
 /* shrink, then drop trailing detail, so the header line always fits its bar */
 function fitMeta(ctx,segs,maxW){
   for(let fs=8.5;fs>=6.25;fs-=0.25){
-    const f=fs.toFixed(2)+'px '+FM;
+    const f='500 '+fs.toFixed(2)+'px '+FS;
     ctx.save(); ctx.font=f;
     for(let n=segs.length;n>=2;n--){
       const t=segs.slice(0,n).join(' \u00b7 ');
@@ -32,16 +32,16 @@ function fitMeta(ctx,segs,maxW){
     }
     ctx.restore();
   }
-  const f='6.25px '+FM;
+  const f='500 6.25px '+FS;
   return {t:clipText(ctx,segs.join(' \u00b7 '),maxW,f),f};
 }
 function chipDraw(ctx,x,y,label,color,corner,fs){
   fs=fs||7.5;
-  ctx.save(); ctx.font=`600 ${fs}px ${FM}`;
-  const w=Math.max(12,ctx.measureText(label).width+6), h=fs+4;
+  ctx.save(); ctx.font=`600 ${fs}px ${FS}`;
+  const w=Math.max(12,ctx.measureText(label).width+7), h=fs+4.5;
   const bx=corner[1]==='r'?x-w:x, by=corner[0]==='b'?y-h:y;
   const fillc=ink(color);
-  roundRect(ctx,bx,by,w,h,2); ctx.fillStyle=fillc; ctx.fill();
+  roundRect(ctx,bx,by,w,h,h/2); ctx.fillStyle=fillc; ctx.fill();
   ctx.fillStyle=onColor(fillc); ctx.textAlign='center'; ctx.textBaseline='middle';
   ctx.fillText(label,bx+w/2,by+h/2+0.5); ctx.restore();
 }

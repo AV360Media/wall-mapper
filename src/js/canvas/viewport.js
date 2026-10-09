@@ -47,7 +47,7 @@ function drawGuides(ctx,B,w,h){
       ctx.moveTo(fixed-6/K,z); ctx.lineTo(fixed+6/K,z); }
     ctx.stroke();
     const label=ftIn(Math.abs(val)/MM);
-    ctx.font=(9/K)+'px '+FM; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.font='500 '+(9/K)+'px '+FS; ctx.textAlign='center'; ctx.textBaseline='middle';
     const tw=ctx.measureText(label).width+8/K, thh=13/K;
     const cx=horiz?(a+z)/2:fixed, cy=horiz?fixed-11/K:(a+z)/2;
     ctx.fillStyle='#0b0e14'; ctx.fillRect(cx-tw/2,cy-thh/2,tw,thh);

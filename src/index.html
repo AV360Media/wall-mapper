@@ -42,18 +42,18 @@
       </div>
       <div class="actions">
         <div class="hgroup">
-          <button class="btn ghost ico" id="undoBtn" onclick="undo()" title="Undo (Ctrl/⌘ Z)">↶</button>
-          <button class="btn ghost ico" id="redoBtn" onclick="redo()" title="Redo (Ctrl/⌘ Shift Z)">↷</button>
+          <button class="btn ghost ico" id="undoBtn" onclick="undo()" title="Undo (Ctrl/⌘ Z)"><svg viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
+          <button class="btn ghost ico" id="redoBtn" onclick="redo()" title="Redo (Ctrl/⌘ Shift Z)"><svg viewBox="0 0 24 24"><path d="M15 14l5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button>
         </div>
         <div class="menu" id="exMenu">
       <button class="btn pri" onclick="toggleMenu('exMenu',event)"><svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>Export <span class="car">▾</span></button>
       <div class="menu-pop right">
-        <button id="pdfBtn" onclick="closeMenus();exportPDF()">PDF drawing set…</button>
-        <button id="pngBtn" onclick="closeMenus();exportPNG()">PNG image</button>
-        <button id="xlsBtn" onclick="closeMenus();xlsxExport()">Pull list (Excel)</button>
-        <button onclick="closeMenus();openLabels()">Cable labels…</button>
-        <button onclick="closeMenus();pmDownloadResolume()">Resolume preset (.xml)</button>
-        <button onclick="closeMenus();openShare()">Crew link (view only)…</button>
+        <button id="pdfBtn" onclick="closeMenus();exportPDF()"><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg>PDF drawing set…</button>
+        <button id="pngBtn" onclick="closeMenus();exportPNG()"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="M21 16l-5-5-8 9"/></svg>PNG image</button>
+        <button id="xlsBtn" onclick="closeMenus();xlsxExport()"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2.5"/><path d="M4 9h16M4 15h16M10 3v18"/></svg>Pull list (Excel)</button>
+        <button onclick="closeMenus();openLabels()"><svg viewBox="0 0 24 24"><path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="8" cy="8" r="1.5"/></svg>Cable labels…</button>
+        <button onclick="closeMenus();pmDownloadResolume()"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8M12 17v4"/></svg>Resolume preset (.xml)</button>
+        <button onclick="closeMenus();openShare()"><svg viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>Crew link (view only)…</button>
       </div>
     </div>
       </div>
@@ -63,12 +63,12 @@
   <div class="tabbar">
     <div class="tabs" id="tabs"></div>
     <div class="tabtools">
-      <button class="btn ghost sm" onclick="openBatch()">+ Add screens</button>
-      <button class="btn ghost sm" onclick="dupScreen()">Duplicate</button>
-      <button class="btn ghost sm" onclick="tidySet()">Tidy set</button>
-      <button class="btn ghost sm" onclick="openPlan()">Plan view</button>
+      <button class="btn ghost sm" onclick="openBatch()"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Add screens</button>
+      <button class="btn ghost sm" onclick="dupScreen()"><svg viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>Duplicate</button>
+      <button class="btn ghost sm" onclick="tidySet()"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="7" height="7" rx="1.5"/><rect x="14" y="4" width="7" height="7" rx="1.5"/><rect x="3" y="15" width="18" height="5" rx="1.5"/></svg>Tidy set</button>
+      <button class="btn ghost sm" onclick="openPlan()"><svg viewBox="0 0 24 24"><path d="M3 17c4-6 14-6 18 0"/><path d="M12 21v-3"/></svg>Plan view</button>
       <div class="menu" id="scMenu">
-        <button class="btn ghost sm ico" onclick="toggleMenu('scMenu',event)" title="More">⋯</button>
+        <button class="btn ghost sm ico" onclick="toggleMenu('scMenu',event)" title="More"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></svg></button>
         <div class="menu-pop right">
           <button onclick="closeMenus();clearAllMapping()">Clear all mapping on this screen</button>
           <button class="dgr" onclick="closeMenus();delScreen()">Delete this screen</button>
@@ -542,8 +542,8 @@
     <span class="pmt">Pixel map</span>
     <span class="pmsz" id="pmSize"></span><span class="pmpx" id="pmPx"></span>
     <span class="sp"></span>
-    <button class="btn sm ghost ico" id="pmUndo" onclick="undo()" title="Undo (Ctrl/⌘ Z)">↶</button>
-    <button class="btn sm ghost ico" id="pmRedo" onclick="redo()" title="Redo (Ctrl/⌘ Shift Z)">↷</button>
+    <button class="btn sm ghost ico" id="pmUndo" onclick="undo()" title="Undo (Ctrl/⌘ Z)"><svg viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
+    <button class="btn sm ghost ico" id="pmRedo" onclick="redo()" title="Redo (Ctrl/⌘ Shift Z)"><svg viewBox="0 0 24 24"><path d="M15 14l5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button>
     <button class="btn sm ghost pm-stageonly" onclick="pmAuto()">Auto layout</button>
     <button class="btn sm ghost pm-stageonly" onclick="pmFlip()">Flip left / right</button>
     <button class="btn sm" onclick="pmDownloadResolume()" title="Load it from the preset menu in Resolume's Advanced Output">Resolume preset (.xml)</button>

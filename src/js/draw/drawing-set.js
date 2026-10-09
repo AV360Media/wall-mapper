@@ -14,8 +14,8 @@ function drawSet(ctx,o2){
   const scope=focusIdx!=null?S.screens[focusIdx].name+' — ':'';
   const title=`${titleShow()} — ${scope}${lname}`;
   const st=setTotalsCalc();
-  txt(ctx,clipText(ctx,title,B.w,`600 23px ${FD}`),B.x1,B.y1-T+22,`600 23px ${FD}`,C.head);
-  drawFacts(ctx,B.x1,B.y1-T+38,B.w,setFacts());
+  txt(ctx,clipText(ctx,title,B.w,`600 24px ${FD}`),B.x1,B.y1-T+22,`600 24px ${FD}`,C.head);
+  drawFacts(ctx,B.x1,B.y1-T+48,B.w,setFacts());
   drawStamp(ctx,B.x1,B.x2,B.y1-13);
   ctx.strokeStyle=C.line; ctx.lineWidth=1;
   ctx.beginPath(); ctx.moveTo(B.x1,B.y1-7); ctx.lineTo(B.x2,B.y1-7); ctx.stroke();
@@ -30,19 +30,22 @@ function drawSet(ctx,o2){
   return {w:W,h:H,B};
 }
 /* ---- labelled fact grid used by every title block ---- */
-const FACT_COL=225;
-const factCols=w=>Math.max(2,Math.min(4,Math.floor(w/FACT_COL)));
+const FACT_COL=150;
+const factCols=w=>Math.max(2,Math.min(6,Math.floor(w/FACT_COL)));
 const factRows=(n,w)=>Math.ceil(n/factCols(w));
-const FACT_ROW=15;
+const FACT_ROW=27;
+/* small spaced capitals over the value, like a drawing title block */
+function capTxt(ctx,t,x,y,size,color,align){
+  ctx.save(); ctx.font=`600 ${size}px ${FS}`; ctx.fillStyle=color; ctx.textAlign=align||'left'; ctx.textBaseline='alphabetic';
+  if('letterSpacing' in ctx) ctx.letterSpacing=(size*.12).toFixed(2)+'px';
+  ctx.fillText(String(t).toUpperCase(),x,y); ctx.restore();
+}
 function drawFacts(ctx,x,y,maxW,facts){
   const cols=factCols(maxW), colW=Math.min(FACT_COL,maxW/cols);
   facts.forEach((f,i)=>{
-    const fx=x+(i%cols)*colW, fy=y+Math.floor(i/cols)*FACT_ROW;
-    ctx.save(); ctx.font=`500 8.5px ${FS}`;
-    const lw=ctx.measureText(f[0]).width;
-    ctx.restore();
-    txt(ctx,f[0],fx,fy,`500 8.5px ${FS}`,C.faint);
-    txt(ctx,clipText(ctx,String(f[1]),colW-lw-14,`9.5px ${FM}`),fx+lw+7,fy,`9.5px ${FM}`,C.sub);
+    const fx=x+(i%cols)*colW, fy=y+Math.floor(i/cols)*FACT_ROW-6;
+    capTxt(ctx,f[0],fx,fy,7,C.faint);
+    txt(ctx,clipText(ctx,String(f[1]),colW-14,`500 10.5px ${FS}`),fx,fy+13,`500 10.5px ${FS}`,C.head);
   });
   return factRows(facts.length,maxW)*FACT_ROW;
 }
@@ -75,7 +78,7 @@ function setFacts(){
 }
 function titleH(){
   const B=setBounds();
-  return 34+factRows(setFacts().length,B.w)*FACT_ROW+26;
+  return 40+factRows(setFacts().length,B.w)*FACT_ROW+22;
 }
 
 /* author / date / revision strip shared by every sheet */
@@ -84,9 +87,9 @@ function drawStamp(ctx,x1,x2,y){
   if(XO&&XO.author) bits.push('Drawn by '+XO.author);
   bits.push(titleDate());
   if(XO&&XO.rev) bits.push('Dwg '+XO.rev);
-  txt(ctx,clipText(ctx,bits.join('   \u00b7   '),(x2-x1)*0.7,`9px ${FM}`),x1,y,`9px ${FM}`,C.faint);
+  txt(ctx,clipText(ctx,bits.join('   \u00b7   '),(x2-x1)*0.7,`500 9px ${FS}`),x1,y,`500 9px ${FS}`,C.faint);
   const right=`${S.screens.length} screen${S.screens.length===1?'':'s'}`;
-  txt(ctx,right,x2,y,`9px ${FM}`,C.faint,'right');
+  txt(ctx,right,x2,y,`500 9px ${FS}`,C.faint,'right');
 }
 let LABELLED=null;   /* tiles that already carry a run-label pill */
 function drawScreen(ctx,s,b,sp,sd,isActive){
@@ -96,20 +99,20 @@ function drawScreen(ctx,s,b,sp,sd,isActive){
   const showLeg =XO?XO.legend:det!=='clean';
   const showRefs=XO?XO.refs:true;
 
-  const FR=PRINT?6:12;                                   /* softer, rounded screen cards */
+  const FR=PRINT?6:10;                                   /* rounded screen cards */
   roundRect(ctx,0,0,b.w,b.h,FR);
-  if(!PRINT){ ctx.save(); ctx.shadowColor=C.shadow; ctx.shadowBlur=26; ctx.shadowOffsetY=10;
+  if(!PRINT){ ctx.save(); ctx.shadowColor=C.shadow; ctx.shadowBlur=30; ctx.shadowOffsetY=12;
     ctx.fillStyle=C.frame; ctx.fill(); ctx.restore(); }
   else { ctx.fillStyle=C.frame; ctx.fill(); }
   const hot=isActive&&!PRINT;
-  ctx.strokeStyle=hot?ACCENT:C.edge; ctx.lineWidth=hot?1.6:1; ctx.stroke();
-  if(hot){ roundRect(ctx,-3,-3,b.w+6,b.h+6,FR+3); ctx.save(); ctx.globalAlpha=.22; ctx.strokeStyle=ACCENT; ctx.lineWidth=3; ctx.stroke(); ctx.restore(); }
+  ctx.strokeStyle=hot?ACCENT:C.edge; ctx.lineWidth=hot?1.5:1; ctx.stroke();
+  if(hot){ roundRect(ctx,-4,-4,b.w+8,b.h+8,FR+4); ctx.save(); ctx.globalAlpha=.16; ctx.strokeStyle=ACCENT; ctx.lineWidth=4; ctx.stroke(); ctx.restore(); }
 
   ctx.save(); roundRect(ctx,0,0,b.w,b.h,FR); ctx.clip();
-  ctx.fillStyle=C.bar; ctx.globalAlpha=isActive?1:.75; ctx.fillRect(0,0,b.w,HEADH);
-  ctx.globalAlpha=1; ctx.fillStyle=C.edge; ctx.fillRect(0,HEADH,b.w,1); ctx.restore();
+  ctx.fillStyle=C.bar; ctx.fillRect(0,0,b.w,HEADH);
+  ctx.fillStyle=C.edge; ctx.fillRect(0,HEADH,b.w,1); ctx.restore();
   const barW=b.w-PAD*2-16;              /* leave room for the grip dots */
-  txt(ctx,clipText(ctx,s.name,barW,`700 12px ${FS}`),PAD,15,`700 12px ${FS}`,isActive?C.head:C.sub);
+  txt(ctx,clipText(ctx,s.name,barW,`600 12px ${FS}`),PAD,14.5,`600 12px ${FS}`,isActive?C.head:C.sub);
   if(p){
     const t=totals(s);
     const segs=[`${p.brand} ${p.model}`,`${p.pitch}mm`,`${s.cols*p.pw}\u00d7${s.rows*p.ph} px`,
@@ -117,9 +120,9 @@ function drawScreen(ctx,s,b,sp,sd,isActive){
     if(wantWeight()) segs.push(lbFmt(t.lb));
     if(opt().showData&&units().length>1) segs.splice(1,0,unitLabel(unitOf(s)));
     const fit=fitMeta(ctx,segs,barW);
-    txt(ctx,fit.t,PAD,26,fit.f,C.faint);
+    txt(ctx,fit.t,PAD,25,fit.f,C.faint);
   } else {
-    txt(ctx,'No panel selected',PAD,26,`8.5px ${FM}`,C.warn);
+    txt(ctx,'No panel selected',PAD,25,`500 8.5px ${FS}`,C.warn);
   }
   if(!PRINT){ ctx.save(); ctx.fillStyle=isActive?C.gripOn:C.grip;
     for(let i=0;i<3;i++) for(let j=0;j<2;j++){ ctx.beginPath(); ctx.arc(b.w-PAD-7+j*4,10+i*4,1.1,0,Math.PI*2); ctx.fill(); }
@@ -129,44 +132,37 @@ function drawScreen(ctx,s,b,sp,sd,isActive){
     ctx.save(); ctx.setLineDash([5,4]); ctx.strokeStyle=C.ghost; ctx.lineWidth=1;
     ctx.strokeRect(PAD,HEADH+PAD,b.w-PAD*2,b.h-HEADH-PAD*2); ctx.restore();
     txt(ctx,'Pick an LED panel',b.w/2,HEADH+48,`600 13px ${FS}`,C.warn,'center');
-    txt(ctx,'Use the panel button in the sidebar',b.w/2,HEADH+66,`9px ${FM}`,C.faint,'center');
+    txt(ctx,'Use the panel button in the sidebar',b.w/2,HEADH+66,`9.5px ${FS}`,C.faint,'center');
     return;
   }
 
-  /* circuit regions — lighter when both layers share the wall */
-  if(sp) used(s,'power').forEach(ch=>{
-    const bb=bbox(s,b,ch); if(!bb) return;
-    roundRect(ctx,bb.x1-3,bb.y1-3,bb.x2-bb.x1+6,bb.y2-bb.y1+6,5);
-    if(!dual){ ctx.save(); ctx.globalAlpha=.06; ctx.fillStyle=ink(ch.color); ctx.fill(); ctx.restore(); }
-    ctx.save(); ctx.globalAlpha=dual?.4:.7; ctx.strokeStyle=ink(ch.color); ctx.lineWidth=dual?1:1.3; ctx.stroke(); ctx.restore();
-  });
-
-  /* tiles */
+  /* tiles: a quiet neutral panel, tinted with its run's colour */
+  const rr=Math.min(3.5,b.tw*.09,b.th*.09), tint=PRINT?(dual?.09:.13):(dual?.12:.17);
   for(let r=0;r<s.rows;r++) for(let c=0;c<s.cols;c++){
     const t=key(r,c), q=tileXY(s,b,r,c), dead=isOff(s,r,c);
     const pc=sp?chainOf(s,'power',t):null, dc=sd?chainOf(s,'data',t):null;
     const acc=pc?pc.color:(dc?dc.color:null);
-    roundRect(ctx,q.x,q.y,b.tw,b.th,Math.min(4,b.tw*.1,b.th*.1));
-    if(dead){ ctx.fillStyle=C.dead; ctx.fill(); ctx.setLineDash([3,3]); ctx.strokeStyle=C.deadEdge; }
-    else if(acc){ const ia=ink(acc); ctx.save(); ctx.globalAlpha=dual?.11:.16; ctx.fillStyle=ia; ctx.fill(); ctx.restore(); ctx.strokeStyle=ia; }
-    else { ctx.fillStyle=C.tile; ctx.fill(); ctx.strokeStyle=C.line; }
-    ctx.save(); ctx.globalAlpha=dead?1:(dual?.8:1);
-    ctx.lineWidth=dead?1:1.4; ctx.stroke(); ctx.restore(); ctx.setLineDash([]);
-    if(dead) continue;
-    if(b.tw>=24){ ctx.save(); ctx.globalAlpha=.55; ctx.strokeStyle=C.bezel; ctx.lineWidth=1;
-      roundRect(ctx,q.x+2.5,q.y+2.5,b.tw-5,b.th-5,Math.min(2.5,b.tw*.07)); ctx.stroke(); ctx.restore(); }
+    roundRect(ctx,q.x,q.y,b.tw,b.th,rr);
+    if(dead){ ctx.fillStyle=C.dead; ctx.fill(); ctx.save(); ctx.setLineDash([2,3]); ctx.strokeStyle=C.deadEdge; ctx.lineWidth=1; ctx.stroke(); ctx.restore();
+      if(b.tw>=20){ ctx.save(); ctx.strokeStyle=C.deadEdge; ctx.lineWidth=1; ctx.beginPath();   /* a soft cross marks a cutout */
+        const m=Math.min(b.tw,b.th)*.22; ctx.moveTo(q.x+b.tw/2-m,q.y+b.th/2-m); ctx.lineTo(q.x+b.tw/2+m,q.y+b.th/2+m);
+        ctx.moveTo(q.x+b.tw/2+m,q.y+b.th/2-m); ctx.lineTo(q.x+b.tw/2-m,q.y+b.th/2+m); ctx.stroke(); ctx.restore(); }
+      continue; }
+    ctx.fillStyle=C.tile; ctx.fill();
+    if(acc){ const ia=ink(acc); ctx.save(); ctx.globalAlpha=tint; ctx.fillStyle=ia; ctx.fill();
+      ctx.globalAlpha=PRINT?.55:.5; ctx.strokeStyle=ia; ctx.lineWidth=1; ctx.stroke(); ctx.restore(); }
+    else { ctx.strokeStyle=C.line; ctx.lineWidth=1; ctx.stroke(); }
 
-    /* data marker: left edge strip in clean mode, corner number otherwise */
-    if(dual&&dc&&!showNums&&b.tw>16){ ctx.fillStyle=dc.color; ctx.fillRect(q.x+1,q.y+3,2.2,b.th-6); }
+    /* data marker: left edge strip in clean mode */
+    if(dual&&dc&&!showNums&&b.tw>16){ ctx.fillStyle=ink(dc.color); roundRect(ctx,q.x+2,q.y+4,2,b.th-8,1); ctx.fill(); }
 
     if(isActive&&(mode==='power'||mode==='data')){
       const a=chains(s,mode)[active[mode]];
       if(a&&a.tiles.includes(t)){
-        roundRect(ctx,q.x+1.5,q.y+1.5,b.tw-3,b.th-3,Math.min(3,b.tw*.08));
-        ctx.save(); ctx.globalAlpha=UITHEME==='light'?.7:.5; ctx.strokeStyle=UITHEME==='light'?C.head:'#fff'; ctx.lineWidth=1; ctx.stroke(); ctx.restore();
+        roundRect(ctx,q.x+1.5,q.y+1.5,b.tw-3,b.th-3,Math.max(1,rr-1));
+        ctx.save(); ctx.globalAlpha=UITHEME==='light'?.55:.45; ctx.strokeStyle=UITHEME==='light'?C.head:'#fff'; ctx.lineWidth=1; ctx.stroke(); ctx.restore();
       }
     }
-    /* power number top-right, data number bottom-left — opposite corners */
   }
 
   LABELLED=new Set();
@@ -176,28 +172,29 @@ function drawScreen(ctx,s,b,sp,sd,isActive){
     if(!XO||XO.backup) drawBackups(ctx,s,b);
   }
 
-  /* chain numbers go on last so a cable never hides them */
+  /* numbers go on last so a cable never hides them: a numbered stop on the run, or a corner chip
+     when power and data share the wall */
+  const rN=Math.max(5.5,Math.min(8.5,Math.min(b.tw,b.th)*.165));
   for(let r=0;r<s.rows;r++) for(let c=0;c<s.cols;c++){
     if(isOff(s,r,c)) continue;
     const t=key(r,c), q=tileXY(s,b,r,c);
-    if(LABELLED&&LABELLED.has(t)) continue;   /* the pill already names this tile */
     const pc=sp?chainOf(s,'power',t):null, dc=sd?chainOf(s,'data',t):null;
     const ch2=pc||dc;
-    /* grid reference: bottom-left, haloed so a cable can never bury it */
-    if(showRefs&&b.tw>=32){
-      const lbl=`R${r+1}C${c+1}`;
-      let fs=Math.max(6,Math.min(8.5,(b.tw-7)/(lbl.length*0.62)));
-      ctx.save();
-      ctx.font=`${fs}px ${FM}`; ctx.textAlign='left'; ctx.textBaseline='alphabetic';
-      ctx.lineWidth=2.8; ctx.lineJoin='round'; ctx.strokeStyle=C.bg;
-      ctx.strokeText(lbl,q.x+3,q.y+b.th-3.5);
-      ctx.globalAlpha=PRINT?.9:.75;
-      ctx.fillStyle=ch2?ink(ch2.color):C.faint;
-      ctx.fillText(lbl,q.x+3,q.y+b.th-3.5);
-      ctx.restore();
+    /* grid reference, bottom-left */
+    if(showRefs&&b.tw>=34){   /* kept left of centre so the run line never crosses it */
+      const lbl=`R${r+1}C${c+1}`, room=b.tw/2-9.5-(dual?Math.max(3,Math.min(b.tw,b.th)*0.17):0), fs=Math.min(7.5,room/(lbl.length*0.56));
+      if(fs>=5) txt(ctx,lbl,q.x+4,q.y+b.th-4,`500 ${fs.toFixed(2)}px ${FS}`,ch2?ink(ch2.color):C.faint,'left',PRINT?.85:.7);
     }
-    /* chain order: top-right in both layers */
-    if(showNums&&b.tw>26&&ch2) chipDraw(ctx,q.x+b.tw-3,q.y+3,String(chainPos(ch2,t,s)),ch2.color,'tr');
+    if(LABELLED&&LABELLED.has(t)) continue;   /* the run's label already names this tile */
+    if(!showNums||!ch2) continue;
+    const n=String(chainPos(ch2,t,s));
+    if(dual){ if(b.tw>26) chipDraw(ctx,q.x+b.tw-3,q.y+3,n,ch2.color,'tr'); continue; }
+    if(b.tw<18) continue;
+    const a=ctr(s,b,t), co=ink(ch2.color), rad=n.length>2?rN*1.15:rN;
+    ctx.save(); ctx.beginPath(); ctx.arc(a.x,a.y,rad,0,Math.PI*2);
+    ctx.fillStyle=co; ctx.fill(); ctx.lineWidth=1.6; ctx.strokeStyle=C.frame; ctx.stroke();
+    ctx.font=`600 ${(n.length>2?rN*1.0:rN*1.18).toFixed(2)}px ${FS}`; ctx.fillStyle=onColor(co); ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(n,a.x,a.y+.5); ctx.restore();
   }
 
   if(curved(s)) drawLocks(ctx,s,b);
@@ -232,7 +229,7 @@ function drawBackups(ctx,s,b){
     const br=backupFor(s,ch); return br?'B '+br.name:null;
   };
   const labels=used(s,'data').filter(ch=>!isBackupRun(s,ch)).map(labelOf).filter(Boolean);
-  ctx.save(); ctx.font=`700 10px ${FM}`;
+  ctx.save(); ctx.font=`700 10px ${FS}`;
   const wMax=Math.max(1,...labels.map(t=>ctx.measureText(t).width));    /* width at 10px */
   ctx.restore();
   const room=b.tw-4, padX=7;
@@ -264,13 +261,13 @@ function drawBackups(ctx,s,b){
     const h=pts[0];
     const full=labelOf(ch)||label;
     const t2=compact?full.replace(/^BK |^B /,'').replace(/^P/,'B'):full;   /* "B10" on very small tiles */
-    ctx.font=`700 ${fs.toFixed(2)}px ${FM}`;
+    ctx.font=`700 ${fs.toFixed(2)}px ${FS}`;
     const ph=Math.max(9,fs+5), pw2=Math.min(room,ctx.measureText(t2).width+padX);
     /* pill centred on the tile so it can never spill onto the next panel */
     roundRect(ctx,hc.x-pw2/2,h.y-ph/2,pw2,ph,ph/2);
     ctx.fillStyle=C.chip; ctx.fill();
     ctx.strokeStyle=col; ctx.lineWidth=1.3; ctx.setLineDash([2,2]); ctx.stroke(); ctx.setLineDash([]);
-    txt(ctx,t2,hc.x,h.y+fs*0.34,`700 ${fs.toFixed(2)}px ${FM}`,col,'center');
+    txt(ctx,t2,hc.x,h.y+fs*0.34,`700 ${fs.toFixed(2)}px ${FS}`,col,'center');
     if(LABELLED) LABELLED.add(TLb[TLb.length-1]);        /* keep the chain number off it */
     ctx.restore();
   });
@@ -283,97 +280,93 @@ function bbox(s,b,ch){
     x1=Math.min(x1,q.x);y1=Math.min(y1,q.y);x2=Math.max(x2,q.x+b.tw);y2=Math.max(y2,q.y+b.th);});
   return {x1,y1,x2,y2};
 }
+/* small drawn glyphs for run heads: a play triangle for data, a bolt for power */
+function runGlyph(ctx,x,y,sz,isPower,col){
+  ctx.save(); ctx.fillStyle=col; ctx.beginPath();
+  if(isPower){ const u=sz/10; ctx.moveTo(x+1*u,y-5*u); ctx.lineTo(x-3.5*u,y+.8*u); ctx.lineTo(x-.2*u,y+.8*u); ctx.lineTo(x-1*u,y+5*u);
+    ctx.lineTo(x+3.5*u,y-.8*u); ctx.lineTo(x+.2*u,y-.8*u); ctx.closePath(); }
+  else { const u=sz/10; ctx.moveTo(x-2.6*u,y-3.6*u); ctx.lineTo(x+3.4*u,y); ctx.lineTo(x-2.6*u,y+3.6*u); ctx.closePath(); }
+  ctx.fill(); ctx.restore();
+}
+/* one continuous run: a haloed line through every tile, small arrowheads between stops */
 function flow(ctx,s,b,ch,isPower,dual,hops,label){
-  ctx.save();
   const CO=ink(ch.color), TL=LT(s,ch);
-  if(!TL.length){ ctx.restore(); return; }
-  const lw=isPower?(dual?2.2:2.4):(dual?1.6:1.9);
-  for(let i=0;i<TL.length-1;i++){
-    const a=anchor(s,b,TL[i],isPower,dual), z2=anchor(s,b,TL[i+1],isPower,dual);
-    ctx.strokeStyle=CO; ctx.lineWidth=lw; ctx.lineCap='round';
-    ctx.setLineDash(isPower?[]:[7,5]);
-    ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(z2.x,z2.y); ctx.stroke();
-    ctx.setLineDash([]);
-    const mx=(a.x+z2.x)/2, my=(a.y+z2.y)/2;
-    const ang=Math.atan2(z2.y-a.y,z2.x-a.x), z=isPower?(dual?5:6):(dual?4.4:5.5);
-    ctx.save();
-    if(isPower){
-      /* same glyph as the C1 head marker, sitting upright on the run */
-      const gs=Math.max(9,Math.min(13.5,Math.min(b.tw,b.th)*0.28));
-      ctx.font=`700 ${gs}px ${FM}`;
-      ctx.textAlign='center'; ctx.textBaseline='middle';
-      ctx.lineWidth=3.2; ctx.lineJoin='round'; ctx.strokeStyle=C.bg;
-      ctx.strokeText('\u26A1',mx,my+0.5);
-      ctx.fillStyle=CO; ctx.fillText('\u26A1',mx,my+0.5);
-    } else {
-      ctx.translate(mx,my); ctx.rotate(ang);
-      ctx.beginPath();
-      ctx.moveTo(z,0); ctx.lineTo(-z*.7,z*.78); ctx.lineTo(-z*.7,-z*.78); ctx.closePath();
-      ctx.fillStyle=CO; ctx.fill();
-    }
+  if(!TL.length) return;
+  const P=TL.map(t=>anchor(s,b,t,isPower,dual));
+  const lw=isPower?(dual?2:2.4):(dual?1.5:2);
+  ctx.save(); ctx.lineCap='round'; ctx.lineJoin='round';
+  const path=()=>{ ctx.beginPath(); P.forEach((q,i)=>i?ctx.lineTo(q.x,q.y):ctx.moveTo(q.x,q.y)); };
+  if(P.length>1){
+    path(); ctx.strokeStyle=C.frame; ctx.globalAlpha=PRINT?.9:.65; ctx.lineWidth=lw+3; ctx.stroke(); ctx.globalAlpha=1;
+    path(); ctx.strokeStyle=CO; ctx.lineWidth=lw; ctx.setLineDash(!isPower&&dual?[5,4]:[]); ctx.stroke(); ctx.setLineDash([]);
+  }
+  const z=Math.max(2.8,Math.min(4.2,Math.min(b.tw,b.th)*.085))*(dual?.85:1);
+  for(let i=0;i<P.length-1;i++){
+    const a=P[i], e=P[i+1], mx=(a.x+e.x)/2, my=(a.y+e.y)/2;
+    ctx.save(); ctx.translate(mx,my); ctx.rotate(Math.atan2(e.y-a.y,e.x-a.x));
+    ctx.beginPath(); ctx.moveTo(z*1.25,0); ctx.lineTo(-z*.85,z); ctx.lineTo(-z*.35,0); ctx.lineTo(-z*.85,-z); ctx.closePath();
+    ctx.lineJoin='round'; ctx.lineWidth=1.4; ctx.strokeStyle=C.frame; ctx.stroke(); ctx.fillStyle=CO; ctx.fill();
     ctx.restore();
     if(hops&&b.tw>46){
-      const label=`${i+1}\u2192${i+2}`, yo=isPower?-10:10;
-      ctx.font=`7.5px ${FM}`;
-      const w=ctx.measureText(label).width+9;
+      const hl=`${i+1}\u2192${i+2}`, yo=isPower?-10:10;
+      ctx.font=`500 7.5px ${FS}`;
+      const w=ctx.measureText(hl).width+9;
       roundRect(ctx,mx-w/2,my+yo-6,w,12,6); ctx.fillStyle=C.chip; ctx.fill();
-      ctx.strokeStyle=CO; ctx.lineWidth=.9; ctx.stroke();
-      txt(ctx,label,mx,my+yo+2,`7.5px ${FM}`,CO,'center');
+      ctx.strokeStyle=CO; ctx.lineWidth=.8; ctx.stroke();
+      txt(ctx,hl,mx,my+yo+2.6,`500 7.5px ${FS}`,CO,'center');
     }
   }
-  const h=anchor(s,b,TL[0],isPower,dual), rad=isPower?(dual?7:8):(dual?6:6.5);
-  const glyph=isPower?'\u26A1':'\u25B6';
+  /* the head of the run: a solid label in the run's colour */
+  const h=P[0], on=onColor(CO);
   if(label&&b.tw>=30){
-    const t=glyph+' '+label;
-    ctx.font=`700 8.5px ${FM}`;
-    const w=ctx.measureText(t).width+11, hh=14;
-    roundRect(ctx,h.x-w/2,h.y-hh/2,w,hh,7);
-    ctx.fillStyle=C.chip; ctx.fill();
-    ctx.strokeStyle=CO; ctx.lineWidth=1.6; ctx.stroke();
-    txt(ctx,t,h.x,h.y+3,`700 8.5px ${FM}`,CO,'center');
+    ctx.font=`700 8.5px ${FS}`;
+    const tw=ctx.measureText(label).width, w=tw+21, hh=15;
+    roundRect(ctx,h.x-w/2,h.y-hh/2,w,hh,hh/2);
+    ctx.lineWidth=2; ctx.strokeStyle=C.frame; ctx.stroke(); ctx.fillStyle=CO; ctx.fill();
+    runGlyph(ctx,h.x-w/2+8.5,h.y,isPower?9:7.5,isPower,on);
+    txt(ctx,label,h.x-w/2+15,h.y+3,`700 8.5px ${FS}`,on);
     if(LABELLED) LABELLED.add(TL[0]);
   } else {
+    const rad=isPower?(dual?6.5:7.5):(dual?5.5:6.5);
     ctx.beginPath(); ctx.arc(h.x,h.y,rad,0,Math.PI*2);
-    ctx.fillStyle=C.chip; ctx.fill(); ctx.strokeStyle=CO; ctx.lineWidth=1.6; ctx.stroke();
-    txt(ctx,glyph,h.x,h.y+3,`700 ${isPower?9:8}px ${FM}`,CO,'center');
+    ctx.lineWidth=2; ctx.strokeStyle=C.frame; ctx.stroke(); ctx.fillStyle=CO; ctx.fill();
+    runGlyph(ctx,h.x+(isPower?0:.6),h.y,isPower?9:7,isPower,on);
+    if(LABELLED) LABELLED.add(TL[0]);
   }
   ctx.restore();
 }
 function drawLegend(ctx,s,b,sp,sd){
   const groups=legendGroups(s,sp,sd);
   if(!groups.length) return;
-  const x0=PAD, maxW=b.w-PAD*2, colW=maxW/b.perRow;
+  const x0=PAD, maxW=b.w-PAD*2;
   let y=HEADH+PAD+b.gh+PAD;
   ctx.strokeStyle=C.line; ctx.lineWidth=1;
   ctx.beginPath(); ctx.moveTo(x0,y-7); ctx.lineTo(b.w-PAD,y-7); ctx.stroke();
   y+=2;
   groups.forEach((grp,gi)=>{
-    ctx.save(); ctx.font=`8px ${FM}`;
+    ctx.save(); ctx.font=`600 7px ${FS}`; if('letterSpacing' in ctx) ctx.letterSpacing='.84px';
     let head=grp.title;
-    if(ctx.measureText(head).width>maxW-40&&grp.short) head=grp.short;
+    if(ctx.measureText(head.toUpperCase()).width>maxW-40&&grp.short) head=grp.short;
+    const tw2=ctx.measureText(head.toUpperCase()).width;
     ctx.restore();
-    txt(ctx,head,x0,y+4,`8px ${FM}`,C.faint);
-    ctx.save();
-    ctx.font=`8px ${FM}`;
-    const tw2=ctx.measureText(head).width;
-    ctx.strokeStyle=C.rule; ctx.lineWidth=1; ctx.setLineDash([]);
-    ctx.beginPath(); ctx.moveTo(x0+tw2+10,y+1); ctx.lineTo(b.w-PAD,y+1); ctx.stroke();
-    ctx.restore();
-    y+=13;
+    capTxt(ctx,head,x0,y+4,7,C.faint);
+    ctx.save(); ctx.strokeStyle=C.rule; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(x0+tw2+10,y+1.5); ctx.lineTo(b.w-PAD,y+1.5); ctx.stroke(); ctx.restore();
+    y+=14;
     const per=grp.items.length===1?1:b.perRow;
     const cw=maxW/per;
     grp.items.forEach((it,i)=>{
       const x=x0+(i%per)*cw, ly=y+Math.floor(i/per)*13+2;
       if(it.lock) lockBadge(ctx,x+6,ly,it.lock,5);
-      else { ctx.save(); ctx.strokeStyle=ink(it.c); ctx.lineWidth=2.2; ctx.lineCap='round';
-        ctx.setLineDash(it.dash===2?[2,2]:it.dash?[4,3]:[]);
-        ctx.beginPath(); ctx.moveTo(x,ly); ctx.lineTo(x+12,ly); ctx.stroke(); ctx.restore(); }
+      else { ctx.save(); ctx.strokeStyle=ink(it.c); ctx.lineWidth=2.4; ctx.lineCap='round';
+        ctx.setLineDash(it.dash===2?[.5,3.5]:it.dash?[4,3]:[]);
+        ctx.beginPath(); ctx.moveTo(x+1,ly); ctx.lineTo(x+12,ly); ctx.stroke(); ctx.restore(); }
       let label=it.t+(it.over?'   OVER':'');
-      ctx.save(); ctx.font=`8px ${FM}`;
+      ctx.save(); ctx.font=`500 8.5px ${FS}`;
       if(it.short&&ctx.measureText(label).width>cw-22) label=it.short+(it.over?'  OVER':'');
       ctx.restore();
-      label=clipText(ctx,label,cw-22,`8px ${FM}`);
-      txt(ctx,label,x+17,ly+3,`8px ${FM}`,it.over?C.bad:C.sub);
+      label=clipText(ctx,label,cw-22,`500 8.5px ${FS}`);
+      txt(ctx,label,x+18,ly+3,`500 8.5px ${FS}`,it.over?C.bad:C.sub);
     });
     y+=Math.ceil(grp.items.length/per)*13;
     if(gi<groups.length-1) y+=9;
@@ -407,25 +400,25 @@ function drawSummary(ctx){
   const hb=[titleVenue(),titleDate()];
   if(XO&&XO.author) hb.push('Drawn by '+XO.author);
   if(XO&&XO.rev) hb.push('Dwg '+XO.rev);
-  txt(ctx,clipText(ctx,hb.filter(Boolean).join('   ·   '),W-72,`10px ${FM}`),36,60,`10px ${FM}`,C.sub);
+  txt(ctx,clipText(ctx,hb.filter(Boolean).join('   ·   '),W-72,`500 10px ${FS}`),36,60,`500 10px ${FS}`,C.sub);
   ctx.strokeStyle=C.line; ctx.beginPath(); ctx.moveTo(36,74); ctx.lineTo(W-36,74); ctx.stroke();
   const cols=[56,240,430,570,760,1090], hd=['Item','Detail','Resolution','Size','Rating','Device'];
   const wid=cols.map((c,i)=>(i<cols.length-1?cols[i+1]:W-36)-c-12);
-  hd.forEach((t,i)=>txt(ctx,t,cols[i],94,`600 9.5px ${FS}`,C.faint));
+  hd.forEach((t,i)=>capTxt(ctx,t,cols[i],94,7.5,C.faint));
   let y=114, zi=0;
   rows.forEach(r=>{
     if(r.h){ zi=0; roundRect(ctx,36,y-14,W-72,22,7); ctx.fillStyle=C.band; ctx.fill();
       txt(ctx,clipText(ctx,r.a,wid[0],`700 11px ${FS}`),44,y,`700 11px ${FS}`,C.head); }
     else { if(zi++%2){ roundRect(ctx,36,y-13,W-72,20,6); ctx.save(); ctx.globalAlpha=.5; ctx.fillStyle=C.band; ctx.fill(); ctx.restore(); }
       if(r.col){ ctx.beginPath(); ctx.arc(45,y-3,3.5,0,Math.PI*2); ctx.fillStyle=ink(r.col); ctx.fill(); }
-      txt(ctx,clipText(ctx,r.a,wid[0],`9.5px ${FM}`),cols[0],y,`9.5px ${FM}`,C.sub); }
+      txt(ctx,clipText(ctx,r.a,wid[0],`500 10px ${FS}`),cols[0],y,`500 10px ${FS}`,C.sub); }
     [r.b,r.c,r.d,r.e,r.f].forEach((v,i)=>{ if(v==null) return;
-      txt(ctx,clipText(ctx,String(v),wid[i+1],`9.5px ${FM}`),cols[i+1],y,`9.5px ${FM}`,
+      txt(ctx,clipText(ctx,String(v),wid[i+1],`500 10px ${FS}`),cols[i+1],y,`500 10px ${FS}`,
         r.h?C.sub:(r.over&&i===4?C.bad:C.cell)); });
     y+=20;
   });
   txt(ctx,`Circuit amps sized on ${o.useAvg?'average':'maximum'} panel draw${o.derate?' with 80% continuous derate':' at full breaker rating'}. Port capacity shown at ${bitDepth()}-bit${bitDepth()!==8?` (${Math.round(bitFactor()*100)}% of the published 8-bit figure)`:''}. Confirm against panel spec sheets and local code before energizing.`,
-      36,H-24,`8.5px ${FM}`,C.faint);
+      36,H-24,`500 9px ${FS}`,C.faint);
   return {w:W,h:H};
 }
 
@@ -437,10 +430,10 @@ function drawSchedule(ctx){
   const hb=[titleVenue(),titleDate()];
   if(XO&&XO.author) hb.push('Drawn by '+XO.author);
   if(XO&&XO.rev) hb.push('Dwg '+XO.rev);
-  txt(ctx,clipText(ctx,hb.filter(Boolean).join('   ·   '),W-72,`10px ${FM}`),36,60,`10px ${FM}`,C.sub);
+  txt(ctx,clipText(ctx,hb.filter(Boolean).join('   ·   '),W-72,`500 10px ${FS}`),36,60,`500 10px ${FS}`,C.sub);
   ctx.strokeStyle=C.line; ctx.beginPath(); ctx.moveTo(36,74); ctx.lineTo(W-36,74); ctx.stroke();
   const cols=[56,116,200,470,720,830,960,1120], wid=cols.map((c,i)=>(i<cols.length-1?cols[i+1]:W-36)-c-10);
-  ['Type','ID','From','To','Tiles','Load','Est. run','Spec'].forEach((t,i)=>txt(ctx,t,cols[i],94,`600 9.5px ${FS}`,C.faint));
+  ['Type','ID','From','To','Tiles','Load','Est. run','Spec'].forEach((t,i)=>capTxt(ctx,t,cols[i],94,7.5,C.faint));
   let y=114, cur='', zi=0;
   rows.forEach(r=>{
     if(r.sid!==cur){
@@ -452,11 +445,11 @@ function drawSchedule(ctx){
     if(zi++%2){ roundRect(ctx,36,y-13,W-72,20,6); ctx.save(); ctx.globalAlpha=.5; ctx.fillStyle=C.band; ctx.fill(); ctx.restore(); }
     ctx.beginPath(); ctx.arc(45,y-3,3.5,0,Math.PI*2); ctx.fillStyle=ink(r.color); ctx.fill();
     const vals=[r.kind,r.id,r.from,r.to,String(r.tiles),r.load,r.est+' ft',r.spec+' ft'];
-    vals.forEach((v,i)=>txt(ctx,clipText(ctx,v,wid[i],`9.5px ${FM}`),cols[i],y,`9.5px ${FM}`,i<2?C.sub:C.cell));
+    vals.forEach((v,i)=>txt(ctx,clipText(ctx,v,wid[i],`500 10px ${FS}`),cols[i],y,`500 10px ${FS}`,i<2?C.sub:C.cell));
     y+=20;
   });
   txt(ctx,'Run lengths are estimated from tile-to-tile geometry plus a drop to deck and 10 ft of slack. Verify on site before cutting or ordering.',
-      36,H-24,`8.5px ${FM}`,C.faint);
+      36,H-24,`500 9px ${FS}`,C.faint);
   return {w:W,h:H};
 }
 function scheduleCanvas(){ return renderToCanvas(p=>drawSchedule(p),ctx=>drawSchedule(ctx)); }

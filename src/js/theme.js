@@ -5,20 +5,20 @@ const PW_PAL=['#fc7200','#108cfe','#03cd80','#f84f3f','#9374fe','#49ba12','#e79a
               '#fe3f74','#09acb4','#a5b401','#fd2fac','#b9b4f7','#63a344','#f49b9e','#d671b3','#8bddb4','#918e47'];
 const DT_PAL=['#09aeef','#fc7200','#49ba12','#108cfe','#f84f3f','#63a344','#9374fe','#fe3f74','#03cd80','#eaa700',
               '#f15def','#09acb4','#a5b401','#fd2fac','#b9b4f7','#918e47','#8bddb4','#d671b3','#e79a58','#f49b9e'];
-const DARK={bg:'#0b0b0d',head:'#ededef',sub:'#a1a1aa',faint:'#63636d',tile:'#1c1c21',line:'#2d2d34',chip:'#0a0a0c',
-  frame:'#141417',bar:'#18181c',edge:'#26262c',edgeOn:'#55555f',grip:'#3a3a42',gripOn:'#63636d',
-  dead:'#111113',deadEdge:'#26262c',bezel:'#0c0c0e',big:'#ffffff',bigA:.8,bigDual:.38,
-  rule:'#1b1b1f',band:'#18181c',bandRule:'#1d1d22',cell:'#d4d4d8',bad:'#ff6363',warn:'#f5a524',
-  violet:'#c084fc',dataAcc:'#4fd1e0',ghost:'#34343c',dot:'#1c1c21',shadow:'rgba(0,0,0,.6)'};
-const LIGHTUI={bg:'#f4f3ef',head:'#191816',sub:'#5f5d58',faint:'#a19e97',tile:'#efede8',line:'#d6d3cb',chip:'#ffffff',
-  frame:'#ffffff',bar:'#fbfaf8',edge:'#e5e2db',edgeOn:'#a19e97',grip:'#cfccc4',gripOn:'#a19e97',
-  dead:'#f7f6f3',deadEdge:'#dcd9d1',bezel:'#e7e4dd',big:'#191816',bigA:.10,bigDual:.08,
-  rule:'#e6e3dc',band:'#f3f2ee',bandRule:'#e8e6e0',cell:'#2a2925',bad:'#d93a3f',warn:'#b46f00',
-  violet:'#7c3aed',dataAcc:'#0b8a9c',ghost:'#d6d3cb',dot:'#e0ddd5',shadow:'rgba(40,32,20,.12)'};
-const LIGHT={bg:'#ffffff',head:'#0f141b',sub:'#3f4a59',faint:'#6d7889',tile:'#f3f6f9',line:'#bcc5d0',chip:'#ffffff',
-  frame:'#ffffff',bar:'#f1f4f7',edge:'#cdd5df',edgeOn:'#7b8797',grip:'#aab4c0',gripOn:'#7b8797',
-  dead:'#f3f5f8',deadEdge:'#c6ced8',bezel:'#dde3ea',big:'#0f141b',bigA:.13,bigDual:.10,
-  rule:'#dde2e9',band:'#f1f4f7',bandRule:'#e4e8ee',cell:'#25303d',bad:'#c62828',warn:'#a85a00',
+const DARK={bg:'#0a0b0d',head:'#f2f2f4',sub:'#a3a4ad',faint:'#686973',tile:'#1a1b20',line:'#2a2b32',chip:'#0d0e11',
+  frame:'#121317',bar:'#15161b',edge:'#23242a',edgeOn:'#55565f',grip:'#34353c',gripOn:'#686973',
+  dead:'#0f1013',deadEdge:'#2a2b32',bezel:'#0c0d10',big:'#ffffff',bigA:.8,bigDual:.38,
+  rule:'#1e1f24',band:'#16171b',bandRule:'#1d1e23',cell:'#d6d6db',bad:'#ff6b6b',warn:'#f5a524',
+  violet:'#c084fc',dataAcc:'#4fd1e0',ghost:'#34353c',dot:'#1b1c21',shadow:'rgba(0,0,0,.55)'};
+const LIGHTUI={bg:'#f3f3f0',head:'#17181a',sub:'#5b5c61',faint:'#9c9da3',tile:'#f2f2ef',line:'#d9d9d4',chip:'#ffffff',
+  frame:'#ffffff',bar:'#fafaf8',edge:'#e3e3de',edgeOn:'#9c9da3',grip:'#cfcfca',gripOn:'#9c9da3',
+  dead:'#f8f8f6',deadEdge:'#d9d9d4',bezel:'#e7e7e2',big:'#17181a',bigA:.10,bigDual:.08,
+  rule:'#e7e7e2',band:'#f4f4f1',bandRule:'#e9e9e5',cell:'#2a2b2e',bad:'#d93a3f',warn:'#b46f00',
+  violet:'#7c3aed',dataAcc:'#0b8a9c',ghost:'#d4d4cf',dot:'#dededa',shadow:'rgba(20,20,30,.10)'};
+const LIGHT={bg:'#ffffff',head:'#0d1117',sub:'#475161',faint:'#7b8493',tile:'#f5f6f8',line:'#cdd2da',chip:'#ffffff',
+  frame:'#ffffff',bar:'#f6f7f9',edge:'#d7dce3',edgeOn:'#7b8493',grip:'#aab4c0',gripOn:'#7b8493',
+  dead:'#fafbfc',deadEdge:'#cdd2da',bezel:'#dde3ea',big:'#0d1117',bigA:.13,bigDual:.10,
+  rule:'#e1e5eb',band:'#f3f5f8',bandRule:'#e6e9ee',cell:'#232b37',bad:'#c62828',warn:'#a85a00',
   violet:'#6d28d9',dataAcc:'#0b7c8c',ghost:'#c3ccd7',dot:'#e6e9ee',shadow:'rgba(0,0,0,0)'};
 let C=Object.assign({},DARK), PRINT=false, UITHEME='dark';
 /* light or dark interface; the drawing palette follows it */

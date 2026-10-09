@@ -133,8 +133,8 @@ function drawPlan(ctx,measureOnly,Wd){
   const step=(D.x2-D.x1)>30000?3048:1524; ctx.strokeStyle=C.dot||C.line; ctx.lineWidth=1;
   for(let v=Math.ceil(D.x1/step)*step;v<D.x2;v+=step){ ctx.beginPath(); ctx.moveTo(X(v),T); ctx.lineTo(X(v),H-G-20); ctx.stroke(); }
   for(let v=Math.ceil(D.y1/step)*step;v<D.y2;v+=step){ ctx.beginPath(); ctx.moveTo(G,Y(v)); ctx.lineTo(W-G,Y(v)); ctx.stroke(); }
-  txt(ctx,'UPSTAGE',W/2,T+14,`700 9px ${FM}`,C.faint,'center');
-  txt(ctx,'AUDIENCE',W/2,H-G-6,`700 9px ${FM}`,C.faint,'center');
+  capTxt(ctx,'Upstage',W/2,T+14,8,C.faint,'center');
+  capTxt(ctx,'Audience',W/2,H-G-6,8,C.faint,'center');
   D.L.forEach(o=>{
     if(o.off.length){   /* too-close band */
       ctx.beginPath(); o.P.forEach((q,i)=>i?ctx.lineTo(X(q.x),Y(q.y)):ctx.moveTo(X(q.x),Y(q.y)));
@@ -142,7 +142,7 @@ function drawPlan(ctx,measureOnly,Wd){
       ctx.closePath(); ctx.fillStyle=pmRGBA(o.col,.12); ctx.fill();
       ctx.setLineDash([5,4]); ctx.strokeStyle=pmRGBA(o.col,.8); ctx.lineWidth=1.2; ctx.beginPath();
       o.off.forEach((q,i)=>i?ctx.lineTo(X(q.x),Y(q.y)):ctx.moveTo(X(q.x),Y(q.y))); ctx.stroke(); ctx.setLineDash([]);
-      const e=o.off[o.off.length-1]; txt(ctx,ftR(o.v.min),X(e.x)+4,Y(e.y)+3,`9px ${FM}`,o.col);
+      const e=o.off[o.off.length-1]; txt(ctx,ftR(o.v.min),X(e.x)+4,Y(e.y)+3,`500 9.5px ${FS}`,o.col);
     }
     ctx.strokeStyle=o.col; ctx.lineWidth=5; ctx.lineCap='round'; ctx.lineJoin='round';
     ctx.beginPath(); o.P.forEach((q,i)=>i?ctx.lineTo(X(q.x),Y(q.y)):ctx.moveTo(X(q.x),Y(q.y))); ctx.stroke(); ctx.lineCap='butt';
@@ -151,12 +151,12 @@ function drawPlan(ctx,measureOnly,Wd){
     const top=Math.min(...o.P.map(q=>Y(q.y)));
     txt(ctx,o.s.name,X(ux),top-20,`600 11px ${FS}`,C.head,'center');
     const info=[`${ftR(o.g.chord)} wide`].concat(o.g.depth>1?[`${ftR(o.g.depth)} deep`]:[]).concat(curveText(o.s)?[curveText(o.s)]:[]);
-    txt(ctx,info.join(' · '),X(ux),top-8,`9px ${FM}`,C.sub,'center');
+    txt(ctx,info.join(' · '),X(ux),top-8,`500 9.5px ${FS}`,C.sub,'center');
   });
   /* scale bar */
   const sb=step*2, sx=W-G-sb*k, sy=H-G-6;
   ctx.fillStyle=C.sub; ctx.fillRect(sx,sy-3,sb*k,2);
-  txt(ctx,ftIn(sb),sx-6,sy,`9px ${FM}`,C.sub,'right');
+  txt(ctx,ftIn(sb),sx-6,sy,`500 9.5px ${FS}`,C.sub,'right');
   return {w:W,h:H};
 }
 function planCanvas(){ return renderToCanvas(()=>drawPlan(null,true),ctx=>drawPlan(ctx,false)); }

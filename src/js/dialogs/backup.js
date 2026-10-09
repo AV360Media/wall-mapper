@@ -69,7 +69,7 @@ function renderBackup(){
       return `<div class="item" style="cursor:default">
         <div class="main"><div class="n" style="color:${ch.color}">${escp(ch.name)}</div>
           <div class="d">${LT(s,ch).length} tiles · ${(runCalc(s,ch).px/1000).toFixed(0)}k px</div></div>
-        <select style="width:150px;background:var(--elev);border:1px solid var(--line2);color:var(--tx);padding:5px 6px;border-radius:4px;font-family:'DM Mono',monospace;font-size:11.5px"
+        <select class="bksel"
           onchange="setBkPair('${ch.id}',this.value)">
           <option value="">— no backup —</option>${opts}
         </select></div>`;

@@ -182,6 +182,8 @@ function normalize(){
     const ids=new Set(s.runs.map(r=>r.id));
     Object.keys(s.backup.pairs).forEach(k=>{ if(!ids.has(k)||!ids.has(s.backup.pairs[k])) delete s.backup.pairs[k]; });
     if(typeof s.x!=='number'||typeof s.y!=='number'){ s.x=nx; s.y=0; }
+    if(s.curve&&!s.joints){ s.locks=[Math.abs(+s.curve)]; s.joints=Array(Math.max(0,s.cols-1)).fill(Math.sign(+s.curve)); }   /* one even curve, from an earlier build */
+    delete s.curve;
     pruneChains(s);
     nx=Math.max(nx,s.x+sbox(s).w+SETGAP);
   });

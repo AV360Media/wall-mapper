@@ -200,7 +200,29 @@ function drawScreen(ctx,s,b,sp,sd,isActive){
     if(showNums&&b.tw>26&&ch2) chipDraw(ctx,q.x+b.tw-3,q.y+3,String(chainPos(ch2,t,s)),ch2.color,'tr');
   }
 
+  if(curved(s)) drawLocks(ctx,s,b);
   if(showLeg&&b.leg) drawLegend(ctx,s,b,sp,sd);
+}
+/* curve locks: a numbered badge on the joint between two panels, on every row.
+   Round = wraps toward the audience, square = bows away */
+const lockCol=v=>v>0?C.warn:C.dataAcc;
+function lockBadge(ctx,x,y,v,r){
+  ctx.save();
+  if(v>0){ ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); } else roundRect(ctx,x-r,y-r,r*2,r*2,r*.35);
+  ctx.fillStyle=ink(lockCol(v)); ctx.fill(); ctx.lineWidth=1.4; ctx.strokeStyle=C.bg; ctx.stroke();
+  ctx.font=`700 ${r*1.3}px ${FS}`; ctx.fillStyle=onColor(ink(lockCol(v))); ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(String(Math.abs(v)),x,y+r*.06); ctx.restore();
+}
+function drawLocks(ctx,s,b){
+  const r0=Math.max(4.5,Math.min(8,Math.min(b.tw,b.th)*.2));
+  for(let k=0;k<s.cols-1;k++){
+    const v=jointOf(s,k); if(!v) continue;
+    for(let r=0;r<s.rows;r++){
+      if(isOff(s,r,k)&&isOff(s,r,k+1)) continue;
+      const a=tileXY(s,b,r,k), z=tileXY(s,b,r,k+1), x=(Math.min(a.x,z.x)+b.tw+Math.max(a.x,z.x))/2;
+      lockBadge(ctx,x,a.y+b.th/2,v,r0);
+    }
+  }
 }
 function drawBackups(ctx,s,b){
   const bk=bkOf(s), md=bkMode(s); if(md==='none') return;
@@ -342,9 +364,10 @@ function drawLegend(ctx,s,b,sp,sd){
     const cw=maxW/per;
     grp.items.forEach((it,i)=>{
       const x=x0+(i%per)*cw, ly=y+Math.floor(i/per)*13+2;
-      ctx.save(); ctx.strokeStyle=ink(it.c); ctx.lineWidth=2.2; ctx.lineCap='round';
-      ctx.setLineDash(it.dash===2?[2,2]:it.dash?[4,3]:[]);
-      ctx.beginPath(); ctx.moveTo(x,ly); ctx.lineTo(x+12,ly); ctx.stroke(); ctx.restore();
+      if(it.lock) lockBadge(ctx,x+6,ly,it.lock,5);
+      else { ctx.save(); ctx.strokeStyle=ink(it.c); ctx.lineWidth=2.2; ctx.lineCap='round';
+        ctx.setLineDash(it.dash===2?[2,2]:it.dash?[4,3]:[]);
+        ctx.beginPath(); ctx.moveTo(x,ly); ctx.lineTo(x+12,ly); ctx.stroke(); ctx.restore(); }
       let label=it.t+(it.over?'   OVER':'');
       ctx.save(); ctx.font=`8px ${FM}`;
       if(it.short&&ctx.measureText(label).width>cw-22) label=it.short+(it.over?'  OVER':'');

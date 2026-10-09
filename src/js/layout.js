@@ -28,6 +28,12 @@ function legendGroups(s,sp,sd){
     }
     if(bit.length) g.push({title:'BACKUP PORTS',short:'BACKUP',items:bit});
   }
+  if(curved(s)){
+    const n={}; for(let k=0;k<s.cols-1;k++){ const v=jointOf(s,k); if(v) n[v]=(n[v]||0)+1; }
+    const it=Object.keys(n).map(Number).sort((a,z)=>(z>0)-(a>0)||Math.abs(a)-Math.abs(z)).map(v=>{ const d=Math.abs(locksOf(s)[Math.min(locksOf(s).length,Math.abs(v))-1]);
+      return {lock:v,c:'#000',t:`Lock ${Math.abs(v)}   ${d}° ${v>0?'toward audience':'away from audience'}   ${n[v]} joint${n[v]===1?'':'s'}`,short:`Lock ${Math.abs(v)} ${d}°${v<0?' away':''}`}; });
+    g.push({title:`CURVE LOCKS — ${curveText(s).toUpperCase()}`,short:'CURVE LOCKS',items:it});
+  }
   return g;
 }
 function legendSize(groups,perRow){

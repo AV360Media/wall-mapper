@@ -82,6 +82,19 @@
       <div class="ctx-h"><span class="dot"></span><span class="t"></span></div>
       <div class="hint mode" id="modeHint"></div>
 
+      <div id="curveBlock" style="display:none">
+        <div class="seg two" id="tlTool">
+          <button data-v="cut" class="on" onclick="setTileTool('cut')">Cutouts</button>
+          <button data-v="curve" onclick="setTileTool('curve')">Curve locks</button>
+        </div>
+        <div id="curveOpts" style="display:none;margin-top:10px">
+          <div class="f"><label>Lock angles in degrees, for lock 1, 2, 3…</label><input id="scLocks" placeholder="2.5, 5, 7.5" onchange="setLocks(this.value)" onkeydown="if(event.key==='Enter')this.blur()" /></div>
+          <div class="f"><select id="lkAll" onchange="if(this.value!=='')setAllJoints(this.value);this.value='';this.blur()"></select></div>
+          <button class="btn sm ghost dgr" style="width:100%" onclick="setAllJoints(0)">Clear all curves</button>
+          <div class="hint" id="lkNote"></div>
+        </div>
+      </div>
+
       <div id="chainBlock" style="display:none">
         <div class="sechead" id="chainTitle">Circuits</div>
         <div class="slots" id="slots"></div>
@@ -112,8 +125,7 @@
         </div>
         <button class="picker" id="panelPick" onclick="openLib('panel')"></button>
         <div class="warn" id="panelWarn"></div>
-        <div class="g3" style="margin-top:8px">
-          <div class="f"><label title="Angle at every column joint. + wraps toward the audience, − bows away">Curve °</label><input type="number" step="0.5" min="-30" max="30" id="scCurve" oninput="setScreen('curve',this.value)" /></div>
+        <div class="g2" style="margin-top:8px">
           <div class="f"><label title="Turns the whole screen in the plan view">Turn °</label><input type="number" step="1" min="-90" max="90" id="scYaw" oninput="setScreen('yaw',this.value)" /></div>
           <div class="f"><label title="How far upstage this screen sits, for the plan view">Upstage ft</label><input type="number" step="0.5" id="scDepth" oninput="setScreen('depth',this.value)" /></div>
         </div>

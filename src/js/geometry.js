@@ -1,20 +1,31 @@
 /* ========================= GEOMETRY: CURVES, ANGLES, VIEWING ========================= */
-/* s.curve is the angle at every column joint (+ wraps toward the audience, - bows away);
-   s.yaw turns the whole screen in plan (+ is clockwise seen from above) */
+/* Curved panels lock at numbered positions (1, 2, 3…) on their sides. s.joints[k] is the lock at
+   the joint between column k and k+1: + wraps toward the audience, − bows away. s.locks holds the
+   degrees each lock number gives. s.yaw turns the whole screen in plan (+ is clockwise from above). */
 const rad=d=>d*Math.PI/180;
-const curveOf=s=>+s.curve||0, yawOf=s=>+s.yaw||0;
-const bent=s=>!!(curveOf(s)||yawOf(s));
+const DEF_LOCKS=[2.5,5,7.5];
+const locksOf=s=>(Array.isArray(s.locks)&&s.locks.length?s.locks:DEF_LOCKS);
+const jointOf=(s,k)=>(s.joints&&s.joints[k])|0;
+const jointDeg=(s,k)=>{ const v=jointOf(s,k), L=locksOf(s); return v?Math.sign(v)*(L[Math.min(L.length,Math.abs(v))-1]||0):0; };
+const curved=s=>!!(s.joints&&s.joints.some((v,k)=>v&&k<s.cols-1));
+const yawOf=s=>+s.yaw||0;
+const bent=s=>curved(s)||!!yawOf(s);
 const ftR=mm=>ftIn(Math.round(mm/25.4)*25.4);   /* to the nearest inch */
-/* plan polyline of the panel edges in mm, centred on the chord, before any yaw */
+const lockFmt=v=>`${Math.abs(v)}${v<0?'−':''}`;
+/* plan polyline of the panel edges in mm, chord level and centred, before any yaw */
 function geo(s){
-  const p=panelById(s.panelId), w=p?p.wmm:500, n=Math.max(1,s.cols), a=rad(curveOf(s));
-  let th=-a*(n-1)/2, x=0, y=0; const pts=[{x,y}];
-  for(let k=0;k<n;k++){ x+=w*Math.cos(th); y+=w*Math.sin(th); pts.push({x,y}); th+=a; }
-  const A=pts[0], Z=pts[n], mx=(A.x+Z.x)/2, my=(A.y+Z.y)/2;
+  const p=panelById(s.panelId), w=p?p.wmm:500, n=Math.max(1,s.cols);
+  let th=0, x=0, y=0, sum=0; const pts=[{x,y}];
+  for(let k=0;k<n;k++){ x+=w*Math.cos(th); y+=w*Math.sin(th); pts.push({x,y}); if(k<n-1){ const d=rad(jointDeg(s,k)); th+=d; sum+=jointDeg(s,k); } }
+  const A=pts[0], Z=pts[n], r=-Math.atan2(Z.y-A.y,Z.x-A.x), c=Math.cos(r), sn=Math.sin(r);
+  pts.forEach(q=>{ const qx=q.x, qy=q.y; q.x=qx*c-qy*sn; q.y=qx*sn+qy*c; });
+  const mx=(pts[0].x+pts[n].x)/2, my=(pts[0].y+pts[n].y)/2;
   pts.forEach(q=>{ q.x-=mx; q.y-=my; });
-  const chord=Math.hypot(Z.x-A.x,Z.y-A.y);
+  const chord=Math.hypot(pts[n].x-pts[0].x,pts[n].y-pts[0].y);
   let depth=0; pts.forEach(q=>{ depth=Math.max(depth,Math.abs(q.y)); });
-  return {pts,chord,depth,arc:n*w,total:Math.abs(curveOf(s))*(n-1),radius:a?w/(2*Math.sin(Math.abs(a)/2)):0};
+  const used=[]; for(let k=0;k<n-1;k++) used.push(jointDeg(s,k));
+  const even=n>1&&used.every(v=>v&&v===used[0]);
+  return {pts,chord,depth,arc:n*w,total:sum,radius:even?w/(2*Math.sin(Math.abs(rad(used[0]))/2)):0};
 }
 /* rule of thumb: closest comfortable distance ≈ 1 m per mm of pitch, best from about 3× that */
 function viewDist(s){
@@ -23,19 +34,82 @@ function viewDist(s){
 }
 function curveText(s){
   const g=geo(s), bits=[];
-  if(curveOf(s)) bits.push(`${(+g.total.toFixed(1))}° ${curveOf(s)>0?'concave':'convex'}`,`R ${ftR(g.radius)}`);
+  if(curved(s)){ const t=Math.abs(+g.total.toFixed(1));
+    bits.push(t?`${t}° ${g.total>0?'concave':'convex'}`:'S-curve'); if(g.radius) bits.push(`R ${ftR(g.radius)}`); }
   if(yawOf(s)) bits.push(`turned ${yawOf(s)>0?'+':'−'}${Math.abs(yawOf(s))}°`);
   return bits.join(' · ');
 }
+/* ---- curve lock editing ---- */
+let tileTool='cut';
+function setTileTool(v){
+  tileTool=v;
+  document.querySelectorAll('#tlTool button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
+  document.getElementById('curveOpts').style.display=v==='curve'?'':'none';
+  document.getElementById('modeHint').textContent=v==='curve'
+    ?'Click the left or right side of a panel to set the curve lock on that joint. Each click steps 1, 2, 3, then the convex side (−); Shift-click steps back.'
+    :'Click tiles to switch them off for cutouts.';
+  segSync(); redraw();
+}
+function stepJoint(s,k,back){
+  const N=locksOf(s).length, order=[0];
+  for(let i=1;i<=N;i++) order.push(i); for(let i=1;i<=N;i++) order.push(-i);
+  const at=Math.max(0,order.indexOf(jointOf(s,k))), v=order[(at+(back?order.length-1:1))%order.length];
+  s.joints=s.joints||[]; while(s.joints.length<s.cols-1) s.joints.push(0);
+  s.joints[k]=v;
+  setStatus(v?`Joint ${k+1}|${k+2}: lock ${lockFmt(v)} (${jointDeg(s,k)>0?'+':''}${jointDeg(s,k)}°)`:`Joint ${k+1}|${k+2}: flat`);
+}
+/* which joint a click on tile c lands on: the side of the tile nearest the pointer */
+function jointAt(s,b,t,lx){
+  const c=+t.split(':')[1], r=+t.split(':')[0], q=tileXY(s,b,r,c), right=lx>q.x+b.tw/2;
+  const nb=right!==!!opt().rear?c+1:c-1;   /* rear view mirrors the columns */
+  const k=Math.min(c,nb);
+  return k>=0&&k<s.cols-1?k:null;
+}
+function setLocks(v){
+  const s=sc(); if(!s) return;
+  const L=String(v).split(/[,\s]+/).map(Number).filter(x=>x>0&&x<=45);
+  pushUndo('curve lock angles'); s.locks=L.length?L:DEF_LOCKS.slice();
+  syncCurveForm(); renderSide(); syncGeo(); redraw(); save();
+}
+function setAllJoints(v){
+  const s=sc(); if(!s) return; v=+v||0;
+  pushUndo(v?'curve every joint':'clear curves');
+  s.joints=Array(Math.max(0,s.cols-1)).fill(v);
+  syncCurveForm(); renderSide(); syncGeo(); redraw(); save();
+  setStatus(v?`Every joint on lock ${lockFmt(v)}`:'Curves cleared');
+}
+function syncCurveForm(){
+  const s=sc(), el=document.getElementById('scLocks'); if(!s||!el) return;
+  if(document.activeElement!==el) el.value=locksOf(s).join(', ');
+  const L=locksOf(s), sel=document.getElementById('lkAll');
+  sel.innerHTML='<option value="">Set every joint to…</option>'+L.map((d,i)=>`<option value="${i+1}">Lock ${i+1} · ${d}° toward audience</option>`).join('')
+    +L.map((d,i)=>`<option value="${-(i+1)}">Lock ${i+1}− · ${d}° away</option>`).join('');
+  const n=(s.joints||[]).filter((v,k)=>v&&k<s.cols-1).length;
+  document.getElementById('lkNote').textContent=n?`${n} of ${s.cols-1} joints curved · ${curveText(s)}`:'All joints flat.';
+}
 /* ---- plan view: every screen from above, audience at the bottom ---- */
+/* the edge of everything closer than m to the wall, on the audience side. Offsets each panel and
+   rounds each outside corner, then drops points that sit closer than m to some other panel
+   (a tight concave wrap pinches the band down to a point instead of folding over itself) */
+function band(P,m){
+  const n=[], out=[], segD=(q,a,z)=>{ const dx=z.x-a.x, dy=z.y-a.y, l2=dx*dx+dy*dy||1, t=Math.max(0,Math.min(1,((q.x-a.x)*dx+(q.y-a.y)*dy)/l2));
+    return Math.hypot(q.x-a.x-t*dx,q.y-a.y-t*dy); };
+  for(let i=0;i<P.length-1;i++){ const dx=P[i+1].x-P[i].x, dy=P[i+1].y-P[i].y, l=Math.hypot(dx,dy)||1; n.push(Math.atan2(dx/l,-dy/l)); }
+  const at=(q,a)=>({x:q.x+Math.cos(a)*m,y:q.y+Math.sin(a)*m});
+  n.forEach((a,i)=>{
+    if(i){ let d=a-n[i-1]; d=Math.atan2(Math.sin(d),Math.cos(d)); const st=Math.ceil(Math.abs(d)/.08);
+      for(let j=1;j<st;j++) out.push(at(P[i],n[i-1]+d*j/st)); }
+    for(let j=0;j<=8;j++){ const q={x:P[i].x+(P[i+1].x-P[i].x)*j/8,y:P[i].y+(P[i+1].y-P[i].y)*j/8}; out.push(at(q,a)); }
+  });
+  const A=P[0], Z=P[P.length-1], ux=Z.x-A.x, uy=Z.y-A.y;   /* survivors run left to right along the chord */
+  return out.filter(q=>P.every((a,i)=>i===P.length-1||segD(q,a,P[i+1])>=m-1))
+    .map(q=>[(q.x-A.x)*ux+(q.y-A.y)*uy,q]).sort((a,z)=>a[0]-z[0]).map(x=>x[1]);
+}
 function planLayout(){
   const L=S.screens.filter(s=>panelById(s.panelId)).map((s,i)=>{
     const g=geo(s), b=sbox(s), cx=(s.x+b.w/2)/MM, cy=-(+s.depth||0), t=rad(yawOf(s)), c=Math.cos(t), sn=Math.sin(t);
     const P=g.pts.map(q=>({x:cx+q.x*c-q.y*sn,y:cy+q.x*sn+q.y*c}));
-    const v=viewDist(s), off=[];
-    if(v) for(let k=0;k<P.length;k++){   /* each panel edge pushed out toward the audience by the closest viewing distance */
-      const a=P[Math.max(0,k-1)], z=P[Math.min(P.length-1,k+1)], dx=z.x-a.x, dy=z.y-a.y, l=Math.hypot(dx,dy)||1;
-      off.push({x:P[k].x-dy/l*v.min,y:P[k].y+dx/l*v.min}); }
+    const v=viewDist(s), off=v?band(P,v.min):[];
     return {s,g,P,off,v,col:pmCol(i)};
   });
   let x1=1e9,y1=1e9,x2=-1e9,y2=-1e9;

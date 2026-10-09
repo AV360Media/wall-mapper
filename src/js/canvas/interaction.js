@@ -35,6 +35,11 @@ cv.addEventListener('mousedown',e=>{
   }
   const t=hitTileLocal(h.s,h.b,h.lx,h.ly);
   if(!t){ panning={x:e.clientX,y:e.clientY}; cv.classList.add('panning'); return; }
+  if(mode==='layout'&&tileTool==='curve'){                /* curve locks: a click sets the joint on that side */
+    const k=jointAt(h.s,h.b,t,h.lx); if(k==null){ setStatus('The outside edges of a screen have no joint'); return; }
+    pushUndo('curve lock'); stepJoint(h.s,k,e.shiftKey||e.altKey);
+    syncCurveForm(); renderSide(); syncGeo(); redraw(); save(); return;
+  }
   const rm=e.shiftKey||e.altKey;
   pushUndo(mode==='power'?'power run':mode==='data'?'data run':'tile change');
   paint={rm,seen:new Set([t])}; applyTile(t,rm);

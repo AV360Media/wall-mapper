@@ -14,8 +14,8 @@ function setScreen(f,v){
     syncForm(); redraw(); renderSide(); renderSlots(); save();
     return;
   }
-  if(f==='curve'||f==='yaw'||f==='depth'){              /* plan geometry: blank means 0, one undo per burst of typing */
-    v=+v||0; const lim={curve:30,yaw:180}[f];
+  if(f==='yaw'||f==='depth'){              /* plan geometry: blank means 0, one undo per burst of typing */
+    v=+v||0; const lim={yaw:180}[f];
     if(lim) v=Math.max(-lim,Math.min(lim,v));
     if(f==='depth') v=Math.round(v*304.8);
     if(v===(+s[f]||0)) return;
@@ -138,6 +138,7 @@ function setMode(m){
   if(m==='power') setLayers('power');
   if(m==='data') setLayers('data');
   document.getElementById('chainBlock').style.display=(m==='power'||m==='data')?'block':'none';
+  document.getElementById('curveBlock').style.display=m==='layout'?'block':'none';
   document.getElementById('chainTitle').textContent=m==='power'?'Pick a circuit':'Pick a port';
   const hints={
     arrange:'Drag screens to position them. Hold Alt to place freely.',
@@ -145,6 +146,7 @@ function setMode(m){
     power:'Pick a circuit, then drag across tiles in order. Right-drag to erase. Keys 1–9 and 0 pick C1–C10; hold Shift for C11–C20.',
     data:'Pick a port, then drag across tiles in order. Right-drag to erase. Keys 1–9 and 0 pick P1–P10; hold Shift for P11–P20.'};
   document.getElementById('modeHint').textContent=hints[m];
+  if(m==='layout') setTileTool(tileTool);
   document.getElementById('helper').textContent='⌘/Ctrl + scroll to zoom · double-click a screen to focus';
   syncForm(); renderSlots(); syncRight(); redraw();
 }

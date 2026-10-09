@@ -20,7 +20,7 @@ cv.addEventListener('mousedown',e=>{
       e.preventDefault();
       if(h.i!==cur) selectScreen(h.i);
       pushUndo(mode==='power'?'erase circuit tiles':'erase data tiles');
-      paint={rm:true,seen:new Set([t])}; applyTile(t,true);
+      paint={rm:true,seen:new Set([t]),last:w,lt:t}; applyTile(t,true);
       cv.classList.add('erasing'); ctxPress=null;
       return;
     }
@@ -42,7 +42,7 @@ cv.addEventListener('mousedown',e=>{
   }
   const rm=e.shiftKey||e.altKey;
   pushUndo(mode==='power'?'power run':mode==='data'?'data run':'tile change');
-  paint={rm,seen:new Set([t])}; applyTile(t,rm);
+  paint={rm,seen:new Set([t]),last:w,lt:t}; applyTile(t,rm);
 });
 window.addEventListener('mousemove',e=>{
   if(panning){ view.x+=e.clientX-panning.x; view.y+=e.clientY-panning.y; panning={x:e.clientX,y:e.clientY}; redraw(); return; }
@@ -55,12 +55,37 @@ window.addEventListener('mousemove',e=>{
     s.x=np.x; s.y=np.y; redraw(); return;
   }
   if(!paint) return;
-  const w=toWorld(e), h=pickScreen(w.x,w.y);
-  if(!h||h.i!==cur) return;
-  const t=hitTileLocal(h.s,h.b,h.lx,h.ly);
-  if(!t||paint.seen.has(t)) return;
-  paint.seen.add(t); applyTile(t,paint.rm);
+  paintTo(toWorld(e));
 });
+/* a fast drag skips tiles between mouse events: walk the whole path and take every tile it crosses */
+function paintTo(w){
+  const a=paint.last||w, b=sbox(sc()), step=Math.max(2,Math.min(b.tw,b.th)/5);
+  const n=Math.max(1,Math.ceil(Math.hypot(w.x-a.x,w.y-a.y)/step));
+  let px=a.x, py=a.y;
+  for(let i=1;i<=n;i++){
+    const x=a.x+(w.x-a.x)*i/n, y=a.y+(w.y-a.y)*i/n, mx=(x+px)/2, my=(y+py)/2, h=pickScreen(x,y);
+    px=x; py=y;
+    if(!h||h.i!==cur) continue;
+    const t=hitTileLocal(h.s,h.b,h.lx,h.ly);
+    if(!t||t===paint.lt) continue;
+    if(paint.lt&&!paint.rm) bridge(h,paint.lt,t,mx,my);
+    paint.lt=t;
+    if(paint.seen.has(t)) continue;
+    paint.seen.add(t); applyTile(t,paint.rm);
+  }
+  paint.last=w;
+}
+/* cutting across a tile corner: add the side tile the path was closest to, so a run never hops diagonally */
+function bridge(h,from,to,x,y){
+  const [r0,c0]=from.split(':').map(Number), [r1,c1]=to.split(':').map(Number);
+  if(Math.abs(r1-r0)!==1||Math.abs(c1-c0)!==1) return;
+  const B=setBounds(), p=posOf(h.s,B);
+  const d=k=>{ const q=ctr(h.s,h.b,k); return Math.hypot(p.x+q.x-x,p.y+q.y-y); };
+  const opts=[key(r0,c1),key(r1,c0)].filter(k=>{ const [r,c]=k.split(':').map(Number); return !isOff(h.s,r,c); });
+  if(!opts.length) return;
+  const m=opts.sort((u,v)=>d(u)-d(v))[0];
+  if(!paint.seen.has(m)){ paint.seen.add(m); applyTile(m,paint.rm); }
+}
 window.addEventListener('mouseup',e=>{
   /* a right click that didn't move opens the screen menu */
   if(e.button===2&&ctxPress&&Math.hypot(e.clientX-ctxPress.x,e.clientY-ctxPress.y)<5){

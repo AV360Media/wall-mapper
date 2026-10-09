@@ -151,11 +151,11 @@ function blankScreen(n,x,y){
     backup:{mode:'none',pairs:{},procId:''},units:0,portMap:{},x:x||0,y:y||0};
 }
 const blankProject=()=>({name:'Untitled Project',venue:'',customPanels:[],
-  opt:{volts:120,breaker:20,derate:true,useAvg:false,rear:false,showPower:true,showData:false,detail:'standard',snap:true,ui:'indigo',bits:8,procShared:true},
+  opt:{volts:120,breaker:20,derate:true,useAvg:false,rear:true,showPower:true,showData:false,detail:'standard',snap:true,ui:'indigo',bits:8,procShared:true},
   screens:[blankScreen(1,0,0)]});
 
 function normalize(){
-  S.opt=Object.assign({volts:120,breaker:20,derate:true,useAvg:false,rear:false,
+  S.opt=Object.assign({volts:120,breaker:20,derate:true,useAvg:false,rear:true,
     showPower:true,showData:false,detail:'standard',snap:true,ui:'indigo',bits:8,procShared:true},S.opt||{});
   if(!BITF[S.opt.bits]) S.opt.bits=8;
   S.exp=Object.assign(defExp(),S.exp||{});

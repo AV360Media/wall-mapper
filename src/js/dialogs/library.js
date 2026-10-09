@@ -58,7 +58,12 @@ function chooseLib(id){
   closeMask('libModal'); syncForm(); renderSide(); redraw(); fitView(); save();
   setStatus(wasPanel?'Panel set — choose a processor when you are ready':'Processor set');
 }
-function openCustom(){ closeMask('libModal'); document.getElementById('cpModal').classList.remove('hide'); derive(); }
+function openCustom(){
+  closeMask('libModal'); ['cpSpec','cpLb','cpLocks'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('cpFound').textContent=''; document.getElementById('cpCols').innerHTML=''; specCol=0;
+  document.getElementById('cpModal').classList.remove('hide'); derive();
+  setTimeout(()=>document.getElementById('cpSpec').focus(),40);
+}
 function derive(){
   const g=id=>+document.getElementById(id).value||0;
   const wmm=g('cpWmm'),hmm=g('cpHmm'),pw=g('cpPw'),ph=g('cpPh');
@@ -74,6 +79,8 @@ function saveCustomPanel(){
     model:(g('cpModel')||'Panel')+(g('cpLabel')?' ('+g('cpLabel')+')':''),
     pitch:+g('cpPitch')||+(wmm/pw).toFixed(2),wmm,hmm,pw,ph,
     wmax:+g('cpWmax')||0,wavg:+g('cpWavg')||0,v:1};
+  if(+g('cpLb')>0) p.lb=+g('cpLb');
+  const lk=String(g('cpLocks')).split(/[,\s]+/).map(Number).filter(x=>x>0&&x<=45); if(lk.length) p.locks=lk;
   if(libDraft){ libDraft.custom=p; libDraft.panelId=p.id; closeMask('cpModal'); nwCheck(); return; }
   S.customPanels=S.customPanels||[]; S.customPanels.push(p);
   if(sc()) sc().panelId=p.id; else S.defPanel=p.id;

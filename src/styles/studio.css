@@ -356,3 +356,18 @@ body.crewmode>:not(#crew){display:none!important}
 .cw-list i{width:10px;height:10px;border-radius:3px;flex-shrink:0}
 .cw-list span{margin-left:auto;color:var(--tx2);font-size:12.5px;text-align:right}
 .cw-wait{padding:40px 0;text-align:center;color:var(--tx3)}
+/* spec sheet box in the add panel dialog */
+.spec{border:1.5px dashed var(--line2);border-radius:var(--r-md,12px);padding:12px;margin-bottom:14px;transition:border-color .2s,background .2s}
+.spec.over{border-color:var(--ac);background:var(--inner)}
+.spec label{display:block;font-size:12px;font-weight:600;color:var(--tx2);margin-bottom:6px}
+.spec textarea{width:100%;box-sizing:border-box;resize:vertical;min-height:58px;background:var(--inner);border:1px solid transparent;border-radius:var(--r-sm);color:var(--tx);font-size:12px;padding:8px 10px;font-family:var(--mono,monospace)}
+.spec textarea:focus{outline:none;background:var(--surface);border-color:var(--ac);box-shadow:var(--ring)}
+.spec-a{display:flex;align-items:flex-start;gap:10px;margin-top:8px}
+.spec-a .btn{flex:none}
+.spec-a .hint{margin:2px 0 0;font-size:11.5px;color:var(--tx2)}
+.spec-cols{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:11.5px;color:var(--tx3)}
+.spec-cols:not(:empty){margin-top:10px}
+.spec-cols button{border:1px solid var(--line2);background:transparent;color:var(--tx2);border-radius:99px;padding:4px 10px;font-size:11.5px;cursor:pointer}
+.spec-cols button.on{border-color:var(--ac);color:var(--tx);background:var(--inner)}
+@keyframes got{from{box-shadow:0 0 0 2px var(--ok)}to{box-shadow:0 0 0 2px transparent}}
+.f input.got{animation:got 1.6s ease-out}

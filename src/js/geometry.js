@@ -4,7 +4,8 @@
    degrees each lock number gives. s.yaw turns the whole screen in plan (+ is clockwise from above). */
 const rad=d=>d*Math.PI/180;
 const DEF_LOCKS=[2.5,5,7.5];
-const locksOf=s=>(Array.isArray(s.locks)&&s.locks.length?s.locks:DEF_LOCKS);
+const locksOf=s=>{ if(Array.isArray(s.locks)&&s.locks.length) return s.locks;   /* screen's own, else the panel's, else defaults */
+  const p=panelById(s.panelId); return p&&Array.isArray(p.locks)&&p.locks.length?p.locks:DEF_LOCKS; };
 const jointOf=(s,k)=>(s.joints&&s.joints[k])|0;
 const jointDeg=(s,k)=>{ const v=jointOf(s,k), L=locksOf(s); return v?Math.sign(v)*(L[Math.min(L.length,Math.abs(v))-1]||0):0; };
 const curved=s=>!!(s.joints&&s.joints.some((v,k)=>v&&k<s.cols-1));
@@ -68,7 +69,7 @@ function jointAt(s,b,t,lx){
 function setLocks(v){
   const s=sc(); if(!s) return;
   const L=String(v).split(/[,\s]+/).map(Number).filter(x=>x>0&&x<=45);
-  pushUndo('curve lock angles'); s.locks=L.length?L:DEF_LOCKS.slice();
+  pushUndo('curve lock angles'); if(L.length) s.locks=L; else delete s.locks;
   syncCurveForm(); renderSide(); syncGeo(); redraw(); save();
 }
 function setAllJoints(v){

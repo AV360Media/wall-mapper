@@ -3772,58 +3772,84 @@ function autoChain(){
   active[mode]=avail.length?avail[0].i:0;
   syncForm(); renderSlots(); redraw(); renderSide(); save();
 }
-/* Data runs use as few ports as the wall allows: each port is filled to capacity, so the run
-   count is always ceil(tiles / tiles-per-port). Within that minimum the cleanest layout wins:
-   whole rows (or columns) starting on the feed edge, so every home run comes in along that one
-   edge. Side feeds number from the bottom row up; top and bottom feeds from left to right.
-   Only when whole lines would cost an extra port does it fall back to one continuous snake
-   cut at capacity, where some runs start where the last one ended. */
-function dataLayout(s,feed,cap){
+/* Data runs are mapped the way an LED tech would: every run is a block of whole lines
+   (columns for a top or bottom feed, rows for a side feed) snaking out from the feed edge, so
+   every home run starts on that one edge. Lines per run are as many as a port carries, then
+   balanced so the runs come out as even as possible (3,3,2,2 columns, never 3,3,3,1).
+   Side feeds number from the bottom row up; top and bottom feeds from left to right.
+   A line longer than a port splits the wall into bands; each band's runs start along its
+   edge nearest the feed. */
+function dataLayout(s,feed,cap,nb){
   const vert=feed==='top'||feed==='bottom', D=vert?s.rows:s.cols, A=vert?s.cols:s.rows;
   const flip=feed==='bottom'||feed==='right';
   const at=(d,a)=>{ const dd=flip?D-1-d:d; return vert?[dd,a]:[A-1-a,dd]; };
   const live=(d,a)=>{ const[r,c]=at(d,a); return !isOff(s,r,c); };
-  const line=(a,ds,back)=>(back?[...ds].reverse():ds).filter(d=>live(d,a)).map(d=>({d,t:key(...at(d,a))}));
-  const all=[...Array(D).keys()], min=Math.ceil(tileCount(s)/cap);
-  /* whole lines, greedily packed to capacity, in bands when one line is longer than a port */
-  const nb=Math.ceil(D/cap), whole=[];
+  const line=(a,ds,back)=>(back?[...ds].reverse():ds).filter(d=>live(d,a)).map(d=>key(...at(d,a)));
+  const runs=[];
   for(let b=0,d0=0;b<nb;b++){
-    const h=Math.floor(D/nb)+(b<D%nb?1:0), ds=all.slice(d0,d0+h); d0+=h;
-    let g=null;
-    for(let a=0;a<A;a++){
-      const n=ds.filter(d=>live(d,a)).length; if(!n) continue;
-      if(!g||g.n+n>cap){ g={n:0,ls:[],ds}; whole.push(g); }
-      g.ls.push(a); g.n+=n;
+    const h=Math.floor(D/nb)+(b<D%nb?1:0), ds=[...Array(h).keys()].map(i=>d0+i); d0+=h;
+    const ls=[...Array(A).keys()].map(a=>({a,n:ds.filter(d=>live(d,a)).length})).filter(x=>x.n);
+    splitEven(ls.map(x=>x.n),cap).forEach(g=>runs.push(g.flatMap((i,j)=>line(ls[i].a,ds,j%2))));
+  }
+  const n=runs.map(r=>r.length);
+  return {feed,nb,runs,lo:Math.min(...n),hi:Math.max(...n)};
+}
+/* Cut a row of line sizes into the fewest consecutive groups that fit cap, then pick the cut
+   with the most even group sizes (least sum of squares), bigger groups first on a tie */
+function splitEven(w,cap){
+  const m=w.length, P=[0]; w.forEach(x=>P.push(P[P.length-1]+x));
+  let g=0; for(let i=0,t=0;i<m;i++){ if(!g||t+w[i]>cap){ g++; t=0; } t+=w[i]; }
+  const f=[[0,...Array(m).fill(Infinity)]], pick=[[]];
+  for(let k=1;k<=g;k++){
+    f[k]=Array(m+1).fill(Infinity); pick[k]=[];
+    for(let i=1;i<=m;i++) for(let j=i-1;j>=0&&P[i]-P[j]<=cap;j--){
+      const v=f[k-1][j]+(P[i]-P[j])**2;
+      if(v<f[k][i]){ f[k][i]=v; pick[k][i]=j; }
     }
   }
-  if(whole.length<=min) return {feed,clean:true,runs:whole.map(g=>g.ls.flatMap((a,i)=>line(a,g.ds,i%2)).map(x=>x.t))};
-  /* one snake through the wall, cut every cap tiles */
-  const seq=[...Array(A).keys()].flatMap((a,i)=>line(a,all,i%2)), runs=[];
-  let edge=0;
-  for(let i=0;i<seq.length;i+=cap){ runs.push(seq.slice(i,i+cap).map(x=>x.t)); if(!seq[i].d) edge++; }
-  return {feed,clean:false,edge,runs};
+  const out=[];
+  for(let k=g,i=m;k>0;k--){ const j=pick[k][i]; out.unshift([...Array(i-j).keys()].map(x=>j+x)); i=j; }
+  return out;
 }
-/* Auto tries each edge and keeps the first that reaches the minimum with whole lines, else the
-   snake with the most runs starting on its edge */
-const FEEDS=['left','top','right','bottom'];
-/* every run fills its port: tiles per port come from the processor, or from a standard
-   1 Gb port (650k px at 8-bit) until a processor model is picked */
+/* Auto tries each edge, bottom first, and keeps the fewest ports, then the most even runs.
+   Bands only win when they save real ports (over 10%, at least 2), since one clean feed edge
+   is worth a spare port */
+const FEEDS=['bottom','left','right','top'];
+/* tiles per port come from the processor, or from a standard 1 Gb port (650k px at 8-bit)
+   until a processor model is picked */
 const STD_PORT=650000;
 const portPx=s=>portCap(procOf(s))||Math.round(STD_PORT*bitFactor());
 const tilesPerPort=s=>{ const p=panelById(s.panelId); return p?Math.floor(portPx(s)/(p.pw*p.ph)):0; };
+function bestData(s,cap){
+  const want=s.feed||'auto';
+  let best=null;
+  (want==='auto'?FEEDS:[want]).forEach(f=>{
+    const D=(f==='top'||f==='bottom')?s.rows:s.cols, nb0=Math.ceil(D/cap);
+    for(let nb=nb0;nb<=Math.min(D,nb0+2);nb++){
+      const L=dataLayout(s,f,cap,nb);
+      L.cost=L.runs.length+(nb-1)*Math.max(2,Math.ceil(L.runs.length/10));
+      if(!best||L.cost<best.cost||(L.cost===best.cost&&
+        (L.nb<best.nb||(L.nb===best.nb&&L.hi-L.lo<best.hi-best.lo)))) best=L;
+    }
+  });
+  return best;
+}
 function autoData(s){
-  const p=panelById(s.panelId), cap=tilesPerPort(s), want=s.feed||'auto';
+  const p=panelById(s.panelId), cap=tilesPerPort(s);
   if(!cap){ setStatus('One '+p.model+' is more than a port can carry at '+bitDepth()+'-bit'); return; }
-  const L=want==='auto'
-    ? FEEDS.map(f=>dataLayout(s,f,cap)).reduce((b,x)=>(b.clean||(!x.clean&&x.edge<=b.edge))?b:x)
-    : dataLayout(s,want,cap);
-  const runs=L.runs, list=s.runs, u=unitOf(s);
+  const L=bestData(s,cap), runs=L.runs, list=s.runs, u=unitOf(s);
   list.forEach(ch=>ch.tiles=[]);
+  if(!runs.length){ setStatus('No tiles to map'); return; }
   const avail=list.map((ch,i)=>({ch,i})).filter(x=>!(isBackupRun(s,x.ch)||portOwner(u,x.i,s)));
   runs.forEach((t,n)=>{ if(avail[n]) avail[n].ch.tiles=t; });
   const side={left:'down the left side',right:'down the right side',top:'along the top',bottom:'along the bottom'}[L.feed];
+  const size=L.lo===L.hi?`${L.hi} tiles each`:`${L.lo}–${L.hi} tiles each`;
+  const extra=runs.length-Math.ceil(tileCount(s)/cap);
   if(runs.length>avail.length) setStatus(`Needs ${runs.length} ports, only ${avail.length} free — add a processor and move this screen to it`);
-  else setStatus(`${runs.length} data run${runs.length===1?'':'s'}, up to ${cap} tiles each, home runs ${side}${L.clean?'':' (some start mid-wall to save ports)'}${portCap(procOf(s))?'':' — standard 650k port assumed, pick a processor for its exact capacity'}`);
+  else setStatus(`${runs.length} data run${runs.length===1?'':'s'}, ${size} (port holds ${cap}), home runs ${side}`
+    +(L.nb>1?` in ${L.nb} bands`:'')
+    +(extra>0?` · ${extra} port${extra===1?'':'s'} over the bare minimum so every run starts on the edge`:'')
+    +(portCap(procOf(s))?'':' — standard 650k port assumed, pick a processor for its exact capacity'));
   active.data=avail.length?avail[0].i:0;
   syncForm(); renderSlots(); redraw(); renderSide(); save();
 }
@@ -4059,7 +4085,7 @@ function syncForm(){
   document.getElementById('aoLenWrap').style.display=mode==='data'?'none':'';
   const an=document.getElementById('aoNote'), tp=p?tilesPerPort(s):0;
   an.style.display=mode==='data'&&tp?'':'none';
-  an.textContent=tp?`Fills each port: up to ${tp} tiles (${pxN(portPx(s))} px at ${bitDepth()}-bit${pr&&portCap(pr)?'':', standard port until a processor is picked'})`:'';
+  an.textContent=tp?`Each port carries up to ${tp} tiles (${pxN(portPx(s))} px at ${bitDepth()}-bit${pr&&portCap(pr)?'':', standard port until a processor is picked'})`:'';
   const pk=document.getElementById('panelPick');
   pk.innerHTML=p
     ? `<span class="t">${escp(p.brand+' '+p.model)}</span><span class="s">${p.pitch} mm · ${p.pw}×${p.ph} px · ${p.lb||'?'} lb</span>`

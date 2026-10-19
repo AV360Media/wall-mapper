@@ -153,7 +153,7 @@ function syncForm(){
   document.getElementById('aoLenWrap').style.display=mode==='data'?'none':'';
   const an=document.getElementById('aoNote'), tp=p?tilesPerPort(s):0;
   an.style.display=mode==='data'&&tp?'':'none';
-  an.textContent=tp?`Fills each port: up to ${tp} tiles (${pxN(portPx(s))} px at ${bitDepth()}-bit${pr&&portCap(pr)?'':', standard port until a processor is picked'})`:'';
+  an.textContent=tp?`Each port carries up to ${tp} tiles (${pxN(portPx(s))} px at ${bitDepth()}-bit${pr&&portCap(pr)?'':', standard port until a processor is picked'})`:'';
   const pk=document.getElementById('panelPick');
   pk.innerHTML=p
     ? `<span class="t">${escp(p.brand+' '+p.model)}</span><span class="s">${p.pitch} mm · ${p.pw}×${p.ph} px · ${p.lb||'?'} lb</span>`
